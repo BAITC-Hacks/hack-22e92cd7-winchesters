@@ -172,14 +172,13 @@ npm run dev
 - Используются только синтетические данные
 - CORS открыт для разработки
 - AI-оценивание зависит от доступности и стоимости Claude API
-- Детекция AI-текстов носит эвристический характер, а не криминалистический
+- Детекция AI-текстов основана на статистическом анализе
 
 ---
 
 ## Команда
 
-_TODO_
+Rauan Salkenov - Developer
+Arman Sagnaev - Product Designer, Illustrator
+Aidar Islyamov - UX/UI Designer
 
-## Лицензия
-
-_TODO_
