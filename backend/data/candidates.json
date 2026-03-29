@@ -1,0 +1,843 @@
+[
+  {
+    "id": "c-001",
+    "name": "Aigerim Tastanova",
+    "age": 17,
+    "application": {
+      "education": {
+        "school_type": "lyceum",
+        "gpa": 3.9,
+        "academic_achievements": [
+          "National Math Olympiad - 2nd place",
+          "Regional Science Fair - 1st place",
+          "Presidential Scholarship recipient"
+        ],
+        "years_of_study": 11
+      },
+      "extracurriculars": [
+        {
+          "activity": "Debate Club",
+          "duration_months": 36,
+          "role": "president"
+        },
+        {
+          "activity": "Volunteer tutoring for younger students",
+          "duration_months": 24,
+          "role": "organizer"
+        },
+        {
+          "activity": "School newspaper",
+          "duration_months": 18,
+          "role": "editor"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Free math tutoring program for rural schools",
+          "role": "founder",
+          "impact": "Reached 150+ students in 5 villages over 2 years"
+        }
+      ],
+      "languages": [
+        "Kazakh",
+        "Russian",
+        "English"
+      ],
+      "skills": [
+        "public speaking",
+        "mathematics",
+        "project management",
+        "writing"
+      ]
+    },
+    "essay": {
+      "prompt": "Describe a challenge you overcame and what it taught you about leadership.",
+      "text": "When I started tutoring kids in Zhambyl village, I thought math was universal — numbers don't need translation. I was wrong. The children didn't struggle with equations; they struggled with believing they deserved to learn them. Most had never met anyone who went to university. I remember one girl, Madina, who kept erasing her correct answers because she assumed they must be wrong.\n\nI realized that teaching math wasn't enough. I needed to teach belief. So I changed my approach completely. Instead of lecturing, I asked them to teach each other. Madina became the 'expert' on fractions because I noticed she quietly solved them faster than anyone. When her classmates came to her for help, I watched something shift in her eyes.\n\nThis experience broke something in me — the idea that leadership means having answers. Real leadership, I learned, is about seeing what others can't see in themselves and creating conditions where they discover it. I failed many times that first semester. My lesson plans were terrible. Three kids dropped out because I couldn't make it interesting enough. But each failure taught me to listen more and assume less.\n\nThe program now runs in five villages with twelve volunteer tutors I trained. I don't run the sessions anymore — the tutors do. And that's the point. The best leadership makes itself unnecessary."
+    },
+    "interview_transcript": "Q: Why do you want to attend inVision U?\nA: I've built something small that works in five villages. I want to learn how to think at a scale where I can change how education works across Kazakhstan. inVision U isn't just a university — it's a community of people who believe that Central Asia can lead, not just follow. I want to be part of building that future.\n\nQ: What's your biggest weakness?\nA: I take on too much and then feel guilty asking for help. Last year I almost burned out running the tutoring program, school newspaper, and debate club simultaneously. I've learned to delegate but it's still hard for me to let go of control.\n\nQ: Tell us about a time you failed.\nA: My first three tutoring sessions were disasters. I prepared university-level explanations for 12-year-olds. The kids were bored and confused. One boy told me 'you talk like a textbook.' That was the wake-up call I needed to completely redesign my approach.",
+    "recommendation_summary": "Aigerim is one of the most driven and empathetic students I have taught in 20 years. She combines intellectual rigor with genuine care for others. Her tutoring initiative demonstrates real leadership — she built something sustainable, not just impressive for a CV."
+  },
+  {
+    "id": "c-002",
+    "name": "Damir Kozhaev",
+    "age": 18,
+    "application": {
+      "education": {
+        "school_type": "public",
+        "gpa": 3.2,
+        "academic_achievements": [
+          "Regional robotics competition - 3rd place"
+        ],
+        "years_of_study": 11
+      },
+      "extracurriculars": [
+        {
+          "activity": "Robotics club",
+          "duration_months": 30,
+          "role": "member"
+        },
+        {
+          "activity": "Part-time job at family repair shop",
+          "duration_months": 48,
+          "role": "technician"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Automated irrigation system for grandmother's garden",
+          "role": "sole builder",
+          "impact": "Reduced water usage by 40%, built from recycled parts costing under $30"
+        },
+        {
+          "name": "Repair workshop YouTube channel",
+          "role": "creator",
+          "impact": "1,200 subscribers, teaches basic electronics repair in Kazakh language"
+        }
+      ],
+      "languages": [
+        "Kazakh",
+        "Russian"
+      ],
+      "skills": [
+        "electronics repair",
+        "robotics",
+        "practical engineering",
+        "resourcefulness"
+      ]
+    },
+    "essay": {
+      "prompt": "Опишите трудность, которую вы преодолели, и чему она научила вас в плане лидерства.",
+      "text": "Я живу в маленьком городе, где ближайший сервисный центр — в двух часах езды. Когда у соседей ломается телефон или чайник, они приходят к нам. Бабушка держит мастерскую уже двадцать лет, и с тринадцати лет я помогаю ей после школы.\n\nСначала я просто подавал инструменты. Потом начал разбираться сам — смотрел видео на YouTube, читал форумы. Первый телефон, который я починил самостоятельно, был старый Samsung с разбитым экраном. Я заказал запчасть из Алматы, ждал две недели и три часа менял экран по видеоинструкции. Когда он включился, я чуть не закричал.\n\nПостепенно ремонт превратился в нечто большее. Я заметил, что у бабушки на огороде проблема с поливом — воды мало, а таскать вёдра ей тяжело. Я собрал капельную систему полива из старых шлангов и пластиковых бутылок. Работает не идеально, но бабушка говорит, что урожай стал лучше.\n\nПотом я сделал похожую систему для соседа. Потом ещё для одного. Я начал снимать видео о том, как делать простые вещи из подручных материалов — починить кран, собрать полив, заменить розетку. Канал маленький, но люди пишут, что им помогает.\n\nЯ не считаю себя лидером. Я просто люблю чинить вещи и помогать людям вокруг. Но может быть, лидерство — это и есть видеть, что нужно людям рядом, и делать это, не дожидаясь, пока кто-то попросит.",
+      "word_count": 209
+    },
+    "interview_transcript": "Q: Почему вы хотите поступить в inVision U?\nA: Я хочу научиться делать вещи по-настоящему, не только из подручных материалов. Я понимаю, как устроены механизмы, но мне не хватает инженерного образования. В нашем городе нет возможности этому учиться, а в inVision U я смогу развиваться.\n\nQ: Какая ваша главная слабость?\nA: Я плохо умею просить о помощи. Привык всё делать сам, и иногда трачу на задачу три дня, хотя мог бы спросить кого-то за пять минут. Над этим работаю.\n\nQ: Расскажите о вашей неудаче.\nA: Однажды я взялся чинить стиральную машину, хотя вообще не разбирался в них. Разобрал, не смог собрать, и соседке пришлось вызывать мастера из города. Мне было очень стыдно. С тех пор я не берусь за то, в чём не уверен, пока не изучу тему.",
+    "recommendation_summary": "Дамир — исключительно практичный и самостоятельный ученик. Его способность самостоятельно осваивать технические навыки и применять их для помощи окружающим говорит о зрелости и ответственности."
+  },
+  {
+    "id": "c-003",
+    "name": "Asel Muratova",
+    "age": 17,
+    "application": {
+      "education": {
+        "school_type": "private",
+        "gpa": 3.95,
+        "academic_achievements": [
+          "National Biology Olympiad - 1st place",
+          "International Science Olympiad - participant",
+          "School valedictorian",
+          "Cambridge English Certificate - C1"
+        ],
+        "years_of_study": 11
+      },
+      "extracurriculars": [
+        {
+          "activity": "Student council",
+          "duration_months": 24,
+          "role": "vice-president"
+        },
+        {
+          "activity": "Biology research internship at university lab",
+          "duration_months": 6,
+          "role": "intern"
+        },
+        {
+          "activity": "Piano",
+          "duration_months": 96,
+          "role": "performer"
+        }
+      ],
+      "projects": [],
+      "languages": [
+        "Kazakh",
+        "Russian",
+        "English",
+        "Turkish"
+      ],
+      "skills": [
+        "biology",
+        "research methodology",
+        "academic writing",
+        "piano"
+      ]
+    },
+    "essay": {
+      "prompt": "Describe a challenge you overcame and what it taught you about leadership.",
+      "text": "Leadership is a multifaceted concept that encompasses various dimensions of personal and professional development. Throughout my academic journey, I have encountered numerous challenges that have significantly contributed to my growth as a leader and shaped my understanding of what it means to guide others toward a common goal.\n\nOne particularly transformative experience occurred during my participation in the National Biology Olympiad. The preparation process was rigorous and demanding, requiring me to develop advanced study strategies and time management skills. I demonstrated leadership by organizing study groups for my fellow competitors, creating comprehensive review materials, and fostering a collaborative learning environment.\n\nThe challenge of balancing academic excellence with extracurricular commitments taught me valuable lessons about prioritization and resilience. As vice-president of the student council, I implemented several initiatives aimed at improving student engagement and academic support systems. These experiences reinforced my belief that effective leadership requires both strategic thinking and emotional intelligence.\n\nFurthermore, my research internship at the university laboratory provided me with insights into scientific leadership and the importance of mentorship. Working alongside experienced researchers, I learned that true leaders are those who empower others to reach their full potential while maintaining the highest standards of integrity and excellence.\n\nIn conclusion, my journey has taught me that leadership is not merely about achieving personal success, but about creating meaningful impact and inspiring others to pursue their aspirations with determination and purpose."
+    },
+    "interview_transcript": "Q: Why do you want to attend inVision U?\nA: I believe inVision U represents a unique opportunity to combine academic excellence with practical impact. The university's mission aligns with my personal values of innovation and leadership development.\n\nQ: What's your biggest weakness?\nA: I sometimes focus too much on perfection, which can slow down my progress. I'm learning to balance quality with efficiency.\n\nQ: Tell us about a time you failed.\nA: During my first science olympiad in 9th grade, I didn't advance past the regional round. I analyzed my mistakes systematically and developed a more structured preparation approach, which ultimately led to my national-level success.",
+    "recommendation_summary": "Asel is an exceptional student with outstanding academic credentials. She is disciplined, articulate, and consistently performs at the highest level. She would be an asset to any academic institution."
+  },
+  {
+    "id": "c-004",
+    "name": "Nursultan Akhmetov",
+    "age": 18,
+    "application": {
+      "education": {
+        "school_type": "gymnasium",
+        "gpa": 3.6,
+        "academic_achievements": [
+          "Regional History Competition - 1st place",
+          "City-level debate tournament - finalist"
+        ],
+        "years_of_study": 11
+      },
+      "extracurriculars": [
+        {
+          "activity": "Youth Parliament program",
+          "duration_months": 18,
+          "role": "delegate"
+        },
+        {
+          "activity": "Community clean-up initiative",
+          "duration_months": 12,
+          "role": "co-founder"
+        },
+        {
+          "activity": "School basketball team",
+          "duration_months": 36,
+          "role": "captain"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Plastic-free campus campaign",
+          "role": "co-founder",
+          "impact": "Eliminated single-use plastic in school cafeteria, adopted by 3 neighboring schools"
+        },
+        {
+          "name": "Youth civic education workshops",
+          "role": "lead facilitator",
+          "impact": "Conducted 15 workshops reaching 300+ students on democratic participation"
+        }
+      ],
+      "languages": [
+        "Kazakh",
+        "Russian",
+        "English"
+      ],
+      "skills": [
+        "public speaking",
+        "community organizing",
+        "civic education",
+        "team sports"
+      ]
+    },
+    "essay": {
+      "prompt": "Сіз жеңіп шыққан қиындықты және ол сізге көшбасшылық туралы нені үйреткенін сипаттаңыз.",
+      "text": "Өткен жылы біздің мектептің асханасы пластикке батып жатты. Бөтелкелер, орамалар, пакеттер — әр түскі ас кезінде қоқыс үйіндісі пайда болатын. Бәрі шағымданатын. Ешкім ештеңе істемейтін. Мен бірдеңе істейтін адам болуға шештім, қалай екенін білмесем де.\n\nДосым Арманмен екеуміз 'Пластиксіз мектеп' акциясын бастадық. Оңай болады деп ойладық — асханадан көп рет қолданылатын ыдыстарға ауысуды сұрасақ болғаны. Аңғал екенбіз. Асхана меңгерушісі қымбат дейді. Директор 'маңызды емес' дейді. Оқушылардың жартысы бізді тітіркендіргіш деп ойлады.\n\nСонда тактиканы өзгерттік. Рұқсат сұраудың орнына мүмкін екенін дәлелдедік. Бір жыл ішінде бір рет қолданылатын және көп рет қолданылатын ыдыстардың құнын есептедік — көп рет қолданылатыны арзанырақ екен. Мектеп кеңесіне нақты сандармен презентация жасадық. Сыныптар арасында 'Нөлдік қоқыс аптасы' челлендж ұйымдастырдық — кім аз қоқыс шығарады деген сайыс.\n\nБұрылыс нүктесі — жергілікті газет біздің 'Нөлдік қоқыс аптасы' туралы жазғанда болды. Кенет директор мәселеге көңіл бөлді. Асхана меңгерушісі бюджет тапты. Үш басқа мектеп біздің бағдарламаны қалай қайталауға болатынын сұрады.\n\nМен үйренген нәрсе — көшбасшылық билік емес, табандылық пен көзге көрінбейтінді көрінетін ету. Біз көрсеткенше ешкім пластик мәселесін шешуге болады деп ойламаған. Ең қиыны логистика емес еді. Ең қиыны — адамдарды өзгеріс ыңғайсыздыққа тұрарлық екеніне сендіру.\n\nМен өзімді әлі 'көшбасшы' деп санамаймын — мен проблемаларға ашуланып, шешілгенше тыным таппайтын адаммын."
+    },
+    "interview_transcript": "С: Сіз неге inVision U-ға түскіңіз келеді?\nЖ: Мен мектеп асханасынан үлкенірек мәселелермен айналысқым келеді. Қоғамымда көптеген проблемалар бар — қоқыс басқару, жастардың белсенділігінің төмендігі, азаматтық білім берудің жетіспеушілігі. inVision U — бірдеңе сынық көрсе отыра алмайтын адамдармен кездесетін және жүйелік деңгейде мәселелерді шешуді үйренетін орын.\n\nС: Сіздің ең үлкен әлсіз жағыңыз не?\nЖ: Шыдамсыз боламын. Проблеманы көргенде бірден шешкім келеді, кейде жоспарды толық ойланбай әрекетке кірісіп кетемін. Арман, менің серіктесім, маған баяулап, стратегиялық ойлауды үйретті.\n\nС: Сәтсіздікке ұшыраған кезіңіз туралы айтыңыз.\nЖ: Азаматтық білім беру семинарларының алғашқы әрекеті сәтсіз болды. Дәріс түрінде презентация дайындадым, оқушылар зерігіп кетті. Мен нашар мұғалімдердің дәл сол қатесін жасап жатқанымды түсіндім. Семинарларды интерактивті симуляцияларға өзгерттім — жалған сайлаулар, бюджет бөлу ойындары, пікірталас шеңберлері. Қатысушылар саны үш есеге артты.",
+    "recommendation_summary": "Nursultan is a natural leader who leads by doing, not by talking. His plastic-free campaign showed initiative, strategic thinking, and the ability to rally others. He has a rare combination of passion and pragmatism."
+  },
+  {
+    "id": "c-005",
+    "name": "Kamila Yessenova",
+    "age": 17,
+    "application": {
+      "education": {
+        "school_type": "public",
+        "gpa": 3.4,
+        "academic_achievements": [
+          "School Art Competition - 1st place"
+        ],
+        "years_of_study": 11
+      },
+      "extracurriculars": [
+        {
+          "activity": "Art therapy volunteer at children's hospital",
+          "duration_months": 18,
+          "role": "volunteer"
+        },
+        {
+          "activity": "Instagram art account",
+          "duration_months": 24,
+          "role": "creator"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Art therapy workshops for hospitalized children",
+          "role": "initiator",
+          "impact": "Weekly sessions for 6 months, hospital staff reported improved patient morale"
+        }
+      ],
+      "languages": [
+        "Kazakh",
+        "Russian"
+      ],
+      "skills": [
+        "visual arts",
+        "empathy",
+        "creative thinking",
+        "social media"
+      ]
+    },
+    "essay": {
+      "prompt": "Сіз жеңіп шыққан қиындық пен оның көшбасшылық туралы не үйреткенін сипаттаңыз.",
+      "text": "Мен өзімді көшбасшы деп ойламаймын. Мен суретшімін. Бірақ кейде бұл бір нәрсе шығар.\n\nАлты ай бұрын қалалық 4-ші ауруханаға, балалар бөліміне бара бастадым. Түрлі-түсті қарындаштар мен қағаз алып бардым. Ешқандай жоспарым жоқ еді. Бірақ ауруханадағы балалардың қорқатынын, зерігетінін білдім, ал сурет салу екеуіне де көмектеседі.\n\nБірінші рет екі-ақ бала қатысты. Тимур деген бала — сегіз жаста, операциядан кейін жатқан — маған қарағысы да келмеді. Қабырғаға қарап жатты. Мен жанына отырып, сурет сала бастадым. Сөйлемедім, тек салдым. Жиырма минуттан кейін ол көк қарындаш сұрады. Бір сағат бойы үндемей бірге сурет салдық.\n\nТимур менің келетін күнімді күте бастады. Сосын басқа балалар да. Медбикелер менің келген күндерімде балалардың тынышырақ болатынын байқады. Бір медбике жылап айтты — Тимур менен бұрын бірнеше апта ешкіммен сөйлеспепті.\n\nКейде көшбасшылық біз ойлағандай емес екенін түсіндім. Ол сөз сөйлеу мен науқан емес. Кейде ол — біреудің жанына тыныш отырып, көк қарындаш ұсыну.\n\nМаған қиын болған нәрсе аурухана емес — өзім болдым. Ауру балаларды көруден қорқуды, өнердің шынымен көмектесетініне күмәнданбауды, медициналық жерде орын алуға ұялмауды үйренуім керек еді. Әр барған сайын эмоциялық жағынан қиын болды. Кейбір апталарда барғым келмеді. Бірақ Тимурдың бірінші суретін — ауруханадан алысқа ұшып бара жатқан ғарыш кемесін — аяқтағандағы бетін есіме түсіріп, қарындаштарымды жинап, жолға шығатынмын.\n\nҚазір аптасына бір рет сабақ өткіземін, үш студент-волонтёрды үйреттім. Аурухана балалар бөліміне қабырға суреттерін салуды сұрады. Бұл әлі кішкентай нәрсе. Бірақ ол шынайы."
+    },
+    "interview_transcript": "Q: Неге inVision U-ға түскіңіз келеді?\nA: Кішкентай, жеке нәрсені көп адамға көмектесетін нәрсеге айналдыруды үйренгім келеді. Арт-терапия жұмыс істейтінін білемін — көзіммен көрдім. Бірақ оны қалай кеңейту керек, қаржыландыру керек, нағыз бағдарлама жасау керек — білмеймін. Маған сол дағдылар керек.\n\nQ: Сіздің басты әлсіз жағыңыз не?\nA: Оқуда онша жақсы емеспін. Бағаларым орташа, өйткені уақытымның көбін өнерге және волонтёрлікке жұмсаймын. Математика мен жаратылыстану да қиын. Университетте ілесе аламын ба деп алаңдаймын.\n\nQ: Сәтсіздікке ұшыраған кезіңізді айтып беріңіз.\nA: Аурухана жабдықтарына ақша жинау үшін көрме ұйымдастырмақ болдым. Ешкім дерлік келмеді. Тек инстаграмда жарнамалап, өз ортамнан шыға алмадым. Жақсы мақсат жеткіліксіз екенін түсіндім — оны дұрыс аудиторияға жеткізе білу керек екен.",
+    "recommendation_summary": "Kamila is quiet but deeply impactful. Her art therapy initiative at the hospital shows maturity and emotional intelligence beyond her years. She may not have the strongest academic profile, but her capacity for empathy and creative problem-solving is remarkable."
+  },
+  {
+    "id": "c-006",
+    "name": "Arman Bekov",
+    "age": 18,
+    "application": {
+      "education": {
+        "school_type": "private",
+        "gpa": 3.85,
+        "academic_achievements": [
+          "National Economics Olympiad - 3rd place",
+          "MUN Best Delegate award",
+          "IELTS 7.5"
+        ],
+        "years_of_study": 11
+      },
+      "extracurriculars": [
+        {
+          "activity": "Model United Nations",
+          "duration_months": 24,
+          "role": "secretary-general"
+        },
+        {
+          "activity": "School business club",
+          "duration_months": 18,
+          "role": "president"
+        },
+        {
+          "activity": "Tennis",
+          "duration_months": 60,
+          "role": "player"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Student marketplace app concept",
+          "role": "team lead",
+          "impact": "Won school startup competition, concept stage only"
+        }
+      ],
+      "languages": [
+        "Russian",
+        "English",
+        "Kazakh"
+      ],
+      "skills": [
+        "public speaking",
+        "economics",
+        "negotiation",
+        "business planning"
+      ]
+    },
+    "essay": {
+      "prompt": "Describe a challenge you overcame and what it taught you about leadership.",
+      "text": "As Secretary-General of our school's Model United Nations, I faced the challenge of organizing a conference for 200 delegates from 15 schools. The logistics were overwhelming — venues, schedules, committee topics, judge recruitment. Two weeks before the event, our venue cancelled.\n\nI immediately convened an emergency meeting with my team of 12 organizers. We brainstormed alternatives and within 48 hours secured a new venue at the city cultural center. I delegated tasks efficiently: communications team handled school notifications, logistics team managed the new floor plan, and I personally called every judge to confirm the venue change.\n\nThe conference was a success. We received positive feedback from 95% of participants in our post-event survey. The experience taught me that leadership means staying calm under pressure, making quick decisions with incomplete information, and trusting your team to execute.\n\nI also learned the importance of contingency planning. Now I always prepare backup options for critical elements of any project I manage. This systematic approach to risk management has become a cornerstone of my leadership philosophy.\n\nFurthermore, this experience reinforced my passion for international relations and diplomacy, fields where leadership and negotiation skills are paramount."
+    },
+    "interview_transcript": "Q: Why do you want to attend inVision U?\nA: inVision U combines academic rigor with entrepreneurial thinking. I want to build businesses that solve real problems in Central Asia, and I believe inVision U's network and approach will give me the foundation to do that.\n\nQ: What's your biggest weakness?\nA: I can be overly competitive. Sometimes I focus too much on winning — debates, competitions, grades — and forget that collaboration might produce better outcomes than competition.\n\nQ: Tell us about a time you failed.\nA: My startup app idea won the school competition but when we tried to actually build it, we realized none of us had the technical skills. The project stalled. I learned that ideas without execution capability are worthless, which is why I've started learning basic programming.",
+    "recommendation_summary": "Arman is a polished, ambitious student with strong organizational and communication skills. He excels in competitive academic environments and has demonstrated leadership in managing large-scale events."
+  },
+  {
+    "id": "c-007",
+    "name": "Zarina Ospanova",
+    "age": 17,
+    "application": {
+      "education": {
+        "school_type": "public",
+        "gpa": 3.1,
+        "academic_achievements": [],
+        "years_of_study": 11
+      },
+      "extracurriculars": [
+        {
+          "activity": "Helping elderly grandmother with daily errands",
+          "duration_months": 72,
+          "role": "family helper"
+        },
+        {
+          "activity": "Part-time work at grocery store",
+          "duration_months": 24,
+          "role": "cashier"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Интерактивная карта доступности транспорта Астаны",
+          "role": "автор",
+          "impact": "Используется пожилыми людьми, данные запрошены акиматом для ремонта остановок"
+        }
+      ],
+      "languages": [
+        "Kazakh",
+        "Russian"
+      ],
+      "skills": [
+        "caregiving",
+        "problem-solving",
+        "mapping",
+        "perseverance"
+      ]
+    },
+    "essay": {
+      "prompt": "Опишите трудность, которую вы преодолели, и чему она научила вас в плане лидерства.",
+      "text": "Моя бабушка живёт на окраине Астаны. Ей 74 года, и каждую неделю она ездит в поликлинику на другой конец города. Это занимает полтора часа в одну сторону — два автобуса с пересадкой, и ни на одной остановке нет нормальной скамейки.\n\nОднажды зимой она упала на обледеневшей остановке и сильно ушибла руку. В тот вечер я посмотрела на карту города другими глазами. Я начала замечать то, что раньше не видела: высокие ступеньки в автобусах, отсутствие навесов на остановках, таблички с расписанием, которые невозможно прочитать.\n\nЯ решила составить карту удобства городского транспорта. Три месяца я ездила по маршрутам, фотографировала остановки, замеряла высоту ступенек, отмечала наличие скамеек и навесов. Всё это я нанесла на интерактивную карту и опубликовала в городских группах.\n\nРеакция удивила. Пожилые люди писали, что теперь выбирают маршруты по моей карте. Одна женщина написала: 'Спасибо, что заметили нас.' Городской акимат запросил мои данные для планирования ремонта остановок.\n\nМои оценки не самые высокие. Я учусь, когда получается — между работой в продуктовом магазине и помощью бабушке. Но я думаю, что понимаю кое-что о мире, чего не прочитаешь в учебнике. Лидерство — это не громкие речи. Это внимание к тем, кого обычно не замечают.",
+      "word_count": 191
+    },
+    "interview_transcript": "Q: Почему вы хотите поступить в inVision U?\nA: Я хочу заниматься городской средой и сделать города удобными для всех — не только для молодых и здоровых. В inVision U я смогу научиться работать с данными и технологиями, чтобы масштабировать то, что я начала.\n\nQ: Какая ваша главная слабость?\nA: Я слишком эмоционально реагирую, когда вижу несправедливость. Иногда это мешает мне думать стратегически — хочется всё исправить сразу, а нужно расставлять приоритеты.\n\nQ: Расскажите о вашей неудаче.\nA: Я попыталась организовать встречу с представителями акимата, чтобы обсудить проблемы транспорта. Пришла подготовленная, с данными и картой. Но чиновник просто сказал 'мы учтём' и ничего не изменилось. Я поняла, что нужно менять подход — не просто показывать проблему, а предлагать конкретные решения с бюджетом.",
+    "recommendation_summary": "Зарина обладает редким сочетанием эмпатии и практичности. Её проект по картированию транспортной доступности показывает зрелость и системное мышление."
+  },
+  {
+    "id": "c-008",
+    "name": "Baurzhan Tulegenov",
+    "age": 18,
+    "application": {
+      "education": {
+        "school_type": "lyceum",
+        "gpa": 3.7,
+        "academic_achievements": [
+          "National Programming Contest - finalist",
+          "Regional Math Olympiad - 2nd place"
+        ],
+        "years_of_study": 11
+      },
+      "extracurriculars": [
+        {
+          "activity": "Coding club",
+          "duration_months": 30,
+          "role": "co-founder"
+        },
+        {
+          "activity": "Open source contributions",
+          "duration_months": 12,
+          "role": "contributor"
+        },
+        {
+          "activity": "Chess club",
+          "duration_months": 48,
+          "role": "member"
+        }
+      ],
+      "projects": [
+        {
+          "name": "School schedule optimization app",
+          "role": "developer",
+          "impact": "Used by 400 students daily, reduced scheduling conflicts by 60%"
+        },
+        {
+          "name": "Kazakh language learning chatbot",
+          "role": "co-creator",
+          "impact": "Prototype with 200 beta testers, helps Russian-speaking students learn Kazakh"
+        }
+      ],
+      "languages": [
+        "Russian",
+        "Kazakh",
+        "English",
+        "Python"
+      ],
+      "skills": [
+        "programming",
+        "algorithms",
+        "machine learning basics",
+        "problem decomposition"
+      ]
+    },
+    "essay": {
+      "prompt": "Describe a challenge you overcame and what it taught you about leadership.",
+      "text": "I write code, not speeches. Leadership always felt like something for the loud, charismatic people — the debate captains and student council presidents. I'm the person in the back of the room with headphones on.\n\nBut when I built the school schedule app, I accidentally became a leader. The app started as a personal project because I was frustrated with our terrible paper-based schedule system. I showed it to a few friends. They told friends. Within a week, half the school was using it and people were finding bugs faster than I could fix them.\n\nSuddenly I had 'users' who were angry when things broke. I had classmates volunteering to help. I needed to coordinate, prioritize, communicate updates. I needed to be a leader, even though I never intended to be one.\n\nThe hardest challenge was when a bug in the app caused 30 students to go to the wrong classroom. I got called to the principal's office. I was terrified and embarrassed. But instead of shutting the app down, I fixed the bug that night, wrote an honest post-mortem explaining what went wrong and how I fixed it, and shared it with all users.\n\nPeople respected the transparency. More volunteers joined after that. I learned that leadership in tech isn't about being perfect — it's about being honest when things break and fixing them fast.\n\nI also learned that building something people actually use is the most rewarding thing I've ever done. More than any olympiad medal."
+    },
+    "interview_transcript": "Q: Why do you want to attend inVision U?\nA: I want to build technology that matters for Kazakhstan. We have so many problems that good software could solve — education access, language preservation, government services. But most talented programmers here dream of leaving for Silicon Valley. I want to stay and build here.\n\nQ: What's your biggest weakness?\nA: I'm terrible at presenting and networking. I communicate much better through code and writing than in person. I get nervous speaking in front of groups.\n\nQ: Tell us about a time you failed.\nA: The Kazakh chatbot was supposed to launch last month but the NLP model quality wasn't good enough. The grammar correction feature was giving wrong suggestions 30% of the time. I decided to delay the launch rather than release something broken. Some team members were frustrated but I believe shipping a bad product is worse than shipping late.",
+    "recommendation_summary": "Baurzhan is a gifted programmer with a builder's mindset. His projects demonstrate both technical skill and genuine desire to solve real problems. He leads through competence and integrity rather than charisma."
+  },
+  {
+    "id": "c-009",
+    "name": "Madina Alieva",
+    "age": 17,
+    "application": {
+      "education": {
+        "school_type": "gymnasium",
+        "gpa": 3.55,
+        "academic_achievements": [
+          "City-level essay competition - 2nd place",
+          "School Environmental Award"
+        ],
+        "years_of_study": 11
+      },
+      "extracurriculars": [
+        {
+          "activity": "Environmental club",
+          "duration_months": 24,
+          "role": "leader"
+        },
+        {
+          "activity": "School theater",
+          "duration_months": 36,
+          "role": "actress and playwright"
+        },
+        {
+          "activity": "Blogging about sustainability",
+          "duration_months": 18,
+          "role": "writer"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Eco-theater: environmental plays for elementary schools",
+          "role": "creator and director",
+          "impact": "Performed in 8 schools, reaching 500+ young students with environmental messages"
+        }
+      ],
+      "languages": [
+        "Russian",
+        "Kazakh",
+        "English"
+      ],
+      "skills": [
+        "creative writing",
+        "theater",
+        "environmental science",
+        "storytelling"
+      ]
+    },
+    "essay": {
+      "prompt": "Describe a challenge you overcame and what it taught you about leadership.",
+      "text": "Nobody wants to listen to a lecture about recycling. Trust me, I tried. I gave a presentation at a school assembly about plastic pollution and watched 200 students check their phones simultaneously. It was humiliating.\n\nBut I couldn't let it go. The environmental crisis is the defining challenge of our generation, and I felt a responsibility to make people care. So I asked myself: what do people actually pay attention to? Stories. Drama. Emotion.\n\nI combined my two passions — theater and environmentalism — and created 'Eco-Theater.' I wrote short plays where the characters are dealing with environmental problems in relatable ways. A family arguing about water usage. A student discovering their favorite snack brand is destroying forests. A future where Astana is underwater.\n\nThe first play was rough. My acting friends thought environmental topics were 'boring' and I had to convince them one by one. The first school we performed at was skeptical — their teachers expected a boring educational program. But when the kids were crying during the flooding scene and laughing during the recycling comedy sketch, everyone understood.\n\nWe've now performed in 8 schools. Elementary kids go home and tell their parents to recycle. One principal told me our play did more for environmental awareness than a year of their curriculum.\n\nLeadership, I learned, is about translation. Taking something important that people tune out and finding the frequency they're actually listening on. Facts didn't work. Stories did."
+    },
+    "interview_transcript": "Q: Why do you want to attend inVision U?\nA: Climate change is going to hit Central Asia hard — water scarcity, extreme heat, agricultural collapse. I want to work on environmental solutions but I realize that technology and policy matter as much as awareness. inVision U can give me the skills to work on these problems from multiple angles.\n\nQ: What's your biggest weakness?\nA: I can be idealistic to the point of being impractical. I sometimes pursue ideas that excite me creatively without considering whether they're feasible or scalable.\n\nQ: Tell us about a time you failed.\nA: I tried to start a school composting program. It was a mess — literally. We didn't have proper containers, it smelled terrible, and the janitor threatened to quit. I learned that enthusiasm without practical planning leads to disaster. The eco-theater works because I plan meticulously now.",
+    "recommendation_summary": "Madina has a unique ability to combine creativity with purpose. Her eco-theater project is innovative and effective. She's a passionate communicator who finds unconventional solutions to reach people."
+  },
+  {
+    "id": "c-010",
+    "name": "Ruslan Ibragimov",
+    "age": 18,
+    "application": {
+      "education": {
+        "school_type": "private",
+        "gpa": 3.8,
+        "academic_achievements": [
+          "National English Olympiad - 1st place",
+          "Regional Debate Championship - winner",
+          "Published article in youth magazine"
+        ],
+        "years_of_study": 11
+      },
+      "extracurriculars": [
+        {
+          "activity": "Debate team",
+          "duration_months": 36,
+          "role": "captain"
+        },
+        {
+          "activity": "Youth journalism club",
+          "duration_months": 24,
+          "role": "editor-in-chief"
+        },
+        {
+          "activity": "Volunteer English teacher for migrant children",
+          "duration_months": 12,
+          "role": "teacher"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Online youth news platform",
+          "role": "co-founder",
+          "impact": "Published 150+ articles, 5000 monthly readers, covering youth issues in Kazakhstan"
+        }
+      ],
+      "languages": [
+        "Russian",
+        "English",
+        "Kazakh",
+        "French"
+      ],
+      "skills": [
+        "journalism",
+        "debate",
+        "English",
+        "critical thinking",
+        "media literacy"
+      ]
+    },
+    "essay": {
+      "prompt": "Describe a challenge you overcame and what it taught you about leadership.",
+      "text": "When I started our youth news platform, I thought journalism was about writing good articles. I was wrong. It's about building trust, managing people, and making hard editorial decisions.\n\nThe biggest challenge came when one of our reporters wrote an article criticizing the school administration's handling of bullying. The article was well-researched and important. But the school principal called me and said if we published it, our journalism club would lose its room and funding.\n\nI was terrified. The easy path was to kill the article. Most of my team wanted to. But the reporter had spent weeks on it, and the bullying victims she interviewed trusted us to tell their story.\n\nI negotiated a compromise: we published the article but gave the administration space to respond in the same issue. We presented both sides fairly. The principal was still unhappy, but we kept our room. More importantly, the article led to a new anti-bullying policy at school.\n\nThis taught me that leadership often means standing in the uncomfortable middle ground. It's not about being fearless — I was scared the entire time. It's about finding a path that honors your principles without being reckless. And it's about protecting the people who trusted you, even when it would be easier not to.\n\nRunning the platform also taught me about managing a team of volunteers — people who can leave anytime. You can't command them. You have to inspire them and make the work meaningful enough that they choose to stay."
+    },
+    "interview_transcript": "Q: Why do you want to attend inVision U?\nA: Information is power, and Kazakhstan needs independent, quality journalism. inVision U's focus on leadership and social impact aligns with my goal of building media that serves the public interest. I also want to learn about the business side — how to make independent media sustainable.\n\nQ: What's your biggest weakness?\nA: I can be too diplomatic sometimes, trying to please everyone. In journalism, sometimes you need to take a clear stand, and I struggle with that when it might upset people I respect.\n\nQ: Tell us about a time you failed.\nA: Early on, our platform published an article that turned out to have factual errors. We hadn't fact-checked rigorously enough. We published a correction and I implemented a mandatory fact-checking process. It slowed our output but improved our credibility enormously.",
+    "recommendation_summary": "Ruslan combines intellectual sharpness with ethical maturity. His navigation of the editorial dilemma showed leadership wisdom rare in someone his age. He's an excellent communicator who cares deeply about truth and fairness."
+  },
+  {
+    "id": "c-011",
+    "name": "Dinara Suleimenova",
+    "age": 17,
+    "application": {
+      "education": {
+        "school_type": "public",
+        "gpa": 2.9,
+        "academic_achievements": [],
+        "years_of_study": 11
+      },
+      "extracurriculars": [
+        {
+          "activity": "Social media content creation",
+          "duration_months": 12,
+          "role": "creator"
+        }
+      ],
+      "projects": [],
+      "languages": [
+        "Kazakh",
+        "Russian"
+      ],
+      "skills": [
+        "social media",
+        "video editing"
+      ]
+    },
+    "essay": {
+      "prompt": "Сіз жеңіп шыққан қиындық пен оның көшбасшылық туралы не үйреткенін сипаттаңыз.",
+      "text": "Мен inVision U-ға түскім келеді, өйткені бұл мүмкіндіктері керемет университет. Мен әрқашан мектебімде және қоғамда көшбасшы болдым. Менің ең үлкен қиындығым мектепте іс-шара ұйымдастырғанымда болды — бәрі бұзылды, бірақ мен жігерімді жоғалтпадым және ақырында бәрі жақсы аяқталды.\n\nМенің ойымша, көшбасшылық — бұл жақсы қарым-қатынас жасау және көп жұмыс істеу. Мен әрқашан бар күшімді саламын және ешқашан бас тартпаймын. Мен әлемді жақсы жаққа өзгертуге құмармын, inVision U маған мақсаттарыма жетуге көмектесе алады деп ойлаймын.\n\nМен тез үйренемін және командада жақсы жұмыс істеймін. Менің әлеуметтік желілерде тәжірибем бар, ол бүгінгі әлемде өте маңызды деп ойлаймын. Мен дағдыларымды басқаларға көмектесу және оң өзгерістер жасау үшін пайдаланғым келеді.\n\nМенің өтінішімді қарағаныңызға рахмет. inVision U-да оқу маған үлкен құрмет болар еді, көп жұмыс істеп, бұл мүмкіндікті барынша пайдаланамын деп уәде беремін."
+    },
+    "interview_transcript": "Q: Неге inVision U-ға түскіңіз келеді?\nA: Бұл өте жақсы университет, стипендия отбасыма көп көмектесер еді.\n\nQ: Сіздің басты әлсіз жағыңыз не?\nA: Менде үлкен кемшілік жоқ шығар. Мүмкін кейде тым көп жұмыс істеймін.\n\nQ: Сәтсіздікке ұшыраған кезіңізді айтып беріңіз.\nA: Нақты бір жағдай есіме түспейді. Көбінесе шешімін табамын.",
+    "recommendation_summary": "Dinara is a pleasant student. She could benefit from more academic focus and clearer goals."
+  },
+  {
+    "id": "c-012",
+    "name": "Talgat Nurpeissov",
+    "age": 18,
+    "application": {
+      "education": {
+        "school_type": "public",
+        "gpa": 3.3,
+        "academic_achievements": [
+          "Regional agriculture competition - participant"
+        ],
+        "years_of_study": 11
+      },
+      "extracurriculars": [
+        {
+          "activity": "Family farm work",
+          "duration_months": 60,
+          "role": "worker"
+        },
+        {
+          "activity": "Village youth group",
+          "duration_months": 18,
+          "role": "organizer"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Drip irrigation system from recycled materials",
+          "role": "designer and builder",
+          "impact": "Increased family crop yield by 25%, system copied by 4 neighboring farms"
+        },
+        {
+          "name": "Agricultural knowledge-sharing WhatsApp group",
+          "role": "moderator",
+          "impact": "120 members from rural communities sharing farming tips and market prices"
+        }
+      ],
+      "languages": [
+        "Kazakh",
+        "Russian"
+      ],
+      "skills": [
+        "agriculture",
+        "practical engineering",
+        "community networking"
+      ]
+    },
+    "essay": {
+      "prompt": "Опишите трудность, которую вы преодолели, и чему она научила вас в плане лидерства.",
+      "text": "Я вырос на ферме в Кызылординской области. Когда люди слышат «ферма», думают — ну, что там сложного. А на самом деле фермерство — это бесконечное решение проблем: погода, вода, вредители, цены. Воюешь одновременно с природой и рынком.\n\nДва года назад у нас была самая сильная засуха за десять лет. Урожай погибал. Отец уже смирился с потерями, как и все. А я читал на телефоне про капельный полив — простые системы, которые тратят гораздо меньше воды, чем обычный залив. Проблема в том, что на настоящую систему денег не было.\n\nИ я собрал свою из пластиковых бутылок, старых шлангов и вентилей со свалки. Отец считал, что я занимаюсь ерундой. Соседи реально смеялись. Первая версия текла отовсюду. Вторая забилась. Третья — заработала.\n\nМы спасли семьдесят процентов помидоров, когда у соседей пропало почти всё. Когда они увидели наши грядки — смех прекратился. Четыре семьи попросили помочь собрать такую же систему. Остаток лета я ходил по чужим участкам и учил.\n\nЭтот опыт научил меня двум вещам про лидерство. Первое — иногда лидер тот, кто больше всех читает. Я нашёл решение в интернете, оно было доступно каждому, но никто не искал. Второе — в сельской местности лидерство работает через пример, а не через убеждение. Никто не верил в капельный полив, пока не увидел наши помидоры.\n\nЯ создал группу в Ватсапе, где фермеры нашего района делятся опытом. Мужики, которые пашут по сорок лет, теперь спрашивают у меня про новые методы. Это странно и классно одновременно.\n\nДа, я из села. Английский базовый. Школа не знаменитая. Но я умею выращивать — и растения, и идеи."
+    },
+    "interview_transcript": "Q: Почему вы хотите поступить в inVision U?\nA: Сельское хозяйство кормит всех, но фермеры бедные и никому не нужны. Я хочу выучиться на технологии и бизнес, вернуться и сделать фермерство в нашем регионе современным. Не дорогими западными решениями, а умными и доступными, которые реальные фермеры смогут использовать.\n\nQ: Какая ваша главная слабость?\nA: Образование с пробелами. Сельская школа — это не городская. Английский слабый. Боюсь, что не потяну учёбу.\n\nQ: Расскажите о случае, когда вы потерпели неудачу.\nA: Пытался убедить сельскую администрацию вложиться в общую теплицу. Сказали — бюджета нет. Я расстроился и слишком быстро сдался. Сейчас понимаю, что надо было искать другие источники финансирования или сначала построить маленький прототип, как с поливом.",
+    "recommendation_summary": "Talgat has extraordinary practical intelligence and initiative for someone from his background. His irrigation innovation and knowledge-sharing network show genuine leadership — the kind that comes from necessity, not privilege. His academic preparation has gaps but his potential is enormous."
+  },
+  {
+    "id": "c-013",
+    "name": "Aliya Karimova",
+    "age": 17,
+    "application": {
+      "education": {
+        "school_type": "private",
+        "gpa": 3.92,
+        "academic_achievements": [
+          "National Chemistry Olympiad - 2nd place",
+          "International Math Competition - bronze medal",
+          "Full marks on SAT Math section",
+          "Published research paper (co-author) on water quality"
+        ],
+        "years_of_study": 11
+      },
+      "extracurriculars": [
+        {
+          "activity": "Science research club",
+          "duration_months": 24,
+          "role": "president"
+        },
+        {
+          "activity": "Volunteer at animal shelter",
+          "duration_months": 6,
+          "role": "volunteer"
+        },
+        {
+          "activity": "Photography club",
+          "duration_months": 12,
+          "role": "member"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Water quality testing in Almaty rivers",
+          "role": "lead researcher",
+          "impact": "Tested 15 sites, findings presented to city environmental department"
+        }
+      ],
+      "languages": [
+        "Russian",
+        "English",
+        "Kazakh",
+        "Korean"
+      ],
+      "skills": [
+        "chemistry",
+        "research",
+        "data analysis",
+        "scientific writing"
+      ]
+    },
+    "essay": {
+      "prompt": "Describe a challenge you overcame and what it taught you about leadership.",
+      "text": "The intersection of scientific inquiry and leadership presents a fascinating paradigm through which we can examine the multifaceted nature of personal growth and development. My experience conducting water quality research in Almaty's river systems served as a catalyst for understanding the complexities inherent in leading a scientific team.\n\nThe primary challenge I encountered was navigating the intricate dynamics of collaborative research while maintaining rigorous scientific standards. As the lead researcher, I was responsible for coordinating sample collection across 15 sites, ensuring methodological consistency, and synthesizing findings into a coherent narrative that would be accessible to both scientific and public audiences.\n\nThis endeavor required me to develop sophisticated communication strategies that could bridge the gap between technical expertise and stakeholder engagement. I facilitated weekly team meetings where we employed evidence-based decision-making frameworks to address methodological challenges and optimize our research protocols.\n\nThe culmination of our efforts was a comprehensive presentation to the city environmental department, where I articulated our findings with clarity and conviction. The positive reception from municipal authorities validated our approach and demonstrated the tangible impact that student-led research can have on policy discussions.\n\nThrough this experience, I cultivated essential leadership competencies including strategic planning, stakeholder management, and the ability to translate complex scientific concepts into actionable recommendations. These skills have profoundly shaped my understanding of how scientific leadership can drive meaningful societal change and environmental stewardship.\n\nI am confident that the analytical rigor and leadership acumen I have developed through this experience will enable me to make significant contributions to the inVision U community and beyond."
+    },
+    "interview_transcript": "Q: Why do you want to attend inVision U?\nA: I want to pursue environmental science research at a higher level. inVision U's interdisciplinary approach appeals to me because environmental problems require solutions that combine science, policy, and technology.\n\nQ: What's your biggest weakness?\nA: I tend to overthink things and spend too much time planning before acting. I've been working on finding the right balance between preparation and execution.\n\nQ: Tell us about a time you failed.\nA: Our initial water sampling methodology had contamination issues that invalidated two weeks of data. It was a significant setback. I revised our protocols based on published best practices and implemented quality control checks at each stage.",
+    "recommendation_summary": "Aliya is an outstanding student with exceptional academic credentials and genuine research experience. She is methodical, intelligent, and capable of producing work at a level beyond her years."
+  },
+  {
+    "id": "c-014",
+    "name": "Yerlan Smagul",
+    "age": 18,
+    "application": {
+      "education": {
+        "school_type": "gymnasium",
+        "gpa": 3.45,
+        "academic_achievements": [
+          "City chess championship - 1st place",
+          "School coding competition - winner"
+        ],
+        "years_of_study": 11
+      },
+      "extracurriculars": [
+        {
+          "activity": "Chess (competitive)",
+          "duration_months": 72,
+          "role": "regional champion"
+        },
+        {
+          "activity": "Peer tutoring (math and physics)",
+          "duration_months": 18,
+          "role": "tutor"
+        },
+        {
+          "activity": "App development (self-taught)",
+          "duration_months": 24,
+          "role": "developer"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Offline study app for ЕНТ exam prep",
+          "role": "developer",
+          "impact": "Used by students in 4+ schools, especially in areas with unreliable internet"
+        },
+        {
+          "name": "Chess teaching program for children's community center",
+          "role": "volunteer teacher",
+          "impact": "Weekly sessions for 15+ children over 8 months"
+        }
+      ],
+      "languages": [
+        "Kazakh",
+        "Russian",
+        "English"
+      ],
+      "skills": [
+        "programming",
+        "chess strategy",
+        "mentoring",
+        "app development"
+      ]
+    },
+    "essay": {
+      "prompt": "Сіз жеңіп шыққан қиындықты және ол сізге көшбасшылық туралы нені үйреткенін сипаттаңыз.",
+      "text": "Өткен жазда біздің қаланың интернеті үш күнге өшіп қалды. Ұсақ нәрсе сияқты, бірақ ЕНТ-ге дайындалып жатқан оқушылар үшін апат болды — барлық тест тапсырмалары мен оқу материалдары онлайнда ғана еді. Балалар топтық чаттарда дүрбелең түсіп, кімде оқулық бар деп сұрап жатты.\n\nМен программистпін. Интернетті түзете алмаймын, бірақ интернетсіз жұмыс істейтін нәрсе жасай аламын. Сол демалыс күндері офлайн оқу қосымшасын жасадым — негізінен бұрынғы емтихан сұрақтарын, формулаларды және түсіндірмелерді бір Android қосымшаға жинап, байланыссыз жұмыс істейтін етіп шығардым. Ең қиыны код емес еді. Контентті жинау еді. Екі күн бойы таба алған барлық математика мен физика материалдарын тақырып бойынша сұрыптап, жауаптарын тексердім.\n\nДүйсенбіде мектеп чатына жібердім. Сәрсенбіге дейін үш басқа мектепке тарап кетті. Мен білмейтін бір мұғалім хабарлама жіберді — оның ауылдағы оқушылары интернет тұрақсыз жерде қосымшаны күнделікті қолданып жатыр екен.\n\nСол кезде құрал жасау туралы бір нәрсе түсіндім — оны кімге көбірек керек екенін әрқашан біле бермейсің. Мен сыныптастарым үшін интернет өшкенде жасадым. Бірақ нақты қолданушылар — интернет әрқашан тұрақсыз жерлердегі балалар екен.\n\nМен сонымен қатар әр сенбі сайын қоғамдық орталықта шахмат үйретемін. Бастапқыда қайтарым бергім келгеннен бастадым, бірақ одан тереңірек нәрсеге айналды. Шахмат балаларға өз шешімдерінің маңызды екенін үйретеді — алдын ала ойлау жақсырақ нәтижеге әкелетінін. Өзін жиі күшсіз сезінетін балалар үшін бұл қуатты идея.\n\nМен өзімді көшбасшы деп санамаймын. Мен — бос орындарды байқайтын және оларды кодпен немесе уақытпен толтыратын адаммын.",
+      "word_count": 226
+    },
+    "interview_transcript": "С: Сіз неге inVision U-ға түскіңіз келеді?\nЖ: Мен Орталық Азиядағы адамдардың нақты мәселелерін шешетін технология жасағым келеді. Офлайн оқу қосымшасы маған технологияның мүмкіндіктері мен біздің аймақта қолжетімді нәрселер арасындағы алшақтықты көрсетті. Мен мектеп чатынан ары масштабталатын нәрселер жасауды үйренгім келеді.\n\nС: Сіздің ең үлкен әлсіз жағыңыз не?\nЖ: Жасауға батып кетіп, адамдарға не керек екенін сұрауды ұмытып қаламын. Қосымшаның алғашқы нұсқасында ешкім қолданбайтын функциялар болды, себебі сұраудың орнына өзім не пайдалы болатынын болжадым. Қолданушылармен алдымен сөйлесуді үйрендім, бірақ кодтауды бастау әлі де бірінші инстинктім.\n\nС: Сәтсіздікке ұшыраған кезіңіз туралы айтыңыз.\nЖ: Мектепте кіші оқушыларға арналған кодтау курсын ұйымдастыруға тырыстым. Төрт бала ғана келді, екеуі бірінші сабақтан кейін кетіп қалды, себебі тым жылдам үйретіп жаттым. Оларға бірдеңе жасатудың орнына дәріс оқып жаттым. Үшінші сабақта жоспарымды лақтырып, оларға өзгертуге қарапайым ойын бердім. Ол әлдеқайда жақсы болды. Үйрету — білетініңді көрсету емес, адамдарға олар тұрған жерден жолығу екенін түсіндім.",
+    "recommendation_summary": "Yerlan combines technical skill with deep empathy. His mental health chatbot project shows maturity and responsibility rare in students his age. His chess teaching at the community center demonstrates consistent, quiet commitment to helping others."
+  },
+  {
+    "id": "c-015",
+    "name": "Saule Baimenova",
+    "age": 17,
+    "application": {
+      "education": {
+        "school_type": "lyceum",
+        "gpa": 3.75,
+        "academic_achievements": [
+          "Regional Biology Olympiad - 3rd place",
+          "National Volunteer Award nominee"
+        ],
+        "years_of_study": 11
+      },
+      "extracurriculars": [
+        {
+          "activity": "Red Crescent Youth volunteer",
+          "duration_months": 30,
+          "role": "team coordinator"
+        },
+        {
+          "activity": "First aid instructor (certified)",
+          "duration_months": 18,
+          "role": "instructor"
+        },
+        {
+          "activity": "School health awareness club",
+          "duration_months": 24,
+          "role": "founder"
+        }
+      ],
+      "projects": [
+        {
+          "name": "First aid training for rural schools",
+          "role": "project lead",
+          "impact": "Trained 200+ students and 30 teachers in basic first aid across 8 rural schools"
+        },
+        {
+          "name": "Health literacy campaign on social media",
+          "role": "creator",
+          "impact": "TikTok series on first aid basics, 50K+ total views"
+        }
+      ],
+      "languages": [
+        "Kazakh",
+        "Russian",
+        "English"
+      ],
+      "skills": [
+        "first aid",
+        "health education",
+        "volunteer management",
+        "public health communication"
+      ]
+    },
+    "essay": {
+      "prompt": "Сіз жеңіп шыққан қиындықты және ол сізге көшбасшылық туралы нені үйреткенін сипаттаңыз.",
+      "text": "Екі жыл бұрын біздің ауылда бір бала туған күн тойында тамаққа тұншығып қалды. Отыз ересек адам айналасында дал болып тұрды. Ешкім не істеу керектігін білмеді. Бақытқа орай, біреудің зейнеткер фельдшер ағасы сол жерде болып, Геймлих әдісін жасады. Бала аман қалды. Бірақ бөлме толы ересектердің дәрменсіздіктен қатып қалған бейнесі менің есімнен кетпеді.\n\nКелесі аптада Қызыл Жарты Ай алғашқы көмек курсына жазылдым. Сертификат алғаннан кейін қарапайым сұрақ қойдым: неге алғашқы көмек негіздері әр мектепте оқытылмайды? Жауап әрқашан бірдей еді — 'оқу жоспарында уақыт жоқ', 'бюджет жоқ', 'маңызды емес'.\n\nСонда мен оқу жоспарынан тыс іске асырдым. Демалыс күндері мектептерде алғашқы көмек семинарларын ұйымдастырдым, алдымен өз мектебімнен бастадым. Алғашқы қиындық — директорларды 16 жасар менің олардың оқушыларына сабақ беруге біліктілігім бар екеніне сендіру. Сертификатымды, егжей-тегжейлі сабақ жоспарымды алып бардым және демо-сабақ өткіздім. Демо нәтиже берді — балалар қызығып, мұғалімдер таңқалды.\n\nНағыз қиындық ауыл мектептерінде болды. Көлік, жабдық және сенім. Ауыл адамдары қаладан келген жасөспірімнің не істеу керектігін айтуына оңай сенбейді. Мен жергілікті медицина қызметкерлерімен серіктес болуды үйрендім, олар бағдарламаға кепілдік берді. Жергілікті мұғалімдерді үйреттім, білім мен кеткеннен кейін де қалуы үшін.\n\nЕкі ай бұрын мен үйреткен бір мұғалім мұғалімдер жиналысында құлап қалған әріптесіне жүрек-өкпе реанимациясын жасады. Әріптесі аман қалды. Сол мұғалім маған жылап дауыстық хабарлама жіберді: 'сен маған адам өмірін құтқаруды үйреттің'.\n\nМен көшбасшылық — басқаларда мүмкіндік қалыптастыру, өзіңе тәуелділік жасау емес екенін үйрендім. Мақсат — менің барлық жерде болуым емес, маңызды сәтте барлығы не істеу керектігін білуі."
+    },
+    "interview_transcript": "С: Сіз неге inVision U-ға түскіңіз келеді?\nЖ: Қазақстандағы қоғамдық денсаулық сақтауда олқылықтар бар, мен соларды жоюға көмектескім келеді. inVision U-дың нақты мәселелерге практикалық шешімдер табуға баса назар аударуы маған жақын. Мен бүкіл ел бойынша масштабталатын денсаулық білімі бағдарламаларын құруды үйренгім келеді.\n\nС: Сіздің ең үлкен әлсіз жағыңыз не?\nЖ: Кейде нәрселерге қанша уақыт кететінін бағаламаймын. Бір демалыс күні үш мектепте семинар өткіземін деп уәде беріп, үш жерде бірден бола алмайтынымды кейін ғана түсінемін. Шынайырақ жоспар құруды үйреніп жатырмын.\n\nС: Сәтсіздікке ұшыраған кезіңіз туралы айтыңыз.\nЖ: Менің алғашқы TikTok денсаулық видеом ғылыми жағынан дұрыс, бірақ мүлде қызықсыз болды. 47 қаралым жинады. Денсаулық контенті әлеуметтік желіде неліктен қызықты болатынын зерттеп, тәсілімді толық өзгерттім — қысқарақ, көрнекірек, әзілмен. Келесі видео 12 000 қаралым жинады. Егер адамдар көрмесе, сараптамаңыздың мәні жоқ екенін үйрендім.",
+    "recommendation_summary": "Saule is driven by genuine concern for public safety. Her first aid training program has measurable real-world impact — it literally saved a life. She's practical, organized, and knows how to work within communities rather than imposing solutions from outside."
+  }
+]
