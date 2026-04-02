@@ -2,7 +2,7 @@
 
 > **The best way to find a leader is to watch them teach.** We built an AI-assisted evaluation system that measures what applications can't: patience, empathy, and the ability to make complex things simple.
 
-[Demo Video](#) | [Architecture](docs/architecture.md) | [Live App](#)
+[Demo Video](https://drive.google.com/drive/folders/1ntxiZNCST5MVuq4X8uppDuZCcNnJLgPc?usp=sharing) | [Architecture](docs/architecture.md)
 
 ---
 
@@ -16,13 +16,16 @@ A hybrid evaluation platform where **AI assists, humans decide**:
 
 | Feature | What It Does |
 |---------|-------------|
-| **Feynman Teaching Challenge** | Candidate teaches a concept to an AI "student" (4-8 exchanges). AI intentionally misunderstands once to test patience. Quiz measures knowledge transfer. Scores clarity, patience, empathy, adaptability. |
+| **Feynman Teaching Challenge** | Candidate teaches a concept to an AI "student" (4-8 exchanges). AI intentionally misunderstands once to test patience. Quiz measures knowledge transfer. Scores clarity, patience, empathy, adaptability. Quiz answers shown transparently — not a black box. |
 | **Trajectory Scoring** | Measures how far you've come, not where you started. Village student → university = more growth credit. |
 | **Multi-lingual Stylometry** | 7 math-based text metrics (no AI) detect essay fraud in Kazakh, Russian, and English with language-specific thresholds. |
-| **Configurable Rubric** | Committee adjusts scoring weights via sliders. Your proprietary metrics, our engine. |
+| **Dual Scoring Pipeline** | Rule-based baseline (instant, free) + Claude AI (nuanced). Both run independently, results compared. |
+| **Configurable Rubric** | Committee adjusts scoring weights via sliders. Rankings update live. Your proprietary metrics, our engine. |
+| **Fairness Audit** | Dashboard panel showing score distribution by recommendation category. Proves the system evaluates merits, not background. |
 | **Hidden Gem Filter** | Surfaces candidates with low formal metrics but exceptional teaching ability or growth signals. |
-| **Sparse Profile Handling** | Missing data (no interview, no recommendation) shifts weight to essay + teaching challenge instead of penalizing. |
-| **AI Insight** | Shows what traditional baseline screening would miss — highlights where AI scoring adds value per candidate. |
+| **Committee Override** | Human-in-the-loop: override any AI dimension score with a note. Overall score recomputes automatically. |
+| **Sparse Profile Handling** | Missing data shifts weight to essay + teaching challenge instead of penalizing. |
+| **PII Anonymization** | Names, emails, phone numbers stripped before any data reaches Claude AI. |
 
 ---
 
@@ -101,6 +104,8 @@ Open [http://localhost:3000](http://localhost:3000)
 | Growth Trajectory | 20% | Delta: where you are − where you started |
 | Academic Strength | 15% | GPA, achievements, languages |
 | Communication | 15% | Essay clarity, sentence structure |
+
+> **Weights are defaults.** The admissions committee can adjust them via the Evaluation Settings panel on the dashboard. Rankings update live — plug in your proprietary rubric and the system adapts instantly.
 
 ---
 
