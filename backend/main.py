@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.routers import analysis, candidates, scoring
+from backend.routers import analysis, candidates, feynman, scoring
 
 app = FastAPI(
     title="InVision U Candidate Scoring API",
@@ -22,6 +22,7 @@ app.add_middleware(
 app.include_router(candidates.router)
 app.include_router(scoring.router)
 app.include_router(analysis.router)
+app.include_router(feynman.router)
 
 
 @app.get("/")

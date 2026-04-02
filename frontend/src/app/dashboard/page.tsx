@@ -38,15 +38,15 @@ const DIMENSION_WEIGHTS = DEFAULT_WEIGHTS;
 
 function Badge({ label, color }: { label: string; color: string }) {
   const colors: Record<string, string> = {
-    green: "bg-emerald-100 text-emerald-800",
-    yellow: "bg-amber-100 text-amber-800",
-    red: "bg-red-100 text-red-800",
-    blue: "bg-blue-100 text-blue-800",
-    gray: "bg-gray-100 text-gray-700",
+    green: "bg-[#c1f11d] text-[#141414]",
+    yellow: "bg-amber-400 text-[#141414]",
+    red: "bg-red-500 text-white",
+    blue: "bg-[#141414] text-white",
+    gray: "bg-[#eae9e9] text-[#141414]",
   };
   return (
     <span
-      className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${colors[color] || colors.gray}`}
+      className={`inline-block px-2.5 py-1 rounded-full text-sm font-medium ${colors[color] || colors.gray}`}
     >
       {label}
     </span>
@@ -66,19 +66,40 @@ function ScoreBar({ score, max = 100 }: { score: number; max?: number }) {
   const pct = Math.min((score / max) * 100, 100);
   const color =
     pct >= 70
-      ? "bg-emerald-500"
+      ? "bg-[#c1f11d]"
       : pct >= 50
         ? "bg-amber-400"
         : "bg-red-400";
   return (
-    <div className="flex items-center gap-2 w-full">
-      <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+    <div className="flex items-center gap-3 w-full">
+      <div className="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full ${color}`}
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="text-xs font-mono w-8 text-right">{score.toFixed(0)}</span>
+      <span className="text-sm font-mono w-9 text-right">{score.toFixed(0)}</span>
+    </div>
+  );
+}
+
+function ScoreBarDark({ score, max = 100 }: { score: number; max?: number }) {
+  const pct = Math.min((score / max) * 100, 100);
+  const color =
+    pct >= 70
+      ? "bg-[#c1f11d]"
+      : pct >= 50
+        ? "bg-amber-400"
+        : "bg-red-400";
+  return (
+    <div className="flex items-center gap-3 w-full">
+      <div className="flex-1 h-3 bg-[#333] rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full ${color}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className="text-sm font-mono w-9 text-right text-gray-300">{score.toFixed(0)}</span>
     </div>
   );
 }
@@ -86,17 +107,17 @@ function ScoreBar({ score, max = 100 }: { score: number; max?: number }) {
 function DimensionDetail({ dim }: { dim: DimensionScore }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border-b border-gray-100 last:border-0 py-2">
+    <div className="border-b border-gray-200 last:border-0 py-3">
       <button
         className="w-full flex items-center justify-between text-left"
         onClick={() => setOpen(!open)}
       >
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-sm font-medium">
+          <div className="flex items-center gap-3 mb-1">
+            <span className="text-base font-medium text-gray-800">
               {DIMENSION_LABELS[dim.dimension] || dim.dimension}
             </span>
-            <span className="text-[10px] text-gray-400">
+            <span className="text-xs text-gray-400">
               {(DIMENSION_WEIGHTS[dim.dimension] * 100).toFixed(0)}%
             </span>
             <Badge
@@ -112,10 +133,10 @@ function DimensionDetail({ dim }: { dim: DimensionScore }) {
           </div>
           <ScoreBar score={dim.score} />
         </div>
-        <span className="ml-2 text-gray-400 text-xs">{open ? "−" : "+"}</span>
+        <span className="ml-3 text-gray-400 text-sm">{open ? "−" : "+"}</span>
       </button>
       {open && (
-        <div className="mt-2 pl-2 text-xs space-y-2">
+        <div className="mt-3 pl-3 text-sm space-y-3">
           <p className="text-gray-600">{dim.explanation}</p>
           {dim.evidence_quotes.length > 0 && (
             <div>
@@ -123,7 +144,7 @@ function DimensionDetail({ dim }: { dim: DimensionScore }) {
               {dim.evidence_quotes.map((q, i) => (
                 <blockquote
                   key={i}
-                  className="border-l-2 border-indigo-300 pl-2 text-gray-500 italic mb-1"
+                  className="border-l-2 border-[#c1f11d] pl-3 text-gray-500 italic mb-1"
                 >
                   &ldquo;{q}&rdquo;
                 </blockquote>
@@ -132,7 +153,7 @@ function DimensionDetail({ dim }: { dim: DimensionScore }) {
           )}
           {dim.positive_factors.length > 0 && (
             <div>
-              <p className="font-medium text-emerald-700 mb-1">Strengths:</p>
+              <p className="font-medium text-[#141414] mb-1">Strengths:</p>
               <ul className="list-disc list-inside text-gray-600">
                 {dim.positive_factors.map((f, i) => (
                   <li key={i}>{f}</li>
@@ -167,18 +188,18 @@ function CandidateCard({
   const c = ranked.candidate;
   return (
     <div
-      className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
+      className="bg-white rounded-2xl border border-gray-200 p-6 cursor-pointer transition-all duration-200 hover:border-[#c1f11d] hover:shadow-[0_0_20px_rgba(193,241,29,0.25)] hover:-translate-y-1"
       onClick={onSelect}
     >
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-4">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="text-lg font-bold text-indigo-600">
-              #{ranked.rank}
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 rounded-full bg-[#c1f11d] text-[#141414] flex items-center justify-center text-base font-bold">
+              {ranked.rank}
             </span>
-            <h3 className="font-semibold text-gray-900">{c.name}</h3>
+            <h3 className="font-semibold text-lg text-gray-900">{c.name}</h3>
           </div>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-sm text-gray-500 mt-1 ml-[52px]">
             {c.id} &middot; Age {c.age} &middot;{" "}
             {c.application.education.school_type} &middot; GPA{" "}
             {c.application.education.gpa}
@@ -188,20 +209,20 @@ function CandidateCard({
       </div>
       {score && (
         <>
-          <div className="flex items-center gap-3 mb-3">
-            <span className="text-2xl font-bold">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-3xl font-bold text-[#141414]">
               {score.overall_score.toFixed(1)}
             </span>
-            <span className="text-xs text-gray-400">/ 100</span>
+            <span className="text-sm text-gray-400">/ 100</span>
             <Badge
               label={score.scorer_type.toUpperCase()}
               color={score.scorer_type === "ai" ? "blue" : "gray"}
             />
           </div>
-          <div className="space-y-1">
+          <div className="space-y-2">
             {score.dimensions.map((d) => (
-              <div key={d.dimension} className="flex items-center gap-2">
-                <span className="text-[11px] text-gray-500 w-20 truncate">
+              <div key={d.dimension} className="flex items-center gap-3">
+                <span className="text-xs text-gray-500 w-24 truncate">
                   {DIMENSION_LABELS[d.dimension] || d.dimension}
                 </span>
                 <ScoreBar score={d.score} />
@@ -210,7 +231,21 @@ function CandidateCard({
           </div>
         </>
       )}
-      <div className="mt-3 flex flex-wrap gap-1">
+      {/* Sparse Profile badge */}
+      {(() => {
+        const missingInterview = !c.interview_transcript || c.interview_transcript.trim() === "";
+        const missingRec = !c.recommendation_summary || c.recommendation_summary.trim() === "";
+        const missingExtras = c.application.extracurriculars.length === 0;
+        const isSparse = missingInterview || missingRec || missingExtras;
+        if (!isSparse) return null;
+        return (
+          <div className="mt-3 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200">
+            <span className="text-xs font-semibold text-amber-700">Sparse Profile</span>
+            <p className="text-xs text-amber-600 mt-0.5">Weight shifted to Essay &amp; Teaching Challenge</p>
+          </div>
+        );
+      })()}
+      <div className="mt-4 flex flex-wrap gap-1.5">
         {c.application.languages.map((l) => (
           <Badge key={l} label={l} color="blue" />
         ))}
@@ -219,10 +254,16 @@ function CandidateCard({
   );
 }
 
+type FeynmanScore = {
+  clarity: number; patience: number; empathy: number; adaptability: number;
+  quiz_transfer_score: number; overall_score: number; summary: string;
+};
+
 function CandidateDetail({
   candidate,
   score,
   aiDetection,
+  feynmanScore,
   onClose,
   onDetectAI,
   onOverride,
@@ -231,6 +272,7 @@ function CandidateDetail({
   candidate: Candidate;
   score: CandidateScore | null;
   aiDetection: AIDetectionResult | null;
+  feynmanScore: FeynmanScore | null;
   onClose: () => void;
   onDetectAI: () => void;
   onOverride: (dimension: string, value: number, note: string) => void;
@@ -245,30 +287,31 @@ function CandidateDetail({
 
   return (
     <div className="fixed inset-0 z-50 flex">
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative ml-auto w-full max-w-2xl bg-white shadow-xl overflow-y-auto">
-        <div className="sticky top-0 bg-white z-10 px-6 py-4 border-b flex items-center justify-between">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative ml-auto w-full max-w-2xl bg-white shadow-2xl overflow-y-auto">
+        <div className="sticky top-0 bg-white z-10 px-8 py-5 border-b border-gray-200 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold">{c.name}</h2>
-            <p className="text-sm text-gray-500">
+            <h2 className="text-2xl font-bold text-[#141414]">{c.name}</h2>
+            <p className="text-base text-gray-500">
               {c.id} &middot; Age {c.age}
             </p>
           </div>
           <button
-            className="text-gray-400 hover:text-gray-600 text-2xl"
+            className="w-10 h-10 rounded-full bg-[#eae9e9] hover:bg-[#141414] hover:text-white text-[#141414] flex items-center justify-center text-xl transition-colors"
             onClick={onClose}
           >
             &times;
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-8 space-y-8">
           {/* Education */}
           <section>
-            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">
+            <h3 className="text-base font-semibold text-[#141414] uppercase tracking-wider mb-3 flex items-center gap-3">
+              <span className="w-1.5 h-5 bg-[#c1f11d] rounded-full inline-block" />
               Education
             </h3>
-            <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="grid grid-cols-2 gap-3 text-base">
               <div>
                 <span className="text-gray-500">School:</span>{" "}
                 {app.education.school_type}
@@ -279,7 +322,7 @@ function CandidateDetail({
               </div>
             </div>
             {app.education.academic_achievements.length > 0 && (
-              <div className="mt-1 flex flex-wrap gap-1">
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {app.education.academic_achievements.map((a, i) => (
                   <Badge key={i} label={a} color="blue" />
                 ))}
@@ -290,10 +333,11 @@ function CandidateDetail({
           {/* Extracurriculars */}
           {app.extracurriculars.length > 0 && (
             <section>
-              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">
+              <h3 className="text-base font-semibold text-[#141414] uppercase tracking-wider mb-3 flex items-center gap-3">
+                <span className="w-1.5 h-5 bg-[#c1f11d] rounded-full inline-block" />
                 Extracurriculars
               </h3>
-              <div className="space-y-1 text-sm">
+              <div className="space-y-2 text-base">
                 {app.extracurriculars.map((ec, i) => (
                   <div key={i} className="flex justify-between">
                     <span>
@@ -312,17 +356,18 @@ function CandidateDetail({
           {/* Projects */}
           {app.projects.length > 0 && (
             <section>
-              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">
+              <h3 className="text-base font-semibold text-[#141414] uppercase tracking-wider mb-3 flex items-center gap-3">
+                <span className="w-1.5 h-5 bg-[#c1f11d] rounded-full inline-block" />
                 Projects
               </h3>
               {app.projects.map((p, i) => (
-                <div key={i} className="mb-2 text-sm">
+                <div key={i} className="mb-3 text-base">
                   <p className="font-medium">
                     {p.name}{" "}
                     <span className="text-gray-400">({p.role})</span>
                   </p>
                   {p.impact && (
-                    <p className="text-gray-500 text-xs">{p.impact}</p>
+                    <p className="text-gray-500 text-sm">{p.impact}</p>
                   )}
                 </div>
               ))}
@@ -331,10 +376,11 @@ function CandidateDetail({
 
           {/* Skills & Languages */}
           <section>
-            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">
+            <h3 className="text-base font-semibold text-[#141414] uppercase tracking-wider mb-3 flex items-center gap-3">
+              <span className="w-1.5 h-5 bg-[#c1f11d] rounded-full inline-block" />
               Skills & Languages
             </h3>
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1.5">
               {app.skills.map((s) => (
                 <Badge key={s} label={s} color="gray" />
               ))}
@@ -346,14 +392,15 @@ function CandidateDetail({
 
           {/* Essay */}
           <section>
-            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">
+            <h3 className="text-base font-semibold text-[#141414] uppercase tracking-wider mb-3 flex items-center gap-3">
+              <span className="w-1.5 h-5 bg-[#c1f11d] rounded-full inline-block" />
               Essay
             </h3>
-            <p className="text-xs text-gray-400 mb-1">
+            <p className="text-sm text-gray-400 mb-2">
               Prompt: &ldquo;{c.essay.prompt}&rdquo; &middot;{" "}
               {c.essay.word_count} words
             </p>
-            <div className="bg-gray-50 rounded-lg p-3 text-sm whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto">
+            <div className="bg-[#eae9e9] rounded-2xl p-5 text-base whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto">
               {c.essay.text}
             </div>
           </section>
@@ -361,10 +408,11 @@ function CandidateDetail({
           {/* Interview */}
           {c.interview_transcript && (
             <section>
-              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">
+              <h3 className="text-base font-semibold text-[#141414] uppercase tracking-wider mb-3 flex items-center gap-3">
+                <span className="w-1.5 h-5 bg-[#c1f11d] rounded-full inline-block" />
                 Interview Transcript
               </h3>
-              <div className="bg-gray-50 rounded-lg p-3 text-sm whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
+              <div className="bg-[#eae9e9] rounded-2xl p-5 text-base whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
                 {c.interview_transcript}
               </div>
             </section>
@@ -373,10 +421,11 @@ function CandidateDetail({
           {/* Recommendation */}
           {c.recommendation_summary && (
             <section>
-              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">
+              <h3 className="text-base font-semibold text-[#141414] uppercase tracking-wider mb-3 flex items-center gap-3">
+                <span className="w-1.5 h-5 bg-[#c1f11d] rounded-full inline-block" />
                 Recommendation
               </h3>
-              <div className="bg-gray-50 rounded-lg p-3 text-sm">
+              <div className="bg-[#eae9e9] rounded-2xl p-5 text-base">
                 {c.recommendation_summary}
               </div>
             </section>
@@ -385,19 +434,49 @@ function CandidateDetail({
           {/* Scoring breakdown */}
           {score && (
             <section>
-              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">
+              <h3 className="text-base font-semibold text-[#141414] uppercase tracking-wider mb-3 flex items-center gap-3">
+                <span className="w-1.5 h-5 bg-[#c1f11d] rounded-full inline-block" />
                 Score Breakdown ({score.scorer_type.toUpperCase()})
               </h3>
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-3xl font-bold">
+              <div className="flex items-center gap-4 mb-4">
+                <span className="text-4xl font-bold text-[#141414]">
                   {score.overall_score.toFixed(1)}
                 </span>
                 <RecommendationBadge rec={score.recommendation} />
               </div>
+              {/* AI Insight */}
+              {score.dimensions.length > 0 && (() => {
+                const sorted = [...score.dimensions].sort((a, b) => b.score - a.score);
+                const highest = sorted[0];
+                const lowest = sorted[sorted.length - 1];
+                const highLabel = DIMENSION_LABELS[highest.dimension] || highest.dimension;
+                const lowLabel = DIMENSION_LABELS[lowest.dimension] || lowest.dimension;
+                const missExplanation =
+                  lowest.dimension === "growth_trajectory"
+                    ? "growth potential not captured by transcripts alone"
+                    : lowest.dimension === "communication"
+                      ? "communication nuance often lost in paper reviews"
+                      : `lower ${lowLabel} signal that may improve with holistic review`;
+                return (
+                  <div
+                    className="rounded-2xl p-5 mb-4"
+                    style={{ background: "linear-gradient(180deg, #252525, #0F0F0F)" }}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="w-1.5 h-5 bg-[#c1f11d] rounded-full inline-block" />
+                      <span className="text-sm font-semibold text-[#c1f11d]">AI Insight</span>
+                    </div>
+                    <p className="text-sm text-gray-300 leading-relaxed">
+                      Strong signal in <span className="text-white font-medium">{highLabel}</span> ({highest.score.toFixed(0)}).
+                      {" "}Traditional screening would miss {missExplanation}.
+                    </p>
+                  </div>
+                );
+              })()}
               {score.summary && (
-                <p className="text-sm text-gray-600 mb-3">{score.summary}</p>
+                <p className="text-base text-gray-600 mb-4">{score.summary}</p>
               )}
-              <div className="space-y-1">
+              <div className="space-y-2">
                 {score.dimensions.map((d) => (
                   <DimensionDetail key={d.dimension} dim={d} />
                 ))}
@@ -407,55 +486,56 @@ function CandidateDetail({
 
           {/* AI Detection */}
           <section>
-            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">
+            <h3 className="text-base font-semibold text-[#141414] uppercase tracking-wider mb-3 flex items-center gap-3">
+              <span className="w-1.5 h-5 bg-[#c1f11d] rounded-full inline-block" />
               AI Content Detection
             </h3>
             {aiDetection ? (
-              <div className="bg-gray-50 rounded-lg p-3 text-sm space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">Authenticity:</span>
-                  <ScoreBar score={aiDetection.authenticity_score} />
+              <div className="rounded-2xl p-5 text-base space-y-3" style={{ background: "linear-gradient(180deg, #252525, #0F0F0F)" }}>
+                <div className="flex items-center gap-3">
+                  <span className="font-medium text-white">Authenticity:</span>
+                  <ScoreBarDark score={aiDetection.authenticity_score} />
                 </div>
-                <p className="text-gray-600">{aiDetection.explanation}</p>
+                <p className="text-gray-300">{aiDetection.explanation}</p>
                 {aiDetection.flags.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-wrap gap-1.5">
                     {aiDetection.flags.map((f, i) => (
                       <Badge key={i} label={f} color="red" />
                     ))}
                   </div>
                 )}
                 {aiDetection.stylometry && (
-                  <div className="mt-2 border-t border-gray-200 pt-2">
-                    <p className="text-xs font-semibold text-gray-500 mb-1">
+                  <div className="mt-3 border-t border-[#333] pt-3">
+                    <p className="text-sm font-semibold text-gray-400 mb-2">
                       Stylometry Metrics (statistical, no AI)
                     </p>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                    <div className="grid grid-cols-2 gap-x-5 gap-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Vocabulary richness (TTR):</span>
-                        <span className="font-mono">{aiDetection.stylometry.ttr.toFixed(3)}</span>
+                        <span className="text-gray-400">Vocabulary richness (TTR):</span>
+                        <span className="font-mono text-gray-200">{aiDetection.stylometry.ttr.toFixed(3)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Sentence variance:</span>
-                        <span className="font-mono">{aiDetection.stylometry.sentence_length_variance.toFixed(1)}</span>
+                        <span className="text-gray-400">Sentence variance:</span>
+                        <span className="font-mono text-gray-200">{aiDetection.stylometry.sentence_length_variance.toFixed(1)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Hapax ratio:</span>
-                        <span className="font-mono">{aiDetection.stylometry.hapax_ratio.toFixed(3)}</span>
+                        <span className="text-gray-400">Hapax ratio:</span>
+                        <span className="font-mono text-gray-200">{aiDetection.stylometry.hapax_ratio.toFixed(3)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Formality ratio:</span>
-                        <span className="font-mono">{aiDetection.stylometry.formality_ratio.toFixed(3)}</span>
+                        <span className="text-gray-400">Formality ratio:</span>
+                        <span className="font-mono text-gray-200">{aiDetection.stylometry.formality_ratio.toFixed(3)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Avg sentence length:</span>
-                        <span className="font-mono">{aiDetection.stylometry.avg_sentence_length.toFixed(1)}</span>
+                        <span className="text-gray-400">Avg sentence length:</span>
+                        <span className="font-mono text-gray-200">{aiDetection.stylometry.avg_sentence_length.toFixed(1)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Essay-interview overlap:</span>
-                        <span className="font-mono">{aiDetection.stylometry.essay_interview_vocab_overlap.toFixed(3)}</span>
+                        <span className="text-gray-400">Essay-interview overlap:</span>
+                        <span className="font-mono text-gray-200">{aiDetection.stylometry.essay_interview_vocab_overlap.toFixed(3)}</span>
                       </div>
                     </div>
-                    <p className="text-[10px] text-gray-400 mt-1">
+                    <p className="text-xs text-gray-500 mt-2">
                       Reference: AI text typically has TTR 0.40-0.55, sentence variance 5-25, hapax 0.30-0.45
                     </p>
                   </div>
@@ -463,7 +543,7 @@ function CandidateDetail({
               </div>
             ) : (
               <button
-                className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 disabled:opacity-50"
+                className="px-5 py-2.5 bg-[#141414] text-[#c1f11d] rounded-xl text-base font-medium hover:scale-105 transition-transform disabled:opacity-50"
                 onClick={onDetectAI}
                 disabled={detectLoading}
               >
@@ -472,15 +552,53 @@ function CandidateDetail({
             )}
           </section>
 
+          {/* Feynman Teaching Score */}
+          {feynmanScore && (
+            <section>
+              <h3 className="text-base font-semibold text-[#141414] uppercase tracking-wider mb-3 flex items-center gap-3">
+                <span className="w-1.5 h-5 bg-[#c1f11d] rounded-full inline-block" />
+                Feynman Teaching Challenge
+              </h3>
+              <div className="rounded-2xl p-5 space-y-3 text-sm" style={{ background: "linear-gradient(180deg, #252525, #0F0F0F)" }}>
+                <div className="flex items-center gap-3">
+                  <span className="text-gray-300 w-28">Overall</span>
+                  <ScoreBarDark score={feynmanScore.overall_score} />
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-gray-300 w-28">Clarity</span>
+                  <ScoreBarDark score={feynmanScore.clarity} />
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-gray-300 w-28">Patience</span>
+                  <ScoreBarDark score={feynmanScore.patience} />
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-gray-300 w-28">Empathy</span>
+                  <ScoreBarDark score={feynmanScore.empathy} />
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-gray-300 w-28">Adaptability</span>
+                  <ScoreBarDark score={feynmanScore.adaptability} />
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-gray-300 w-28">Quiz Transfer</span>
+                  <ScoreBarDark score={feynmanScore.quiz_transfer_score} />
+                </div>
+                <p className="text-gray-400 mt-3">{feynmanScore.summary}</p>
+              </div>
+            </section>
+          )}
+
           {/* Committee Override */}
           {score && (
             <section>
-              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">
+              <h3 className="text-base font-semibold text-[#141414] uppercase tracking-wider mb-3 flex items-center gap-3">
+                <span className="w-1.5 h-5 bg-[#c1f11d] rounded-full inline-block" />
                 Committee Override
               </h3>
-              <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+              <div className="bg-[#eae9e9] rounded-2xl p-5 space-y-4">
                 <select
-                  className="w-full border rounded px-2 py-1 text-sm"
+                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-base bg-white focus:border-[#c1f11d] focus:ring-1 focus:ring-[#c1f11d] outline-none"
                   value={overrideDim}
                   onChange={(e) => setOverrideDim(e.target.value)}
                 >
@@ -492,26 +610,26 @@ function CandidateDetail({
                     </option>
                   ))}
                 </select>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <input
                     type="range"
                     min={0}
                     max={100}
                     value={overrideVal}
                     onChange={(e) => setOverrideVal(Number(e.target.value))}
-                    className="flex-1"
+                    className="flex-1 accent-[#c1f11d]"
                   />
-                  <span className="text-sm font-mono w-8">{overrideVal}</span>
+                  <span className="text-base font-mono w-9">{overrideVal}</span>
                 </div>
                 <input
                   type="text"
                   placeholder="Note (reason for override)"
-                  className="w-full border rounded px-2 py-1 text-sm"
+                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-base bg-white focus:border-[#c1f11d] focus:ring-1 focus:ring-[#c1f11d] outline-none"
                   value={overrideNote}
                   onChange={(e) => setOverrideNote(e.target.value)}
                 />
                 <button
-                  className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600 disabled:opacity-50"
+                  className="px-5 py-2.5 bg-[#c1f11d] text-[#141414] rounded-xl text-base font-semibold hover:scale-105 transition-transform disabled:opacity-50"
                   disabled={!overrideDim}
                   onClick={() => {
                     onOverride(overrideDim, overrideVal, overrideNote);
@@ -530,7 +648,7 @@ function CandidateDetail({
   );
 }
 
-/* ── Weight Simulator ─────────────────────────────────────────────── */
+/* ── Evaluation Settings ─────────────────────────────────────────────── */
 
 function WeightSimulator({
   weights,
@@ -548,55 +666,55 @@ function WeightSimulator({
   );
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 mb-4">
+    <div className="rounded-2xl mb-5 overflow-hidden" style={{ background: "linear-gradient(180deg, #252525, #0F0F0F)" }}>
       <button
-        className="w-full flex items-center justify-between px-5 py-3 text-left"
+        className="w-full flex items-center justify-between px-6 py-5 text-left"
         onClick={() => setOpen(!open)}
       >
         <div className="flex items-center gap-3">
-          <svg className="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-6 h-6 text-[#c1f11d]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
           </svg>
-          <span className="text-sm font-semibold text-gray-800">Weight Simulator</span>
+          <span className="text-base font-semibold text-white">Evaluation Settings</span>
           {!isDefault && (
-            <span className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">
+            <span className="text-xs bg-[#c1f11d] text-[#141414] px-2.5 py-1 rounded-full font-medium">
               Custom weights active
             </span>
           )}
         </div>
-        <span className="text-gray-400 text-xs">{open ? "−" : "+"}</span>
+        <span className="text-gray-400 text-sm">{open ? "−" : "+"}</span>
       </button>
       {open && (
-        <div className="px-5 pb-5 border-t border-gray-100 pt-4">
-          <p className="text-xs text-gray-500 mb-4">
-            Adjust how much each dimension contributes to the overall score. Rankings update live.
+        <div className="px-6 pb-6 border-t border-[#333] pt-5">
+          <p className="text-sm text-gray-400 mb-5">
+            Configure your evaluation rubric. Adjust how much each dimension contributes to the overall score. Rankings update live.
           </p>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {DIMENSION_KEYS.map((key) => (
               <div key={key} className="flex items-center gap-3">
-                <span className="text-xs text-gray-600 w-24">{DIMENSION_LABELS[key]}</span>
+                <span className="text-sm text-gray-300 w-28">{DIMENSION_LABELS[key]}</span>
                 <input
                   type="range"
                   min={0}
                   max={50}
                   value={Math.round(weights[key] * 100)}
                   onChange={(e) => onChange(key, parseInt(e.target.value) / 100)}
-                  className="flex-1 h-2 accent-indigo-600"
+                  className="flex-1 h-2 accent-[#c1f11d]"
                 />
-                <span className="text-xs font-mono text-gray-700 w-10 text-right">
+                <span className="text-sm font-mono text-gray-300 w-12 text-right">
                   {Math.round(weights[key] * 100)}%
                 </span>
               </div>
             ))}
           </div>
-          <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-            <span className={`text-xs ${Math.abs(total - 1) > 0.01 ? "text-red-500 font-medium" : "text-gray-400"}`}>
+          <div className="flex items-center justify-between mt-5 pt-4 border-t border-[#333]">
+            <span className={`text-sm ${Math.abs(total - 1) > 0.01 ? "text-red-400 font-medium" : "text-gray-500"}`}>
               Total: {Math.round(total * 100)}%{Math.abs(total - 1) > 0.01 && " (should be 100%)"}
             </span>
             {!isDefault && (
               <button
                 onClick={onReset}
-                className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
+                className="text-sm text-[#c1f11d] hover:text-[#deff70] font-medium"
               >
                 Reset to defaults
               </button>
@@ -651,63 +769,63 @@ function FairnessAudit({ ranked }: { ranked: RankedCandidate[] }) {
       : 0;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 mb-4">
+    <div className="rounded-2xl mb-5 overflow-hidden" style={{ background: "linear-gradient(180deg, #252525, #0F0F0F)" }}>
       <button
-        className="w-full flex items-center justify-between px-5 py-3 text-left"
+        className="w-full flex items-center justify-between px-6 py-5 text-left"
         onClick={() => setOpen(!open)}
       >
         <div className="flex items-center gap-3">
-          <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-6 h-6 text-[#c1f11d]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
           </svg>
-          <span className="text-sm font-semibold text-gray-800">Fairness Audit</span>
+          <span className="text-base font-semibold text-white">Fairness Audit</span>
         </div>
-        <span className="text-gray-400 text-xs">{open ? "−" : "+"}</span>
+        <span className="text-gray-400 text-sm">{open ? "−" : "+"}</span>
       </button>
       {open && (
-        <div className="px-5 pb-5 border-t border-gray-100 pt-4">
-          <p className="text-xs text-gray-500 mb-4">
+        <div className="px-6 pb-6 border-t border-[#333] pt-5">
+          <p className="text-sm text-gray-400 mb-5">
             Score distribution by school type. Overall scores should not be dominated by school type alone
             — growth trajectory compensates for resource differences.
           </p>
           <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+            <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 text-gray-500">
-                  <th className="text-left py-2 pr-4 font-medium">School Type</th>
-                  <th className="text-right py-2 px-2 font-medium">Count</th>
-                  <th className="text-right py-2 px-2 font-medium">Avg Score</th>
-                  <th className="text-right py-2 px-2 font-medium">Range</th>
-                  <th className="text-right py-2 px-2 font-medium">Avg Growth</th>
-                  <th className="text-left py-2 pl-4 font-medium w-40">Distribution</th>
+                <tr className="border-b border-[#444] text-gray-400">
+                  <th className="text-left py-2.5 pr-5 font-medium">School Type</th>
+                  <th className="text-right py-2.5 px-3 font-medium">Count</th>
+                  <th className="text-right py-2.5 px-3 font-medium">Avg Score</th>
+                  <th className="text-right py-2.5 px-3 font-medium">Range</th>
+                  <th className="text-right py-2.5 px-3 font-medium">Avg Growth</th>
+                  <th className="text-left py-2.5 pl-5 font-medium w-44">Distribution</th>
                 </tr>
               </thead>
               <tbody>
                 {schoolStats.map((s) => {
                   const deviation = s.avgScore - overallAvg;
                   return (
-                    <tr key={s.school} className="border-b border-gray-50">
-                      <td className="py-2 pr-4 capitalize font-medium text-gray-800">
+                    <tr key={s.school} className="border-b border-[#333]">
+                      <td className="py-2.5 pr-5 capitalize font-medium text-white">
                         {s.school}
                       </td>
-                      <td className="text-right py-2 px-2 text-gray-600">{s.count}</td>
-                      <td className="text-right py-2 px-2">
-                        <span className="font-mono font-medium">{s.avgScore.toFixed(1)}</span>
-                        <span className={`ml-1 ${deviation >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                      <td className="text-right py-2.5 px-3 text-gray-300">{s.count}</td>
+                      <td className="text-right py-2.5 px-3">
+                        <span className="font-mono font-medium text-white">{s.avgScore.toFixed(1)}</span>
+                        <span className={`ml-1 ${deviation >= 0 ? "text-[#c1f11d]" : "text-red-400"}`}>
                           ({deviation >= 0 ? "+" : ""}{deviation.toFixed(1)})
                         </span>
                       </td>
-                      <td className="text-right py-2 px-2 text-gray-500 font-mono">
+                      <td className="text-right py-2.5 px-3 text-gray-400 font-mono">
                         {s.minScore.toFixed(0)}-{s.maxScore.toFixed(0)}
                       </td>
-                      <td className="text-right py-2 px-2 font-mono text-indigo-600">
+                      <td className="text-right py-2.5 px-3 font-mono text-[#c1f11d]">
                         {s.avgGrowth.toFixed(1)}
                       </td>
-                      <td className="py-2 pl-4">
+                      <td className="py-2.5 pl-5">
                         <div className="flex items-center gap-1">
-                          <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="flex-1 h-4 bg-[#333] rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-indigo-400 rounded-full"
+                              className="h-full bg-[#c1f11d] rounded-full"
                               style={{ width: `${Math.min(s.avgScore, 100)}%` }}
                             />
                           </div>
@@ -719,9 +837,9 @@ function FairnessAudit({ ranked }: { ranked: RankedCandidate[] }) {
               </tbody>
             </table>
           </div>
-          <div className="mt-4 p-3 bg-emerald-50 rounded-lg">
-            <p className="text-xs text-emerald-800">
-              <strong>Interpretation:</strong> Growth trajectory scores differ by school type (by design —
+          <div className="mt-5 p-4 bg-[#1a2a0a] rounded-xl border border-[#c1f11d]/20">
+            <p className="text-sm text-[#c1f11d]/80">
+              <strong className="text-[#c1f11d]">Interpretation:</strong> Growth trajectory scores differ by school type (by design —
               students from under-resourced schools get credit for overcoming more).
               Overall scores should show overlap across school types, proving that school background
               alone does not determine outcome.
@@ -741,9 +859,11 @@ export default function Dashboard() {
   const [aiDetections, setAiDetections] = useState<
     Record<string, AIDetectionResult>
   >({});
+  const [feynmanScores, setFeynmanScores] = useState<Record<string, FeynmanScore>>({});
   const [detectLoading, setDetectLoading] = useState(false);
   const [filter, setFilter] = useState<string>("all");
   const [weights, setWeights] = useState<Record<string, number>>({ ...DEFAULT_WEIGHTS });
+  const [scrollProgress, setScrollProgress] = useState(0);
 
   const loadRanking = useCallback(async () => {
     setLoading(true);
@@ -761,6 +881,17 @@ export default function Dashboard() {
   useEffect(() => {
     loadRanking();
   }, [loadRanking]);
+
+  // Scroll progress bar
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = document.documentElement.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      setScrollProgress(scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // Client-side recomputation with custom weights — instant, no API call
   const ranked = useMemo(() => {
@@ -812,6 +943,18 @@ export default function Dashboard() {
   const selectedScore =
     selected?.baseline_score || selected?.ai_score || null;
 
+  // Fetch Feynman score when candidate is selected
+  useEffect(() => {
+    if (!selectedId || feynmanScores[selectedId]) return;
+    api.feynman.finish("").catch(() => {}); // no-op, we just fetch cached score
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/feynman/score/${selectedId}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data) setFeynmanScores((prev) => ({ ...prev, [selectedId]: data }));
+      })
+      .catch(() => {});
+  }, [selectedId, feynmanScores]);
+
   const handleDetectAI = async () => {
     if (!selectedId) return;
     setDetectLoading(true);
@@ -847,80 +990,156 @@ export default function Dashboard() {
     return "needs_attention";
   };
 
+  const isHiddenGem = (r: RankedCandidate): boolean => {
+    const score = r.baseline_score || r.ai_score;
+    if (!score) return false;
+    const overall = score.overall_score;
+    if (overall >= 65) return false;
+    return score.dimensions.some((d) => d.score > 70);
+  };
+
   const filtered =
     filter === "all"
       ? ranked
-      : ranked.filter((r) => recGroup(r) === filter);
+      : filter === "hidden_gem"
+        ? ranked.filter((r) => isHiddenGem(r))
+        : ranked.filter((r) => recGroup(r) === filter);
 
   const stats = {
     total: ranked.length,
     recommend: ranked.filter((r) => recGroup(r) === "recommend").length,
     consider: ranked.filter((r) => recGroup(r) === "consider").length,
     needsAttention: ranked.filter((r) => recGroup(r) === "needs_attention").length,
+    hiddenGems: ranked.filter((r) => isHiddenGem(r)).length,
   };
 
   return (
-    <main className="min-h-screen">
-      {/* Header */}
-      <header className="bg-white border-b px-6 py-4">
+    <main className="min-h-screen bg-[#eae9e9]">
+      {/* Scroll progress bar */}
+      <div
+        className="fixed top-0 left-0 h-[3px] bg-[#c1f11d] z-[200] transition-all duration-150"
+        style={{ width: `${scrollProgress}%` }}
+      />
+
+      {/* Nav */}
+      <nav
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
+          backgroundColor: "#c1f11d",
+          padding: "18px 60px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <img
+          src="/assets/InVision U Dark.png"
+          alt="inVision U"
+          style={{ width: "169.33px", height: "27.86px" }}
+        />
+        <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
+          {[
+            { href: "/", label: "Home" },
+            { href: "/#apply", label: "Applicant Portal" },
+            { href: "/teach", label: "Teaching Challenge" },
+            { href: "/dashboard", label: "Admissions Dashboard", current: true },
+          ].map((link, i) => (
+            <div key={link.label} style={{ display: "flex", alignItems: "center" }}>
+              {i > 0 && (
+                <div style={{ width: "1px", height: "40px", backgroundColor: "#141414" }} />
+              )}
+              <a
+                href={link.href}
+                style={{
+                  padding: "14px 24px",
+                  borderRadius: "10px",
+                  textDecoration: "none",
+                  fontWeight: link.current ? 700 : 500,
+                  color: "#141414",
+                  fontSize: "18px",
+                  whiteSpace: "nowrap",
+                  transition: "background-color 0.2s",
+                  backgroundColor: link.current ? "#deff70" : "transparent",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.backgroundColor = "#deff70";
+                }}
+                onMouseLeave={(e) => {
+                  if (!link.current) {
+                    (e.currentTarget as HTMLElement).style.backgroundColor = "transparent";
+                  }
+                }}
+              >
+                {link.label}
+              </a>
+            </div>
+          ))}
+        </div>
+      </nav>
+
+      {/* Header subtitle */}
+      <div className="bg-[#141414] px-8 py-8">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-indigo-700">
-              InVision U
+            <h1 className="text-3xl font-bold text-white">
+              Admissions Dashboard
             </h1>
-            <p className="text-sm text-gray-500">
-              Candidate Evaluation Dashboard
+            <p className="text-base text-gray-400 mt-1">
+              AI-Assisted Screening &middot; Human-in-the-Loop
             </p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-xs text-gray-400">
-              <span className="inline-block w-2 h-2 rounded-full bg-emerald-400" />
-              AI-Assisted Screening &middot; Human-in-the-Loop
-            </div>
-            <a
-              href="/"
-              className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
-            >
-              &larr; Home
-            </a>
+          <div className="flex items-center gap-3 text-sm text-gray-400">
+            <span className="inline-block w-2.5 h-2.5 rounded-full bg-[#c1f11d]" />
+            System Active
           </div>
         </div>
-      </header>
+      </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="max-w-7xl mx-auto px-8 py-8">
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-5 gap-5 mb-8">
           <button
             onClick={() => setFilter("all")}
-            className={`rounded-xl p-4 text-left transition-colors ${filter === "all" ? "bg-indigo-600 text-white" : "bg-white border"}`}
+            className={`rounded-2xl p-6 text-left transition-all duration-200 hover:-translate-y-0.5 ${filter === "all" ? "bg-[#c1f11d] text-[#141414]" : "bg-[#141414] text-white"}`}
           >
-            <p className="text-2xl font-bold">{stats.total}</p>
-            <p className="text-xs opacity-70">Total Candidates</p>
+            <p className={`text-4xl font-bold ${filter === "all" ? "text-[#141414]" : "text-[#c1f11d]"}`}>{stats.total}</p>
+            <p className={`text-sm mt-1 ${filter === "all" ? "text-[#141414]/70" : "text-gray-400"}`}>Total Candidates</p>
           </button>
           <button
             onClick={() => setFilter("recommend")}
-            className={`rounded-xl p-4 text-left transition-colors ${filter === "recommend" ? "bg-emerald-600 text-white" : "bg-white border"}`}
+            className={`rounded-2xl p-6 text-left transition-all duration-200 hover:-translate-y-0.5 ${filter === "recommend" ? "bg-[#c1f11d] text-[#141414]" : "bg-[#141414] text-white"}`}
           >
-            <p className="text-2xl font-bold">{stats.recommend}</p>
-            <p className="text-xs opacity-70">Recommended</p>
+            <p className={`text-4xl font-bold ${filter === "recommend" ? "text-[#141414]" : "text-[#c1f11d]"}`}>{stats.recommend}</p>
+            <p className={`text-sm mt-1 ${filter === "recommend" ? "text-[#141414]/70" : "text-gray-400"}`}>Recommended</p>
           </button>
           <button
             onClick={() => setFilter("consider")}
-            className={`rounded-xl p-4 text-left transition-colors ${filter === "consider" ? "bg-amber-500 text-white" : "bg-white border"}`}
+            className={`rounded-2xl p-6 text-left transition-all duration-200 hover:-translate-y-0.5 ${filter === "consider" ? "bg-[#c1f11d] text-[#141414]" : "bg-[#141414] text-white"}`}
           >
-            <p className="text-2xl font-bold">{stats.consider}</p>
-            <p className="text-xs opacity-70">Consider</p>
+            <p className={`text-4xl font-bold ${filter === "consider" ? "text-[#141414]" : "text-amber-400"}`}>{stats.consider}</p>
+            <p className={`text-sm mt-1 ${filter === "consider" ? "text-[#141414]/70" : "text-gray-400"}`}>Consider</p>
           </button>
           <button
             onClick={() => setFilter("needs_attention")}
-            className={`rounded-xl p-4 text-left transition-colors ${filter === "needs_attention" ? "bg-red-500 text-white" : "bg-white border"}`}
+            className={`rounded-2xl p-6 text-left transition-all duration-200 hover:-translate-y-0.5 ${filter === "needs_attention" ? "bg-[#c1f11d] text-[#141414]" : "bg-[#141414] text-white"}`}
           >
-            <p className="text-2xl font-bold">{stats.needsAttention}</p>
-            <p className="text-xs opacity-70">Needs Attention</p>
+            <p className={`text-4xl font-bold ${filter === "needs_attention" ? "text-[#141414]" : "text-red-400"}`}>{stats.needsAttention}</p>
+            <p className={`text-sm mt-1 ${filter === "needs_attention" ? "text-[#141414]/70" : "text-gray-400"}`}>Needs Attention</p>
+          </button>
+          <button
+            onClick={() => setFilter("hidden_gem")}
+            className={`rounded-2xl p-6 text-left transition-all duration-200 hover:-translate-y-0.5 ${filter === "hidden_gem" ? "bg-[#141414] text-[#c1f11d] ring-2 ring-[#c1f11d]" : "bg-[#141414] text-white border border-lime-400/40"}`}
+          >
+            <p className={`text-4xl font-bold ${filter === "hidden_gem" ? "text-[#c1f11d]" : "text-lime-400"}`}>
+              {stats.hiddenGems} <span className="text-2xl">&#x2728;</span>
+            </p>
+            <p className={`text-sm mt-1 ${filter === "hidden_gem" ? "text-[#c1f11d]/70" : "text-gray-400"}`}>Hidden Gems</p>
           </button>
         </div>
 
-        {/* Weight Simulator + Fairness Audit */}
+        {/* Evaluation Settings + Fairness Audit */}
         <WeightSimulator
           weights={weights}
           onChange={handleWeightChange}
@@ -930,21 +1149,21 @@ export default function Dashboard() {
 
         {/* Error */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+          <div className="mb-5 p-4 bg-red-500/10 text-red-400 rounded-2xl text-base border border-red-500/20">
             {error}
           </div>
         )}
 
         {/* Loading */}
         {loading && (
-          <div className="text-center py-12 text-gray-400">
+          <div className="text-center py-14 text-gray-400 text-lg">
             Loading candidates...
           </div>
         )}
 
         {/* Candidate grid */}
         {!loading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {filtered.map((r) => (
               <CandidateCard
                 key={r.candidate.id}
@@ -956,7 +1175,7 @@ export default function Dashboard() {
         )}
 
         {filtered.length === 0 && !loading && (
-          <div className="text-center py-12 text-gray-400">
+          <div className="text-center py-14 text-gray-400 text-lg">
             No candidates match this filter.
           </div>
         )}
@@ -968,6 +1187,7 @@ export default function Dashboard() {
           candidate={selected.candidate}
           score={selectedScore}
           aiDetection={aiDetections[selected.candidate.id] || null}
+          feynmanScore={feynmanScores[selected.candidate.id] || null}
           onClose={() => setSelectedId(null)}
           onDetectAI={handleDetectAI}
           onOverride={handleOverride}

@@ -17,7 +17,6 @@ import type {
   CandidateScore,
   RankedCandidate,
   AIDetectionResult,
-  ComparisonResult,
 } from "./types";
 
 export const api = {
@@ -46,8 +45,6 @@ export const api = {
         `/api/scoring/rank?scorer=${scorer}`,
         { method: "POST" }
       ),
-    compare: (id: string) =>
-      fetchJSON<ComparisonResult>(`/api/scoring/compare/${id}`),
     override: (candidateId: string, dimension: string, score: number, note: string) =>
       fetchJSON<CandidateScore>("/api/scoring/override", {
         method: "POST",
@@ -64,5 +61,24 @@ export const api = {
       fetchJSON<AIDetectionResult>(`/api/analysis/ai-detection/${id}`, {
         method: "POST",
       }),
+  },
+  feynman: {
+    topics: () => fetchJSON<{ id: string; title: string; description: string }[]>("/api/feynman/topics"),
+    start: (candidateId: string, topicId: string) =>
+      fetchJSON<{ session_id: string; topic: { id: string; title: string; description: string }; first_message: string }>(
+        "/api/feynman/start",
+        { method: "POST", body: JSON.stringify({ candidate_id: candidateId, topic_id: topicId }) },
+      ),
+    chat: (sessionId: string, message: string) =>
+      fetchJSON<{ reply: string; message_count: number; can_finish: boolean }>(
+        "/api/feynman/chat",
+        { method: "POST", body: JSON.stringify({ session_id: sessionId, message }) },
+      ),
+    finish: (sessionId: string) =>
+      fetchJSON<{
+        session_id: string; candidate_id: string; topic_id: string;
+        clarity: number; patience: number; empathy: number; adaptability: number;
+        quiz_transfer_score: number; overall_score: number; summary: string; message_count: number;
+      }>(`/api/feynman/finish?session_id=${sessionId}`, { method: "POST" }),
   },
 };
