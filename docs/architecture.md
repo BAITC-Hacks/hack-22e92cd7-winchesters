@@ -1,33 +1,41 @@
 # InVision U — Solution Architecture
 
-## 1. System Architecture (High-Level)
+## 1. System Architecture
 
 ```mermaid
 graph TB
     subgraph Frontend["Frontend (Next.js + React)"]
-        APP[Application Form<br/>/apply]
-        DASH[Evaluation Dashboard<br/>/]
+        LP[Landing Page<br/>/ ]
+        APP[Application Form<br/>6-step with sidebar]
+        TEACH[Teaching Challenge<br/>/teach]
+        DASH[Admissions Dashboard<br/>/dashboard]
     end
 
     subgraph Backend["Backend (FastAPI)"]
-        API[REST API Layer]
+        API[REST API — 16 endpoints]
         subgraph Scoring["Scoring Engine"]
             SE[Signal Extractor<br/>Pure Python]
             BL[Baseline Scorer<br/>Rule-based]
             AI[AI Scorer<br/>Claude Sonnet 4]
-            AGG[Score Aggregator<br/>Weighted]
+            AGG[Score Aggregator<br/>Configurable weights]
         end
         subgraph Detection["AI Detection"]
+            LANG[Language Detection<br/>KZ / RU / EN]
             STYL[Statistical Stylometry<br/>7 metrics, no AI]
             QUAL[Qualitative Analysis<br/>Claude Sonnet 4]
             COMB[Combined Score<br/>40/60 blend]
+        end
+        subgraph Feynman["Feynman Teaching Engine"]
+            CHAT[AI Student — Arman<br/>Claude as confused 10-year-old]
+            QUIZ[Knowledge Transfer Quiz<br/>3 topic-specific questions]
+            FEVAL[Teaching Evaluator<br/>Clarity, Patience, Empathy, Adaptability]
         end
         PII[PII Anonymizer]
         OVR[Committee Override<br/>Human-in-the-Loop]
     end
 
     subgraph Storage["Data Layer"]
-        DB[(candidates.json)]
+        DB[(candidates.json<br/>15 candidates, 3 languages)]
         CACHE[In-Memory Cache]
     end
 
@@ -35,8 +43,11 @@ graph TB
         CLAUDE[Claude API<br/>Sonnet 4]
     end
 
+    LP -->|Start Application| APP
     APP -->|POST /api/candidates| API
-    DASH -->|GET, POST| API
+    APP -->|After Submit| TEACH
+    TEACH -->|Chat + Finish| API
+    DASH -->|Score, Rank, Override| API
     API --> SE
     SE --> BL
     SE --> AI
@@ -45,10 +56,14 @@ graph TB
     BL --> AGG
     AI --> AGG
     AGG --> CACHE
-    API --> STYL
+    API --> LANG
+    LANG --> STYL
     STYL --> QUAL
-    QUAL --> PII
     QUAL --> COMB
+    API --> CHAT
+    CHAT --> CLAUDE
+    CHAT --> QUIZ
+    QUIZ --> FEVAL
     OVR -->|override score| AGG
     API --> DB
     API --> CACHE
@@ -59,29 +74,53 @@ graph TB
     style External fill:#fce7f3,stroke:#ec4899
 ```
 
-## 2. Scoring Pipeline (3-Stage)
+## 2. Applicant Flow
+
+```mermaid
+flowchart LR
+    subgraph Apply["Application (6 steps)"]
+        S1[Personal Info] --> S2[Education]
+        S2 --> S3[Essay & Motivation]
+        S3 --> S4[Extracurriculars]
+        S4 --> S5[Video Presentation]
+        S5 --> S6[Review & Submit]
+    end
+
+    subgraph Feynman["Teaching Challenge"]
+        F1[Pick Topic] --> F2[Chat with Arman]
+        F2 --> F3[Arman Takes Quiz]
+        F3 --> F4[Get Teaching Score]
+    end
+
+    S6 -->|Submit| F1
+    F4 --> DONE[Application Complete]
+
+    style Apply fill:#f0fdf4,stroke:#10b981
+    style Feynman fill:#ede9fe,stroke:#7c3aed
+```
+
+## 3. Scoring Pipeline (3-Stage)
 
 ```mermaid
 flowchart LR
     subgraph Stage1["Stage 1: Signal Extraction (Pure Python)"]
         C[Candidate Data] --> EX[extract_signals]
-        EX --> AC[Academic Signals<br/>GPA, achievements, skills]
-        EX --> LD[Leadership Signals<br/>roles, projects, keywords]
-        EX --> GR[Growth Signals<br/>starting_level → current_level<br/>delta = how far they came]
-        EX --> CM[Communication Signals<br/>essay metrics, interview]
-        EX --> MO[Motivation Signals<br/>keywords, evidence]
+        EX --> AC[Academic Signals]
+        EX --> LD[Leadership Signals]
+        EX --> GR[Growth Signals<br/>delta = current - starting]
+        EX --> CM[Communication Signals]
+        EX --> MO[Motivation Signals]
     end
 
     subgraph Stage2["Stage 2: Dual Scoring"]
-        AC & LD & GR & CM & MO --> BAS[Baseline Scorer<br/>Rule-based heuristics<br/>Deterministic]
-        AC & LD & GR & CM & MO --> AIS[AI Scorer<br/>Signals + Raw Text → Claude<br/>Nuanced understanding]
+        AC & LD & GR & CM & MO --> BAS[Baseline Scorer<br/>Rule-based, instant]
+        AC & LD & GR & CM & MO --> AIS[AI Scorer<br/>Claude + raw text]
     end
 
     subgraph Stage3["Stage 3: Aggregation"]
-        BAS --> W[Weighted Sum<br/>5 dimensions]
+        BAS --> W[Weighted Sum<br/>Committee-configurable]
         AIS --> W
-        W --> REC[Recommendation<br/>shortlist / review / decline]
-        W --> RNK[Ranking]
+        W --> REC[Recommend / Consider / Needs Attention]
     end
 
     style Stage1 fill:#ede9fe,stroke:#7c3aed
@@ -89,7 +128,7 @@ flowchart LR
     style Stage3 fill:#f0fdf4,stroke:#16a34a
 ```
 
-## 3. AI Detection Pipeline
+## 4. AI Detection Pipeline
 
 ```mermaid
 flowchart LR
@@ -98,30 +137,25 @@ flowchart LR
         INT[Interview Transcript]
     end
 
-    subgraph S1["Stage 1: Statistical Stylometry (No AI)"]
-        ESS --> COMP[compute_stylometry]
+    subgraph S1["Stage 1: Language Detection + Stylometry"]
+        ESS --> DETECT[detect_language<br/>KZ / RU / EN]
+        DETECT --> COMP[compute_stylometry]
         INT --> COMP
-        COMP --> TTR[TTR<br/>Vocabulary richness]
-        COMP --> SV[Sentence Variance<br/>AI = low, Human = high]
-        COMP --> HP[Hapax Ratio<br/>Unique word frequency]
-        COMP --> FR[Formality Ratio<br/>AI filler phrases]
-        COMP --> VO[Vocab Overlap<br/>Essay vs Interview gap]
-        COMP --> AWL[Avg Word Length]
-        COMP --> ASL[Avg Sentence Length]
-        TTR & SV & HP & FR & VO & AWL & ASL --> SS[Statistical Score<br/>0-100]
+        COMP --> METRICS[7 Metrics<br/>TTR, sentence variance,<br/>hapax, formality, overlap,<br/>word length, sentence length]
+        METRICS --> SS[Statistical Score<br/>Language-specific thresholds]
     end
 
     subgraph S2["Stage 2: Claude Qualitative"]
         ESS --> CL[Claude Analysis]
         INT --> CL
         SS -.->|metrics as context| CL
-        CL --> QS[Qualitative Score<br/>voice, depth, specificity]
+        CL --> QS[Qualitative Score]
     end
 
     subgraph S3["Stage 3: Combined"]
         SS -->|40%| BLEND[Weighted Blend]
         QS -->|60%| BLEND
-        BLEND --> FINAL[Authenticity Score<br/>0-100 + flags]
+        BLEND --> FINAL[Authenticity Score + Flags]
     end
 
     style S1 fill:#fef3c7,stroke:#d97706
@@ -129,95 +163,54 @@ flowchart LR
     style S3 fill:#f0fdf4,stroke:#16a34a
 ```
 
-## 4. Trajectory Scoring (Growth Delta)
+## 5. Feynman Teaching Challenge
 
 ```mermaid
 flowchart TB
-    subgraph Philosophy["Scoring Philosophy: Additive, Not Punitive"]
-        direction TB
-        P1["Measures HOW FAR you came<br/>not just WHERE you are"]
-        P2["Nobody penalized for privilege<br/>Extra credit for overcoming adversity"]
+    subgraph Session["Teaching Session"]
+        START[Candidate picks topic] --> CHAT[Chat with Arman<br/>Claude as confused 10-year-old]
+        CHAT -->|4+ exchanges| FINISH[End Session]
+        CHAT -->|Arman intentionally<br/>misunderstands once| TEST[Patience Test]
+        TEST --> CHAT
     end
 
-    subgraph Computation["Growth Delta Computation"]
-        SCH[School Type] -->|SCHOOL_ADVANTAGE map| SL[Starting Level<br/>village=25, public=40,<br/>lyceum=60, private=75]
-        ADV[Adversity Indicators<br/>from essay/interview] -->|reduce starting level| SL
-        GPA[GPA + Achievements] --> CL[Current Level]
-        PROJ[Projects + Initiatives] --> CL
-        EC[Extracurricular Depth] --> CL
-        SL --> DELTA["Delta = Current - Starting"]
-        CL --> DELTA
+    subgraph Evaluation["3 Claude Calls"]
+        FINISH --> Q[Quiz Arman<br/>3 topic questions]
+        Q --> SCORE[Evaluate Conversation]
+        SCORE --> RESULT[Scores: Clarity, Patience,<br/>Empathy, Adaptability,<br/>Quiz Transfer, Overall]
     end
 
-    subgraph Scoring["Score Formula"]
-        DELTA -->|"× 0.6"| DC[Delta Component<br/>60% weight]
-        CL -->|"× 0.4"| BC[Base Component<br/>40% weight]
-        DC --> TOTAL[Growth Score]
-        BC --> TOTAL
-        SUS[Sustained Commitments<br/>2+ years] -->|bonus +5 each| TOTAL
-        SELF[Self-Started Projects] -->|bonus +5 each| TOTAL
-    end
-
-    subgraph Example["Example Comparison"]
-        E1["Village student<br/>start=25 → current=75<br/>delta=50 → score=60"]
-        E2["Elite student<br/>start=75 → current=85<br/>delta=10 → score=40"]
-        E3["Elite + self-starter<br/>start=75 → current=95<br/>delta=20 → score=50"]
-    end
-
-    style Philosophy fill:#ede9fe,stroke:#7c3aed
-    style Computation fill:#e0f2fe,stroke:#0284c7
-    style Scoring fill:#f0fdf4,stroke:#16a34a
-    style Example fill:#fef3c7,stroke:#d97706
+    style Session fill:#ede9fe,stroke:#7c3aed
+    style Evaluation fill:#f0fdf4,stroke:#16a34a
 ```
 
-## 5. Data Flow (End-to-End)
+## 6. Dashboard Features
 
 ```mermaid
-sequenceDiagram
-    participant S as Student
-    participant F as Frontend
-    participant B as Backend API
-    participant SE as Signal Extractor
-    participant BL as Baseline Scorer
-    participant AI as AI Scorer
-    participant C as Claude API
-    participant CM as Committee
+flowchart TB
+    subgraph Dashboard["Admissions Dashboard"]
+        STATS[Stats: Total / Recommend / Consider / Needs Attention / Hidden Gems]
+        EVAL[Evaluation Settings<br/>Adjustable weight sliders]
+        FAIR[Fairness Audit<br/>Score distribution by school type]
+        GRID[Candidate Grid<br/>Sparse Profile badges]
+    end
 
-    S->>F: Fill application form
-    F->>B: POST /api/candidates
-    B->>B: Store candidate
+    subgraph Detail["Candidate Detail Panel"]
+        INFO[Personal Info + Education]
+        SCORES[5 Dimension Scores<br/>with explanations + evidence]
+        INSIGHT[AI Insight<br/>Baseline vs AI delta]
+        DETECT[AI Detection<br/>Stylometry metrics]
+        FEYN[Feynman Teaching Score]
+        OVERRIDE[Committee Override]
+    end
 
-    CM->>F: Open dashboard
-    F->>B: POST /api/scoring/baseline/all
-    B->>SE: Extract signals (pure Python)
-    SE-->>BL: Structured signals
-    BL-->>B: Baseline scores (5 dimensions)
-    B-->>F: Ranked candidates
+    GRID --> Detail
 
-    CM->>F: Request AI scoring
-    F->>B: POST /api/scoring/ai/{id}
-    B->>SE: Extract signals
-    B->>B: Anonymize PII
-    B->>C: Signals + raw text (no PII)
-    C-->>B: AI scores + explanations
-    B-->>F: AI scores with evidence
-
-    CM->>F: Request AI detection
-    F->>B: POST /api/analysis/ai-detection/{id}
-    B->>B: Compute stylometry (no AI)
-    B->>B: Anonymize PII
-    B->>C: Essay + metrics context
-    C-->>B: Qualitative assessment
-    B->>B: Blend 40% stat + 60% qual
-    B-->>F: Authenticity score + flags
-
-    CM->>F: Override dimension score
-    F->>B: POST /api/scoring/override
-    B->>B: Recompute overall score
-    B-->>F: Updated scores
+    style Dashboard fill:#e0f2fe,stroke:#0284c7
+    style Detail fill:#fef3c7,stroke:#d97706
 ```
 
-## 6. Tech Stack
+## 7. Tech Stack
 
 ```mermaid
 graph LR
@@ -234,14 +227,18 @@ graph LR
     end
 
     subgraph AI["AI Layer"]
-        AN --> CS[Claude Sonnet 4<br/>Scoring + Detection]
+        AN --> CS[Claude Sonnet 4]
+        CS --> SC[Scoring]
+        CS --> DT[Detection]
+        CS --> FM[Feynman Chat + Eval]
     end
 
     subgraph NON["Non-AI Processing"]
-        PSE[Signal Extraction<br/>Pure Python]
-        PBS[Baseline Scoring<br/>Rule-based]
-        PST[Statistical Stylometry<br/>Math only]
-        PPI[PII Anonymization<br/>Regex-based]
+        PSE[Signal Extraction]
+        PBS[Baseline Scoring]
+        PST[Statistical Stylometry]
+        PLD[Language Detection]
+        PPI[PII Anonymization]
     end
 
     style FE fill:#e0e7ff,stroke:#4f46e5
