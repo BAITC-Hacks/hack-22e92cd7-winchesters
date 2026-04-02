@@ -61,20 +61,14 @@ const ESSAY_PROMPTS = [
 
 
 const PROGRAMS = [
-  { num: "F", title: "Foundation Year", tag: "Foundation", href: "#apply" },
-  { num: 1, title: "Digital Media and Marketing", tag: "Media", href: "#apply" },
-  { num: 2, title: "Public Policy and Development", tag: "Policy", href: "#apply" },
-  { num: 3, title: "Sociology: Leadership and Innovation", tag: "Sociology", href: "#apply" },
-  { num: 4, title: "Innovative IT Product Design and Development", tag: "IT & Design", href: "#apply" },
-  { num: 5, title: "Creative Engineering", tag: "Engineering", href: "#apply" },
+  { num: "F", title: "Foundation Year", tag: "Foundation", href: "https://www.invisionu.education/foundation" },
+  { num: 1, title: "Digital Media and Marketing", tag: "Media", href: "https://cdn.prod.website-files.com/6798ba0f2cbf12d58d36f439/695bc86bf627f6d7ca996221_Admission%20manuals%20for%20undergraduate%20program%20Digital%20Media%20and%20Marketing.pdf" },
+  { num: 2, title: "Public Policy and Development", tag: "Policy", href: "https://cdn.prod.website-files.com/6798ba0f2cbf12d58d36f439/695bc86b8344d1d7f9fad54c_Admission%20manuals%20for%20undergraduate%20program%20Public%20Policy%20and%20Development.pdf" },
+  { num: 3, title: "Sociology: Leadership and Innovation", tag: "Sociology", href: "https://cdn.prod.website-files.com/6798ba0f2cbf12d58d36f439/695bc86b3ef597081d662926_Admission%20manuals%20for%20undergraduate%20program%20Sociology%20Leadership%20and%20Innovation.pdf" },
+  { num: 4, title: "Innovative IT Product Design and Development", tag: "IT & Design", href: "https://cdn.prod.website-files.com/6798ba0f2cbf12d58d36f439/695bc86bb255c70ba5396d18_Admission%20manuals%20for%20undergraduate%20program%20Innovative%20IT%20Product%20Design%20%20and%20Development.pdf" },
+  { num: 5, title: "Creative Engineering", tag: "Engineering", href: "https://cdn.prod.website-files.com/6798ba0f2cbf12d58d36f439/695bc86b61a2bc0375400381_Admission%20manuals%20for%20undergraduate%20program%20Creative%20Engineering.pdf" },
 ];
 
-const STATS = [
-  { value: "100%", label: "Scholarship-funded" },
-  { value: "6", label: "Future-ready programs" },
-  { value: "0", label: "Standardized tests required" },
-  { value: "100%", label: "Focus on your potential" },
-];
 
 /* ── Main page ─────────────────────────────────────────────────────── */
 
@@ -211,7 +205,7 @@ export default function LandingPage() {
         word_count: essayText.split(/\s+/).filter(Boolean).length,
       };
 
-      await api.candidates.create({
+      const created = await api.candidates.create({
         name,
         age,
         application,
@@ -219,6 +213,12 @@ export default function LandingPage() {
         interview_transcript: "",
         recommendation_summary: recommendation,
       });
+
+      // Store the new candidate ID so Teaching Challenge can link the score
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("invisionu_candidate_id", created.id);
+        window.localStorage.setItem("invisionu_candidate_name", name);
+      }
 
       setSuccess(true);
     } catch (err: unknown) {
@@ -229,6 +229,30 @@ export default function LandingPage() {
   }
 
   const wordCount = essayText.split(/\s+/).filter(Boolean).length;
+
+  /* ── Scroll reveal ──────────────────────────────────────────── */
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => entries.forEach((entry) => {
+        if (entry.isIntersecting) entry.target.classList.add("visible");
+      }),
+      { threshold: 0.1 }
+    );
+    document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
+  /* ── Scroll progress bar ────────────────────────────────────── */
+  const progressRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function onScroll() {
+      if (!progressRef.current) return;
+      const pct = window.scrollY / (document.body.scrollHeight - window.innerHeight);
+      progressRef.current.style.width = `${Math.min(pct * 100, 100)}%`;
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   /* ── Success screen ────────────────────────────────────────────── */
 
@@ -295,30 +319,6 @@ export default function LandingPage() {
     );
   }
 
-  /* ── Scroll reveal ──────────────────────────────────────────── */
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => entries.forEach((entry) => {
-        if (entry.isIntersecting) entry.target.classList.add("visible");
-      }),
-      { threshold: 0.1 }
-    );
-    document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-  }, []);
-
-  /* ── Scroll progress bar ────────────────────────────────────── */
-  const progressRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    function onScroll() {
-      if (!progressRef.current) return;
-      const pct = window.scrollY / (document.body.scrollHeight - window.innerHeight);
-      progressRef.current.style.width = `${Math.min(pct * 100, 100)}%`;
-    }
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
   /* ── Render ────────────────────────────────────────────────────── */
 
   return (
@@ -345,7 +345,7 @@ export default function LandingPage() {
           top: 0,
           zIndex: 100,
           backgroundColor: "#c1f11d",
-          padding: "16px 60px",
+          padding: "18px 60px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -370,7 +370,7 @@ export default function LandingPage() {
               <a
                 href={link.href}
                 style={{
-                  padding: "12px 20px",
+                  padding: "14px 22px",
                   borderRadius: "10px",
                   textDecoration: "none",
                   fontWeight: 500,
@@ -395,21 +395,6 @@ export default function LandingPage() {
 
       {/* ══════ HERO ══════ */}
       <section style={{ background: "linear-gradient(180deg, #ffffff 0%, #f8f8f4 50%, #f0f4e8 100%)", position: "relative", overflow: "hidden" }}>
-        {/* Right side shapes — dark outlines + lime fills */}
-        <div style={{ position: "absolute", top: "60px", right: "80px", width: "320px", height: "320px", border: "2px solid rgba(20,20,20,0.08)", borderRadius: "36px", transform: "rotate(15deg)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", top: "180px", right: "30px", width: "200px", height: "200px", border: "2px solid rgba(20,20,20,0.07)", borderRadius: "50%", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", top: "300px", right: "250px", width: "140px", height: "140px", border: "2px solid rgba(20,20,20,0.06)", borderRadius: "28px", transform: "rotate(-12deg)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", top: "120px", right: "350px", width: "70px", height: "70px", backgroundColor: "rgba(193,241,29,0.22)", borderRadius: "16px", transform: "rotate(25deg)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", top: "380px", right: "130px", width: "100px", height: "100px", backgroundColor: "rgba(193,241,29,0.18)", borderRadius: "50%", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", top: "30px", right: "480px", width: "50px", height: "50px", backgroundColor: "rgba(193,241,29,0.25)", borderRadius: "12px", transform: "rotate(40deg)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", top: "440px", right: "400px", width: "35px", height: "35px", backgroundColor: "rgba(20,20,20,0.06)", borderRadius: "50%", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", top: "220px", right: "200px", width: "24px", height: "24px", backgroundColor: "rgba(193,241,29,0.3)", borderRadius: "6px", transform: "rotate(15deg)", pointerEvents: "none" }} />
-        {/* Left side shapes */}
-        <div style={{ position: "absolute", bottom: "180px", left: "30px", width: "220px", height: "220px", border: "2px solid rgba(20,20,20,0.07)", borderRadius: "50%", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", bottom: "300px", left: "100px", width: "150px", height: "150px", border: "2px solid rgba(20,20,20,0.06)", borderRadius: "30px", transform: "rotate(-20deg)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", bottom: "250px", left: "220px", width: "55px", height: "55px", backgroundColor: "rgba(193,241,29,0.22)", borderRadius: "14px", transform: "rotate(30deg)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", bottom: "350px", left: "50px", width: "40px", height: "40px", backgroundColor: "rgba(20,20,20,0.06)", borderRadius: "50%", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", bottom: "220px", left: "160px", width: "28px", height: "28px", backgroundColor: "rgba(193,241,29,0.28)", borderRadius: "7px", transform: "rotate(-15deg)", pointerEvents: "none" }} />
         <div
           style={{
             maxWidth: "1200px",
@@ -417,29 +402,31 @@ export default function LandingPage() {
             padding: "80px 60px 0",
           }}
         >
-          {/* Heading */}
+          {/* Heading — 2 lines */}
           <h1
             className="reveal reveal-up"
             style={{
-              fontSize: "clamp(48px, 5.5vw, 90px)",
+              fontSize: "clamp(40px, 4.5vw, 76px)",
               fontWeight: 700,
               color: "#141414",
-              lineHeight: 1.05,
+              lineHeight: 1.08,
               marginBottom: "40px",
             }}
           >
-            Empowering those who are ready to{" "}
+            <span style={{ whiteSpace: "nowrap" }}>Empowering those who are</span><br />
+            <span>ready to{" "}</span>
             <span style={{ position: "relative", display: "inline", whiteSpace: "nowrap" }}>
               <span style={{ position: "relative", zIndex: 1 }}>change the world.</span>
               <span
                 style={{
                   position: "absolute",
-                  bottom: "2px",
-                  left: "-6px",
-                  right: "-6px",
-                  height: "38%",
+                  top: "-4px",
+                  bottom: "-4px",
+                  left: "-8px",
+                  right: "-8px",
                   backgroundColor: "#c1f11d",
                   zIndex: 0,
+                  borderRadius: "4px",
                   transformOrigin: "left",
                   animation: "highlightSlide 0.8s ease-out 0.5s both",
                 }}
@@ -461,12 +448,12 @@ export default function LandingPage() {
             Join a global network of future leaders at <strong style={{ color: "#141414" }}>inVision U</strong> — where ideas meet action, and education drives real change.
           </p>
 
-          {/* Buttons — right aligned */}
+          {/* Buttons — left aligned */}
           <div
             className="reveal reveal-up delay-2"
             style={{
               display: "flex",
-              justifyContent: "flex-end",
+              justifyContent: "flex-start",
               gap: "12px",
               marginBottom: "32px",
             }}
@@ -554,8 +541,8 @@ export default function LandingPage() {
           >
             <span style={{ fontSize: "16px", color: "#141414" }}>Powered by</span>
             <img
-              src="/assets/InVision U Dark.png"
-              alt="inVision U"
+              src="/assets/InDrive LOGO.svg"
+              alt="inDrive"
               style={{ width: "100px", height: "auto" }}
             />
           </div>
@@ -569,81 +556,22 @@ export default function LandingPage() {
         />
       </section>
 
-      {/* ══════ STATS STRIP ══════ */}
+      {/* ══════ MARQUEE ══════ */}
       <section style={{ backgroundColor: "#141414" }}>
-        {/* Marquee */}
         <div style={{ overflow: "hidden", padding: "20px 0" }}>
           <div
             className="animate-marquee-left"
             style={{ alignItems: "center", gap: "60px", width: "max-content" }}
           >
             {Array.from({ length: 12 }).map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "contents",
-                }}
-              >
-                <img
-                  src="/assets/InVision U white.png"
-                  alt="inVision U"
-                  style={{ width: "169.33px", height: "27.86px", flexShrink: 0 }}
-                />
-                <img
-                  src="/assets/InDrive.png"
-                  alt="iD"
-                  style={{ width: "48px", height: "48px", flexShrink: 0 }}
-                />
-                <span
-                  style={{
-                    fontWeight: 600,
-                    color: "#ffffff",
-                    fontSize: "clamp(24px, 3vw, 39px)",
-                    whiteSpace: "nowrap",
-                    flexShrink: 0,
-                  }}
-                >
-                  Grow with us
-                </span>
-                <img
-                  src="/assets/InDrive.png"
-                  alt="iD"
-                  style={{ width: "48px", height: "48px", flexShrink: 0 }}
-                />
+              <div key={i} style={{ display: "contents" }}>
+                <img src="/assets/InVision U white.png" alt="inVision U" style={{ width: "169.33px", height: "27.86px", flexShrink: 0 }} />
+                <img src="/assets/InDrive.png" alt="iD" style={{ width: "48px", height: "48px", flexShrink: 0 }} />
+                <span style={{ fontWeight: 600, color: "#ffffff", fontSize: "clamp(24px, 3vw, 39px)", whiteSpace: "nowrap", flexShrink: 0 }}>Grow with us</span>
+                <img src="/assets/InDrive.png" alt="iD" style={{ width: "48px", height: "48px", flexShrink: 0 }} />
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Stats row */}
-        <div
-          style={{
-            maxWidth: "1200px",
-            margin: "0 auto",
-            padding: "40px 60px 60px",
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: "24px",
-            textAlign: "center",
-          }}
-        >
-          {STATS.map((stat) => (
-            <div key={stat.label} className="reveal reveal-up">
-              <div
-                style={{
-                  fontSize: "clamp(32px, 4vw, 56px)",
-                  fontWeight: 700,
-                  color: "#c1f11d",
-                  lineHeight: 1.1,
-                }}
-              >
-                {stat.value}
-              </div>
-              <div style={{ fontSize: "16px", color: "#999", marginTop: "8px" }}>
-                {stat.label}
-              </div>
-            </div>
-          ))}
         </div>
       </section>
 
@@ -694,6 +622,8 @@ export default function LandingPage() {
                   <a
                     key={prog.num}
                     href={prog.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="card-fan-item"
                     style={{
                       position: "absolute",
@@ -736,91 +666,56 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ══════ HOW IT WORKS ══════ */}
-      <section style={{ backgroundColor: "#fff", padding: "80px 0" }}>
-        <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 60px" }}>
-          <h2 className="reveal reveal-up" style={{ fontSize: "clamp(32px, 4vw, 48px)", fontWeight: 700, color: "#141414", textAlign: "center", marginBottom: "12px" }}>
-            How are applications evaluated?
-          </h2>
-          <p className="reveal reveal-up delay-1" style={{ fontSize: "clamp(16px, 1.5vw, 20px)", color: "#888", textAlign: "center", maxWidth: "700px", margin: "0 auto 50px", lineHeight: 1.6 }}>
-            We look beyond grades. inVision U uses a hybrid evaluation system where AI assists — but never decides.
-          </p>
-          <div className="reveal reveal-up delay-2" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "24px" }}>
-            {[
-              { icon: "01", title: "Your Application", desc: "Personal info, education, achievements, and extracurriculars paint a picture of who you are." },
-              { icon: "02", title: "Your Voice", desc: "Your essay, video presentation, and Teaching Challenge reveal your authentic personality and communication." },
-              { icon: "03", title: "Committee Review", desc: "The Admissions Committee makes all final decisions. AI highlights your potential — humans choose." },
-            ].map((item) => (
-              <div
-                key={item.icon}
-                style={{
-                  padding: "36px",
-                  borderRadius: "20px",
-                  border: "1px solid rgba(193,241,29,0.2)",
-                  backgroundColor: "#fafafa",
-                  transition: "border-color 0.3s, box-shadow 0.3s, transform 0.2s",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(193,241,29,0.5)"; e.currentTarget.style.boxShadow = "0 0 25px rgba(193,241,29,0.1)"; e.currentTarget.style.transform = "translateY(-4px)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(193,241,29,0.2)"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "translateY(0)"; }}
-              >
-                <div style={{ width: "56px", height: "56px", backgroundColor: "#c1f11d", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "22px", color: "#141414", marginBottom: "20px" }}>
-                  {item.icon}
-                </div>
-                <h3 style={{ fontWeight: 600, color: "#141414", fontSize: "22px", marginBottom: "10px" }}>{item.title}</h3>
-                <p style={{ fontSize: "16px", color: "#777", lineHeight: 1.6 }}>{item.desc}</p>
-              </div>
-            ))}
-          </div>
-          <p className="reveal reveal-up delay-3" style={{ fontSize: "15px", color: "#aaa", textAlign: "center", marginTop: "32px" }}>
-            The AI evaluates Leadership Potential, Growth Trajectory, and Motivation to ensure no talented candidate is overlooked.
-          </p>
-        </div>
-      </section>
-
       {/* ══════ APPLICATION FORM ══════ */}
       <section id="apply" style={{ backgroundColor: "#f5f5f5", paddingBottom: "60px" }}>
-        {/* Header bar */}
-        <div style={{ backgroundColor: "#c1f11d", padding: "40px 0 32px" }}>
-          <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 40px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
-            <h2 style={{ fontSize: "clamp(28px, 3vw, 40px)", fontWeight: 700, color: "#141414", margin: 0 }}>Application</h2>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", backgroundColor: "#141414", color: "#c1f11d", borderRadius: "20px", padding: "10px 24px", fontSize: "16px", fontWeight: 600 }}>
-              {PROGRAMS.find(p => p.title === selectedProgram)?.tag || "Engineering"} | {selectedProgram}
-            </span>
+        {/* Application header group — same style as dashboard */}
+        <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "12px 40px 0", position: "relative" }}>
+          {/* Dark banner with dots */}
+          <div style={{ backgroundColor: "#141414", borderRadius: "24px", overflow: "hidden", position: "relative", padding: "36px 40px 70px", textAlign: "center" }}>
+            <img src="/assets/Dots.png" alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.3, pointerEvents: "none" }} />
+            <h2 style={{ position: "relative", zIndex: 1, fontSize: "36px", fontWeight: 700, color: "#c1f11d", margin: 0, textTransform: "uppercase", letterSpacing: "2px" }}>Application</h2>
           </div>
-        </div>
-
-        {/* Tab navigation */}
-        <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 40px" }}>
-          <div style={{ display: "flex", gap: "4px", backgroundColor: "#ffffff", borderRadius: "0 0 16px 16px", padding: "6px", borderTop: "none" }}>
-            {["Personal Information", "Education", "Essay & Motivation", "Extracurriculars & Projects", "Video Presentation", "Review & Submit"].map((tab, i) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setCurrentStep(i)}
-                style={{
-                  flex: 1,
-                  padding: "16px 10px",
-                  fontSize: "14px",
-                  fontWeight: currentStep === i ? 600 : 500,
-                  color: currentStep === i ? "#141414" : "#666",
-                  backgroundColor: currentStep === i ? "#c1f11d" : "transparent",
-                  border: "none",
-                  borderRadius: "12px",
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                  whiteSpace: "nowrap",
-                }}
-                onMouseEnter={(e) => {
-                  if (currentStep !== i) (e.currentTarget as HTMLElement).style.backgroundColor = "#f0f0f0";
-                }}
-                onMouseLeave={(e) => {
-                  if (currentStep !== i) (e.currentTarget as HTMLElement).style.backgroundColor = "transparent";
-                }}
-              >
-                <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "50%", backgroundColor: currentStep === i ? "#141414" : "#ddd", color: currentStep === i ? "#c1f11d" : "#888", fontSize: "12px", fontWeight: 700, marginRight: "8px" }}>{i + 1}</span>
-                {tab}
-              </button>
-            ))}
+          {/* Navigation bar — overlapping bottom of dark banner, full width */}
+          <div style={{ position: "relative", zIndex: 2, marginTop: "-36px", padding: "0 20px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px 16px", backgroundColor: "#ffffff", borderRadius: "20px", border: "2px solid #d7d7d7" }}>
+              {["Personal Information", "Education", "Essay & Motivation", "Extracurriculars & Projects", "Review & Submit"].map((tab, i) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setCurrentStep(i)}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    padding: "10px 16px",
+                    fontSize: "15px",
+                    fontWeight: 700,
+                    color: currentStep === i ? "#c1f11d" : "#141414",
+                    backgroundColor: currentStep === i ? "#141414" : (currentStep > i ? "#e8f5d0" : "#eae9e9"),
+                    border: "none",
+                    borderRadius: "16px",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                    whiteSpace: "nowrap",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (currentStep !== i) (e.currentTarget as HTMLElement).style.backgroundColor = "#ddd";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (currentStep !== i) (e.currentTarget as HTMLElement).style.backgroundColor = "#eae9e9";
+                  }}
+                >
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    width: "36px", height: "36px", borderRadius: "50%", flexShrink: 0,
+                    backgroundColor: currentStep === i ? "#c1f11d" : (currentStep > i ? "#c1f11d" : "#141414"),
+                    color: currentStep === i ? "#141414" : (currentStep > i ? "#141414" : "#fff"),
+                    fontSize: currentStep > i ? "18px" : "16px", fontWeight: 700,
+                  }}>{currentStep > i ? "\u2713" : i + 1}</span>
+                  {tab}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -1019,7 +914,7 @@ export default function LandingPage() {
                       <span>Recommended: 300-800 words</span>
                     </div>
                   </div>
-                  <div>
+                  <div style={{ marginBottom: "20px" }}>
                     <SectionTitle>Recommendation Letter (Optional)</SectionTitle>
                     <p style={{ fontSize: "14px", color: "#888", marginBottom: "8px" }}>
                       If you have a recommendation from a teacher or mentor, paste a summary here.
@@ -1032,6 +927,23 @@ export default function LandingPage() {
                       onChange={(e) => setRecommendation(e.target.value)}
                       placeholder="Paste your recommendation summary here..."
                     />
+                  </div>
+                  <div>
+                    <SectionTitle>Video Presentation (Optional)</SectionTitle>
+                    <p style={{ fontSize: "14px", color: "#888", marginBottom: "16px", lineHeight: 1.6 }}>
+                      Submit a link to your video presentation (up to 5 minutes).
+                    </p>
+                    <Label htmlFor="videoLink">Link to your video</Label>
+                    <input
+                      id="videoLink"
+                      className={inputClass}
+                      value={videoLink}
+                      onChange={(e) => setVideoLink(e.target.value)}
+                      placeholder="https://youtube.com/watch?v=... or Google Drive link"
+                    />
+                    <p style={{ fontSize: "12px", color: "#999", marginTop: "6px" }}>
+                      Upload to YouTube (unlisted) or Google Drive and paste the link here.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1132,46 +1044,8 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Step 5: Video Presentation */}
+              {/* Step 5: Review & Submit */}
               <div style={{ display: currentStep === 4 ? "block" : "none" }}>
-                <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", border: "1px solid #e5e5e5", padding: "32px" }}>
-                  <SectionTitle>Video Presentation</SectionTitle>
-                  <p style={{ fontSize: "14px", color: "#888", marginBottom: "24px", lineHeight: 1.6 }}>
-                    Submit a link to your video presentation (up to 5 minutes). Tell us about yourself:
-                  </p>
-                  <div style={{ backgroundColor: "#f9f9f9", borderRadius: "12px", padding: "20px", marginBottom: "24px" }}>
-                    <ul style={{ fontSize: "14px", color: "#555", lineHeight: 1.8, paddingLeft: "20px", margin: 0 }}>
-                      <li>Why do you want to study at inVision U?</li>
-                      <li>What major challenge have you overcome, and what helped you through it?</li>
-                      <li>What are your long-term goals, and how will this program help you achieve them?</li>
-                      <li>What does being a leader mean to you? Share a real-life example.</li>
-                      <li>Describe a team situation and your role in solving a problem.</li>
-                      <li>Share your dream in English: how do you learn the language, and what progress have you made?</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <Label htmlFor="videoLink" required>Link to your video presentation</Label>
-                    <input
-                      id="videoLink"
-                      className={inputClass}
-                      value={videoLink}
-                      onChange={(e) => setVideoLink(e.target.value)}
-                      placeholder="https://youtube.com/watch?v=... or Google Drive link"
-                    />
-                    <p style={{ fontSize: "12px", color: "#999", marginTop: "8px" }}>
-                      Upload your video to YouTube (unlisted), Google Drive, or any other video hosting platform and paste the link here.
-                    </p>
-                  </div>
-                  <div style={{ marginTop: "24px", padding: "16px", backgroundColor: "#f0f7e0", borderRadius: "12px", border: "1px solid rgba(193,241,29,0.3)" }}>
-                    <p style={{ fontSize: "13px", color: "#555", margin: 0 }}>
-                      <strong style={{ color: "#141414" }}>Tip:</strong> Be authentic. We value your real voice and genuine experiences over polished production. Speak naturally — it helps us understand who you truly are.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Step 6: Review & Submit */}
-              <div style={{ display: currentStep === 5 ? "block" : "none" }}>
                 <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", border: "1px solid #e5e5e5", padding: "32px" }}>
                   <SectionTitle>Review Your Application</SectionTitle>
                   <p style={{ fontSize: "14px", color: "#888", marginBottom: "24px" }}>
@@ -1273,116 +1147,70 @@ export default function LandingPage() {
               </div>
 
               {/* Navigation buttons */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "32px", padding: "0 4px" }}>
-                <div>
-                  {currentStep > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setCurrentStep(currentStep - 1)}
-                      style={{ background: "none", border: "none", color: "#666", fontSize: "16px", fontWeight: 500, cursor: "pointer", padding: "10px 0", textDecoration: "underline", textUnderlineOffset: "3px" }}
-                    >
-                      Previous
-                    </button>
-                  )}
-                </div>
-                <div>
-                  {currentStep < 5 ? (
-                    <button
-                      type="button"
-                      onClick={() => setCurrentStep(currentStep + 1)}
-                      style={{
-                        backgroundColor: "#c1f11d",
-                        color: "#141414",
-                        border: "none",
-                        borderRadius: "12px",
-                        padding: "16px 40px",
-                        fontSize: "17px",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        transition: "all 0.2s ease",
-                      }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = "#b0e010"; (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = "#c1f11d"; (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}
-                    >
-                      Next Step
-                    </button>
-                  ) : (
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      style={{
-                        backgroundColor: "#141414",
-                        color: "#c1f11d",
-                        border: "none",
-                        borderRadius: "12px",
-                        padding: "16px 40px",
-                        fontSize: "17px",
-                        fontWeight: 600,
-                        cursor: submitting ? "not-allowed" : "pointer",
-                        opacity: submitting ? 0.5 : 1,
-                        transition: "all 0.2s ease",
-                        boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                      }}
-                      onMouseEnter={(e) => { if (!submitting) (e.currentTarget as HTMLElement).style.backgroundColor = "#2a2a2a"; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = "#141414"; }}
-                    >
-                      {submitting ? "Submitting..." : "Submit Application"}
-                    </button>
-                  )}
-                </div>
+              <div style={{ marginTop: "32px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                {currentStep < 4 ? (
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(currentStep + 1)}
+                    style={{
+                      width: "100%",
+                      backgroundColor: "#c1f11d",
+                      color: "#141414",
+                      border: "none",
+                      borderRadius: "15px",
+                      padding: "16px",
+                      fontSize: "17px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = "#b0e010"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = "#c1f11d"; }}
+                  >
+                    Next Step
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    style={{
+                      width: "100%",
+                      backgroundColor: "#141414",
+                      color: "#c1f11d",
+                      border: "none",
+                      borderRadius: "15px",
+                      padding: "16px",
+                      fontSize: "17px",
+                      fontWeight: 600,
+                      cursor: submitting ? "not-allowed" : "pointer",
+                      opacity: submitting ? 0.5 : 1,
+                      transition: "all 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => { if (!submitting) (e.currentTarget as HTMLElement).style.backgroundColor = "#2a2a2a"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = "#141414"; }}
+                  >
+                    {submitting ? "Submitting..." : "Submit Application"}
+                  </button>
+                )}
+                {currentStep > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(currentStep - 1)}
+                    style={{ background: "none", border: "none", color: "#666", fontSize: "15px", fontWeight: 500, cursor: "pointer", padding: "8px 0", textAlign: "center" }}
+                  >
+                    &larr; Previous Step
+                  </button>
+                )}
               </div>
             </form>
           </div>
 
-          {/* Sidebar (~30%) */}
-          <div style={{ flex: "0 0 280px" }}>
-            {/* Application Stages */}
-            <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", border: "1px solid #e5e5e5", padding: "24px", marginBottom: "16px" }}>
-              <h3 style={{ fontSize: "15px", fontWeight: 700, color: "#141414", marginBottom: "16px", margin: "0 0 16px 0" }}>Application Stages</h3>
-              {["Personal Information", "Education", "Essay & Motivation", "Extracurriculars & Projects", "Review & Submit"].map((step, i) => (
-                <div
-                  key={step}
-                  onClick={() => setCurrentStep(i)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "12px",
-                    padding: "10px 12px",
-                    borderRadius: "10px",
-                    marginBottom: "4px",
-                    cursor: "pointer",
-                    backgroundColor: currentStep === i ? "#c1f11d" : "transparent",
-                    transition: "background-color 0.2s",
-                  }}
-                >
-                  <span style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: "24px",
-                    height: "24px",
-                    borderRadius: "50%",
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    backgroundColor: currentStep === i ? "#141414" : (
-                      currentStep > i ? "#c1f11d" : "#eee"
-                    ),
-                    color: currentStep === i ? "#c1f11d" : (
-                      currentStep > i ? "#141414" : "#999"
-                    ),
-                    flexShrink: 0,
-                  }}>
-                    {currentStep > i ? "\u2713" : i + 1}
-                  </span>
-                  <span style={{ fontSize: "13px", fontWeight: currentStep === i ? 600 : 400, color: currentStep === i ? "#141414" : "#666" }}>{step}</span>
-                </div>
-              ))}
-            </div>
-
+          {/* Sidebar */}
+          <div style={{ flex: "0 0 340px" }}>
             {/* Important Dates */}
-            <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", border: "1px solid #e5e5e5", padding: "24px", marginBottom: "16px" }}>
-              <h3 style={{ fontSize: "15px", fontWeight: 700, color: "#141414", margin: "0 0 16px 0" }}>Important Dates</h3>
-              <div style={{ fontSize: "13px", color: "#555", lineHeight: 1.8 }}>
+            <div style={{ backgroundColor: "#ffffff", borderRadius: "18px", border: "1.5px solid #d7d7d7", padding: "28px", marginBottom: "14px" }}>
+              <h3 style={{ fontSize: "17px", fontWeight: 700, color: "#141414", margin: "0 0 16px 0" }}>Important Dates</h3>
+              <div style={{ fontSize: "14px", color: "#555", lineHeight: 1.9 }}>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span>Application Opens</span>
                   <span style={{ fontWeight: 600, color: "#141414" }}>Apr 1, 2026</span>
@@ -1403,8 +1231,8 @@ export default function LandingPage() {
             </div>
 
             {/* Required Documents */}
-            <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", border: "1px solid #e5e5e5", padding: "24px" }}>
-              <h3 style={{ fontSize: "15px", fontWeight: 700, color: "#141414", margin: "0 0 16px 0" }}>Required Documents</h3>
+            <div style={{ backgroundColor: "#ffffff", borderRadius: "18px", border: "1.5px solid #d7d7d7", padding: "28px" }}>
+              <h3 style={{ fontSize: "17px", fontWeight: 700, color: "#141414", margin: "0 0 16px 0" }}>Required Documents</h3>
               {[
                 { label: "Personal Information", done: !!name },
                 { label: "GPA & Education", done: !!gpa },
@@ -1413,17 +1241,17 @@ export default function LandingPage() {
                 { label: "Achievements", done: achievements.some(a => a.trim()) },
                 { label: "Languages", done: !!languages.trim() },
               ].map((item) => (
-                <div key={item.label} style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px", fontSize: "13px" }}>
+                <div key={item.label} style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "10px", fontSize: "14px" }}>
                   <span style={{
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    width: "20px",
-                    height: "20px",
-                    borderRadius: "6px",
+                    width: "22px",
+                    height: "22px",
+                    borderRadius: "5px",
                     border: item.done ? "none" : "1.5px solid #ddd",
                     backgroundColor: item.done ? "#c1f11d" : "transparent",
-                    fontSize: "11px",
+                    fontSize: "12px",
                     color: "#141414",
                     flexShrink: 0,
                   }}>
@@ -1439,16 +1267,45 @@ export default function LandingPage() {
       </section>
 
       {/* ══════ FOOTER ══════ */}
-      <footer className="py-10" style={{ backgroundColor: "#141414" }}>
-        <div className="max-w-5xl mx-auto px-4 text-center">
-          <img src="/assets/InVision U white.png" alt="inVision U" className="mx-auto mb-3" style={{ width: "169.3px", height: "27.9px" }} />
-          <p className="text-sm text-gray-500">
+      <footer style={{ backgroundColor: "#141414", position: "relative", overflow: "hidden", padding: "60px 0 40px" }}>
+        {/* Gradient logo as background decoration */}
+        <img
+          src="/assets/InVision U GRADIENT.svg"
+          alt=""
+          style={{
+            position: "absolute",
+            bottom: "-30px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "clamp(600px, 80vw, 1200px)",
+            opacity: 0.08,
+            pointerEvents: "none",
+          }}
+        />
+        <div style={{ position: "relative", zIndex: 1, maxWidth: "1200px", margin: "0 auto", padding: "0 40px", textAlign: "center" }}>
+          <img src="/assets/InVision U white.png" alt="inVision U" style={{ width: "169px", height: "auto", margin: "0 auto 16px" }} />
+          <p style={{ fontSize: "14px", color: "#666", marginBottom: "24px" }}>
             AI-Assisted Evaluation System &mdash; All final admission decisions are made by the human admissions committee.
           </p>
-          <div className="flex items-center justify-center gap-6 mt-4 text-xs text-gray-600">
-            <a href="#apply" className="hover:text-[#C1F11D] transition">Apply</a>
-            <a href="/teach" className="hover:text-[#C1F11D] transition">Teaching Challenge</a>
-            <a href="/dashboard" className="hover:text-[#C1F11D] transition">Dashboard</a>
+          <div style={{ display: "flex", justifyContent: "center", gap: "32px", marginBottom: "32px" }}>
+            {[
+              { href: "/#apply", label: "Apply" },
+              { href: "/teach", label: "Teaching Challenge" },
+              { href: "/dashboard", label: "Dashboard" },
+            ].map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                style={{ fontSize: "14px", color: "#888", textDecoration: "none", transition: "color 0.2s" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#c1f11d")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "#888")}
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
+          <div style={{ borderTop: "1px solid #333", paddingTop: "20px", fontSize: "12px", color: "#555" }}>
+            Powered by inDrive &middot; Built for Decentrathon 5.0
           </div>
         </div>
       </footer>

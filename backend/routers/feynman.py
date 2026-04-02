@@ -32,44 +32,44 @@ def _get_client() -> Anthropic:
 
 TOPICS = [
     {
-        "id": "supply-demand",
-        "title": "Supply and Demand",
-        "description": "Explain how supply and demand affects prices in a market.",
+        "id": "seasons",
+        "title": "Why We Have Seasons",
+        "description": "Explain why summer is hot and winter is cold.",
     },
     {
-        "id": "photosynthesis",
-        "title": "Photosynthesis",
-        "description": "Explain how plants use sunlight to make food.",
+        "id": "rain",
+        "title": "How Rain Works",
+        "description": "Explain where rain comes from and why it falls from the sky.",
     },
     {
         "id": "gravity",
-        "title": "Gravity",
-        "description": "Explain why things fall down and how gravity works.",
+        "title": "Why Things Fall Down",
+        "description": "Explain why when you drop something, it falls to the ground.",
     },
     {
-        "id": "internet",
-        "title": "How the Internet Works",
-        "description": "Explain how information travels from one computer to another through the internet.",
+        "id": "cooking",
+        "title": "Why We Cook Food",
+        "description": "Explain why we cook food instead of eating everything raw.",
     },
     {
-        "id": "democracy",
-        "title": "Democracy",
-        "description": "Explain what democracy is and how people make decisions together.",
+        "id": "money",
+        "title": "Why Money Exists",
+        "description": "Explain why people use money instead of trading things directly.",
     },
     {
-        "id": "climate-change",
-        "title": "Climate Change",
-        "description": "Explain why Earth's temperature is rising and what that means.",
+        "id": "sleep",
+        "title": "Why We Need Sleep",
+        "description": "Explain why people and animals need to sleep every night.",
     },
     {
-        "id": "algorithms",
-        "title": "What is an Algorithm?",
-        "description": "Explain what an algorithm is using everyday examples.",
+        "id": "teamwork",
+        "title": "Why Teamwork Matters",
+        "description": "Explain why working together helps people achieve more than working alone.",
     },
     {
-        "id": "vaccines",
-        "title": "How Vaccines Work",
-        "description": "Explain how vaccines help our body fight diseases.",
+        "id": "recycling",
+        "title": "Why We Recycle",
+        "description": "Explain why it's important to recycle things instead of throwing them away.",
     },
 ]
 
@@ -118,45 +118,45 @@ Respond in JSON format:
 Return ONLY valid JSON."""
 
 QUIZ_QUESTIONS: dict[str, list[str]] = {
-    "supply-demand": [
-        "What happens to the price of ice cream when it's really hot outside and everyone wants it?",
-        "If a factory makes way too many toys, what happens to the toy price?",
-        "Why can't a shop just make things super expensive all the time?",
+    "seasons": [
+        "Why is it hot in summer?",
+        "Does the whole world have summer at the same time?",
+        "Why are days longer in summer than in winter?",
     ],
-    "photosynthesis": [
-        "What do plants need to make their own food?",
-        "Why are plants green?",
-        "What would happen to a plant if you put it in a dark room forever?",
+    "rain": [
+        "Where does rain come from?",
+        "Why do clouds sometimes make rain and sometimes don't?",
+        "What happens to rain after it falls on the ground?",
     ],
     "gravity": [
         "Why does a ball come back down when you throw it up?",
         "If you drop a feather and a rock, which hits the ground first and why?",
         "Why don't we float away into space?",
     ],
-    "internet": [
-        "When you send a message to your friend, how does it get to them?",
-        "What is a server?",
-        "Can the internet work without any wires or cables at all?",
+    "cooking": [
+        "Why can't we eat raw chicken?",
+        "What does heat do to food?",
+        "Is all raw food bad for you?",
     ],
-    "democracy": [
-        "How do people in a democracy decide what to do?",
-        "Why can't just one person make all the decisions for everyone?",
-        "What happens if most people vote for something you don't agree with?",
+    "money": [
+        "What did people do before money existed?",
+        "Why can't we just trade things instead of using money?",
+        "Why is a piece of paper (money) worth something?",
     ],
-    "climate-change": [
-        "Why is the Earth getting warmer?",
-        "What are greenhouse gases?",
-        "What can regular people do to help with climate change?",
+    "sleep": [
+        "What happens to your body when you sleep?",
+        "Why do you feel bad when you don't sleep enough?",
+        "Do animals need sleep too?",
     ],
-    "algorithms": [
-        "Can you give an example of an algorithm in everyday life?",
-        "Why do we need algorithms?",
-        "What happens if you skip a step in an algorithm?",
+    "teamwork": [
+        "Can you give an example of when teamwork is better than working alone?",
+        "What happens when one person in a team doesn't do their part?",
+        "Is it always better to work in a team?",
     ],
-    "vaccines": [
-        "How does a vaccine teach your body to fight a disease?",
-        "Why do you need a vaccine if you're not sick?",
-        "Can a vaccine give you the disease it's supposed to protect against?",
+    "recycling": [
+        "What happens to trash that isn't recycled?",
+        "Can everything be recycled?",
+        "Why should kids care about recycling?",
     ],
 }
 
@@ -218,6 +218,14 @@ class ChatResponse(BaseModel):
     reply: str
     message_count: int
     can_finish: bool  # True after 4+ exchanges
+    must_finish: bool = False  # True at 8 exchanges (hard limit)
+    remaining: int = 0  # exchanges remaining before hard limit
+
+
+class QuizAnswer(BaseModel):
+    question: str
+    answer: str
+    confident: bool = False
 
 
 class FeynmanScore(BaseModel):
@@ -232,6 +240,7 @@ class FeynmanScore(BaseModel):
     overall_score: float = 0
     summary: str = ""
     message_count: int = 0
+    quiz_answers: list[QuizAnswer] = []
 
 
 # ── Score cache ────────────────────────────────────────────────────
@@ -290,9 +299,14 @@ def start_session(req: StartSessionRequest):
 @router.post("/chat", response_model=ChatResponse)
 def chat(req: ChatRequest):
     """Send a message in the teaching session. Returns the AI student's reply."""
+    MAX_EXCHANGES = 8
+
     session = _sessions.get(req.session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
+
+    if session["exchange_count"] >= MAX_EXCHANGES:
+        raise HTTPException(status_code=400, detail="Session has reached the maximum number of exchanges. Please finish the session.")
 
     session["messages"].append({"role": "user", "content": req.message})
 
@@ -308,10 +322,15 @@ def chat(req: ChatRequest):
     session["messages"].append({"role": "assistant", "content": reply})
     session["exchange_count"] += 1
 
+    count = session["exchange_count"]
+    remaining = MAX_EXCHANGES - count
+
     return ChatResponse(
         reply=reply,
-        message_count=session["exchange_count"],
-        can_finish=session["exchange_count"] >= 4,
+        message_count=count,
+        can_finish=count >= 4,
+        must_finish=count >= MAX_EXCHANGES,
+        remaining=remaining,
     )
 
 
@@ -327,7 +346,7 @@ def finish_session(session_id: str):
     client = _get_client()
 
     # ── Step 1: Quiz the AI student ────────────────────────────────
-    questions = QUIZ_QUESTIONS.get(topic_id, QUIZ_QUESTIONS["supply-demand"])
+    questions = QUIZ_QUESTIONS.get(topic_id, QUIZ_QUESTIONS["gravity"])
 
     quiz_system = QUIZ_SYSTEM_PROMPT.format(
         topic_description=topic["description"],
@@ -346,6 +365,27 @@ def finish_session(session_id: str):
     )
 
     quiz_text = quiz_response.content[0].text
+
+    # Parse quiz answers for transparency
+    parsed_quiz: list[QuizAnswer] = []
+    try:
+        cleaned_quiz = quiz_text.strip()
+        if cleaned_quiz.startswith("```"):
+            cleaned_quiz = cleaned_quiz.split("\n", 1)[1]
+        if cleaned_quiz.endswith("```"):
+            cleaned_quiz = cleaned_quiz.rsplit("```", 1)[0]
+        quiz_data = json.loads(cleaned_quiz.strip())
+        for ans in quiz_data.get("answers", []):
+            q_idx = int(ans.get("question", 1)) - 1
+            parsed_quiz.append(QuizAnswer(
+                question=questions[q_idx] if 0 <= q_idx < len(questions) else f"Question {q_idx+1}",
+                answer=ans.get("answer", ""),
+                confident=ans.get("confident", False),
+            ))
+    except Exception:
+        # If parsing fails, include raw quiz text
+        for i, q in enumerate(questions):
+            parsed_quiz.append(QuizAnswer(question=q, answer="(could not parse response)", confident=False))
 
     # ── Step 2: Score the conversation ─────────────────────────────
     conversation_text = "\n".join(
@@ -386,6 +426,7 @@ def finish_session(session_id: str):
         overall_score=data.get("overall_score", 0),
         summary=data.get("summary", ""),
         message_count=session["exchange_count"],
+        quiz_answers=parsed_quiz,
     )
 
     _score_cache[session["candidate_id"]] = result

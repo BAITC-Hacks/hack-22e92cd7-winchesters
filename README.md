@@ -16,11 +16,13 @@ A hybrid evaluation platform where **AI assists, humans decide**:
 
 | Feature | What It Does |
 |---------|-------------|
-| **Feynman Teaching Challenge** | Candidate teaches a concept to an AI "student." Scores patience, clarity, empathy — skills you can't fake. |
+| **Feynman Teaching Challenge** | Candidate teaches a concept to an AI "student" (4-8 exchanges). AI intentionally misunderstands once to test patience. Quiz measures knowledge transfer. Scores clarity, patience, empathy, adaptability. |
 | **Trajectory Scoring** | Measures how far you've come, not where you started. Village student → university = more growth credit. |
-| **Multi-lingual Stylometry** | 7 math-based text metrics (no AI) detect essay fraud in Kazakh, Russian, and English. |
+| **Multi-lingual Stylometry** | 7 math-based text metrics (no AI) detect essay fraud in Kazakh, Russian, and English with language-specific thresholds. |
 | **Configurable Rubric** | Committee adjusts scoring weights via sliders. Your proprietary metrics, our engine. |
 | **Hidden Gem Filter** | Surfaces candidates with low formal metrics but exceptional teaching ability or growth signals. |
+| **Sparse Profile Handling** | Missing data (no interview, no recommendation) shifts weight to essay + teaching challenge instead of penalizing. |
+| **AI Insight** | Shows what traditional baseline screening would miss — highlights where AI scoring adds value per candidate. |
 
 ---
 
@@ -28,9 +30,8 @@ A hybrid evaluation platform where **AI assists, humans decide**:
 
 | Name | Role | Contact |
 |------|------|---------|
-| Rauan Salkenov | Developer | [GitHub](https://github.com/raursq) |
-| Arman Sagnaev | Product Designer | |
-| Aidar Islyamov | UX/UI Designer | |
+| Rauan Salkenov | Developer | [Telegram](https://t.me/regularmusician) · [GitHub](https://github.com/raursq) |
+| Arman Sagnaev | Product Designer | [Telegram](https://t.me/armashq) |
 
 ---
 
@@ -80,7 +81,7 @@ cd invision-u-winchesters
 
 # Backend
 pip install -r backend/requirements.txt
-export ANTHROPIC_API_KEY=your_key
+cp backend/.env.example backend/.env   # add your ANTHROPIC_API_KEY
 python3 -m uvicorn backend.main:app --port 8000
 
 # Frontend (requires Node 20+)
@@ -135,7 +136,7 @@ Dual scoring proves AI value: rule-based baseline (instant, free) vs Claude AI (
 │   ├── privacy.py             # PII anonymization
 │   └── data/                  # Synthetic dataset (15 candidates, 3 languages)
 ├── frontend/src/app/
-│   ├── page.tsx               # Landing + Application Form (6 steps)
+│   ├── page.tsx               # Landing + Application Form (5 steps)
 │   ├── teach/page.tsx         # Feynman Teaching Challenge
 │   └── dashboard/page.tsx     # Admissions Dashboard
 ├── docs/                      # Architecture diagrams

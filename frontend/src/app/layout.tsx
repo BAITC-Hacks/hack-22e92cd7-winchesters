@@ -13,9 +13,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "InVision U — Candidate Evaluation Dashboard",
+  title: "InVision U — AI-Powered Admissions Platform",
   description:
-    "AI-powered candidate scoring and ranking for InVision U admissions committee",
+    "AI-powered candidate scoring and ranking for InVision U admissions",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({

@@ -286,9 +286,9 @@ function CandidateDetail({
   const app = c.application;
 
   return (
-    <div className="fixed inset-0 z-50 flex">
+    <div className="fixed inset-0 flex items-center justify-center p-6" style={{ zIndex: 200 }}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative ml-auto w-full max-w-2xl bg-white shadow-2xl overflow-y-auto">
+      <div className="relative w-full max-w-4xl max-h-[90vh] bg-white shadow-2xl overflow-y-auto rounded-2xl">
         <div className="sticky top-0 bg-white z-10 px-8 py-5 border-b border-gray-200 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-[#141414]">{c.name}</h2>
@@ -666,16 +666,17 @@ function WeightSimulator({
   );
 
   return (
-    <div className="rounded-2xl mb-5 overflow-hidden" style={{ background: "linear-gradient(180deg, #252525, #0F0F0F)" }}>
+    <div style={{ backgroundColor: "#fff", borderRadius: "30px", border: "2.68px solid #d7d7d7", padding: "15px", marginBottom: "16px" }}>
       <button
-        className="w-full flex items-center justify-between px-6 py-5 text-left"
+        className="w-full flex items-center text-left"
+        style={{ backgroundColor: "#eae9e9", borderRadius: "15px", padding: "20px", border: "none", cursor: "pointer", gap: "15px" }}
         onClick={() => setOpen(!open)}
       >
+        <div style={{ width: "53px", height: "53px", backgroundColor: "#141414", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <img src="/assets/Settings.svg" alt="" style={{ width: "28px", height: "28px" }} />
+        </div>
         <div className="flex items-center gap-3">
-          <svg className="w-6 h-6 text-[#c1f11d]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-          </svg>
-          <span className="text-base font-semibold text-white">Evaluation Settings</span>
+          <span style={{ fontSize: "20px", fontWeight: 600, color: "#141414" }}>Evaluation Settings</span>
           {!isDefault && (
             <span className="text-xs bg-[#c1f11d] text-[#141414] px-2.5 py-1 rounded-full font-medium">
               Custom weights active
@@ -685,14 +686,14 @@ function WeightSimulator({
         <span className="text-gray-400 text-sm">{open ? "−" : "+"}</span>
       </button>
       {open && (
-        <div className="px-6 pb-6 border-t border-[#333] pt-5">
-          <p className="text-sm text-gray-400 mb-5">
+        <div style={{ padding: "20px 24px 24px", borderTop: "1px solid #ddd" }}>
+          <p style={{ fontSize: "14px", color: "#666", marginBottom: "20px" }}>
             Configure your evaluation rubric. Adjust how much each dimension contributes to the overall score. Rankings update live.
           </p>
           <div className="space-y-4">
             {DIMENSION_KEYS.map((key) => (
               <div key={key} className="flex items-center gap-3">
-                <span className="text-sm text-gray-300 w-28">{DIMENSION_LABELS[key]}</span>
+                <span style={{ fontSize: "14px", color: "#555", width: "120px" }}>{DIMENSION_LABELS[key]}</span>
                 <input
                   type="range"
                   min={0}
@@ -701,20 +702,20 @@ function WeightSimulator({
                   onChange={(e) => onChange(key, parseInt(e.target.value) / 100)}
                   className="flex-1 h-2 accent-[#c1f11d]"
                 />
-                <span className="text-sm font-mono text-gray-300 w-12 text-right">
+                <span style={{ fontSize: "14px", fontFamily: "monospace", color: "#333", width: "48px", textAlign: "right" }}>
                   {Math.round(weights[key] * 100)}%
                 </span>
               </div>
             ))}
           </div>
-          <div className="flex items-center justify-between mt-5 pt-4 border-t border-[#333]">
-            <span className={`text-sm ${Math.abs(total - 1) > 0.01 ? "text-red-400 font-medium" : "text-gray-500"}`}>
+          <div className="flex items-center justify-between" style={{ marginTop: "20px", paddingTop: "16px", borderTop: "1px solid #ddd" }}>
+            <span style={{ fontSize: "14px", color: Math.abs(total - 1) > 0.01 ? "#dc2626" : "#888" }}>
               Total: {Math.round(total * 100)}%{Math.abs(total - 1) > 0.01 && " (should be 100%)"}
             </span>
             {!isDefault && (
               <button
                 onClick={onReset}
-                className="text-sm text-[#c1f11d] hover:text-[#deff70] font-medium"
+                style={{ fontSize: "14px", color: "#c1f11d", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}
               >
                 Reset to defaults
               </button>
@@ -731,118 +732,102 @@ function WeightSimulator({
 function FairnessAudit({ ranked }: { ranked: RankedCandidate[] }) {
   const [open, setOpen] = useState(false);
 
-  const schoolStats = useMemo(() => {
-    const groups: Record<string, { scores: number[]; growth: number[] }> = {};
+  const auditStats = useMemo(() => {
+    const groups: Record<string, { scores: number[]; growth: number[]; leadership: number[] }> = {};
 
     for (const r of ranked) {
-      const school = r.candidate.application.education.school_type;
+      const rec = (r.baseline_score || r.ai_score)?.recommendation ?? "unknown";
+      const category = (rec === "recommend" || rec === "shortlist") ? "Recommend" :
+                       (rec === "consider" || rec === "review") ? "Consider" : "Needs Attention";
       const score = (r.baseline_score || r.ai_score)?.overall_score ?? 0;
-      const growthDim = (r.baseline_score || r.ai_score)?.dimensions.find(
-        (d) => d.dimension === "growth_trajectory"
-      );
-      if (!groups[school]) groups[school] = { scores: [], growth: [] };
-      groups[school].scores.push(score);
-      if (growthDim) groups[school].growth.push(growthDim.score);
+      const growthDim = (r.baseline_score || r.ai_score)?.dimensions.find(d => d.dimension === "growth_trajectory");
+      const leaderDim = (r.baseline_score || r.ai_score)?.dimensions.find(d => d.dimension === "leadership_potential");
+      if (!groups[category]) groups[category] = { scores: [], growth: [], leadership: [] };
+      groups[category].scores.push(score);
+      if (growthDim) groups[category].growth.push(growthDim.score);
+      if (leaderDim) groups[category].leadership.push(leaderDim.score);
     }
 
-    return Object.entries(groups)
-      .map(([school, data]) => ({
-        school,
-        count: data.scores.length,
-        avgScore: data.scores.reduce((a, b) => a + b, 0) / data.scores.length,
-        minScore: Math.min(...data.scores),
-        maxScore: Math.max(...data.scores),
-        avgGrowth: data.growth.length > 0
-          ? data.growth.reduce((a, b) => a + b, 0) / data.growth.length
-          : 0,
-      }))
-      .sort((a, b) => b.avgScore - a.avgScore);
+    return ["Recommend", "Consider", "Needs Attention"]
+      .filter(cat => groups[cat])
+      .map((category) => {
+        const data = groups[category];
+        return {
+          category,
+          count: data.scores.length,
+          avgScore: data.scores.reduce((a, b) => a + b, 0) / data.scores.length,
+          minScore: Math.min(...data.scores),
+          maxScore: Math.max(...data.scores),
+          avgGrowth: data.growth.length > 0 ? data.growth.reduce((a, b) => a + b, 0) / data.growth.length : 0,
+          avgLeadership: data.leadership.length > 0 ? data.leadership.reduce((a, b) => a + b, 0) / data.leadership.length : 0,
+        };
+      });
   }, [ranked]);
 
-  const overallAvg =
-    ranked.length > 0
-      ? ranked.reduce(
-          (sum, r) =>
-            sum + ((r.baseline_score || r.ai_score)?.overall_score ?? 0),
-          0
-        ) / ranked.length
-      : 0;
-
   return (
-    <div className="rounded-2xl mb-5 overflow-hidden" style={{ background: "linear-gradient(180deg, #252525, #0F0F0F)" }}>
+    <div style={{ backgroundColor: "#fff", borderRadius: "30px", border: "2.68px solid #d7d7d7", padding: "15px", marginBottom: "16px" }}>
       <button
-        className="w-full flex items-center justify-between px-6 py-5 text-left"
+        className="w-full flex items-center text-left"
+        style={{ backgroundColor: "#eae9e9", borderRadius: "15px", padding: "20px", border: "none", cursor: "pointer", gap: "15px" }}
         onClick={() => setOpen(!open)}
       >
-        <div className="flex items-center gap-3">
-          <svg className="w-6 h-6 text-[#c1f11d]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-          </svg>
-          <span className="text-base font-semibold text-white">Fairness Audit</span>
+        <div style={{ width: "53px", height: "53px", backgroundColor: "#141414", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <img src="/assets/Scales.svg" alt="" style={{ width: "28px", height: "28px" }} />
         </div>
-        <span className="text-gray-400 text-sm">{open ? "−" : "+"}</span>
+        <span style={{ fontSize: "20px", fontWeight: 600, color: "#141414" }}>Fairness Audit</span>
       </button>
       {open && (
-        <div className="px-6 pb-6 border-t border-[#333] pt-5">
-          <p className="text-sm text-gray-400 mb-5">
-            Score distribution by school type. Overall scores should not be dominated by school type alone
-            — growth trajectory compensates for resource differences.
+        <div style={{ padding: "20px 24px 24px", borderTop: "1px solid #ddd" }}>
+          <p style={{ fontSize: "14px", color: "#666", marginBottom: "20px" }}>
+            Score distribution by recommendation category. Shows how candidates are distributed and whether the AI scoring is balanced.
           </p>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full" style={{ fontSize: "14px" }}>
               <thead>
-                <tr className="border-b border-[#444] text-gray-400">
-                  <th className="text-left py-2.5 pr-5 font-medium">School Type</th>
-                  <th className="text-right py-2.5 px-3 font-medium">Count</th>
-                  <th className="text-right py-2.5 px-3 font-medium">Avg Score</th>
-                  <th className="text-right py-2.5 px-3 font-medium">Range</th>
-                  <th className="text-right py-2.5 px-3 font-medium">Avg Growth</th>
-                  <th className="text-left py-2.5 pl-5 font-medium w-44">Distribution</th>
+                <tr style={{ borderBottom: "1px solid #ddd", color: "#888" }}>
+                  <th style={{ textAlign: "left", padding: "10px 16px 10px 0", fontWeight: 500 }}>Category</th>
+                  <th style={{ textAlign: "right", padding: "10px 12px", fontWeight: 500 }}>Count</th>
+                  <th style={{ textAlign: "right", padding: "10px 12px", fontWeight: 500 }}>Avg Score</th>
+                  <th style={{ textAlign: "right", padding: "10px 12px", fontWeight: 500 }}>Range</th>
+                  <th style={{ textAlign: "right", padding: "10px 12px", fontWeight: 500 }}>Avg Growth</th>
+                  <th style={{ textAlign: "right", padding: "10px 12px", fontWeight: 500 }}>Avg Leadership</th>
+                  <th style={{ textAlign: "left", padding: "10px 0 10px 16px", fontWeight: 500, width: "160px" }}>Distribution</th>
                 </tr>
               </thead>
               <tbody>
-                {schoolStats.map((s) => {
-                  const deviation = s.avgScore - overallAvg;
-                  return (
-                    <tr key={s.school} className="border-b border-[#333]">
-                      <td className="py-2.5 pr-5 capitalize font-medium text-white">
-                        {s.school}
-                      </td>
-                      <td className="text-right py-2.5 px-3 text-gray-300">{s.count}</td>
-                      <td className="text-right py-2.5 px-3">
-                        <span className="font-mono font-medium text-white">{s.avgScore.toFixed(1)}</span>
-                        <span className={`ml-1 ${deviation >= 0 ? "text-[#c1f11d]" : "text-red-400"}`}>
-                          ({deviation >= 0 ? "+" : ""}{deviation.toFixed(1)})
-                        </span>
-                      </td>
-                      <td className="text-right py-2.5 px-3 text-gray-400 font-mono">
-                        {s.minScore.toFixed(0)}-{s.maxScore.toFixed(0)}
-                      </td>
-                      <td className="text-right py-2.5 px-3 font-mono text-[#c1f11d]">
-                        {s.avgGrowth.toFixed(1)}
-                      </td>
-                      <td className="py-2.5 pl-5">
-                        <div className="flex items-center gap-1">
-                          <div className="flex-1 h-4 bg-[#333] rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-[#c1f11d] rounded-full"
-                              style={{ width: `${Math.min(s.avgScore, 100)}%` }}
-                            />
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {auditStats.map((s) => (
+                  <tr key={s.category} style={{ borderBottom: "1px solid #eee" }}>
+                    <td style={{ padding: "10px 16px 10px 0", fontWeight: 600, color: "#141414" }}>
+                      {s.category}
+                    </td>
+                    <td style={{ textAlign: "right", padding: "10px 12px", color: "#555" }}>{s.count}</td>
+                    <td style={{ textAlign: "right", padding: "10px 12px" }}>
+                      <span style={{ fontFamily: "monospace", fontWeight: 600, color: "#141414" }}>{s.avgScore.toFixed(1)}</span>
+                    </td>
+                    <td style={{ textAlign: "right", padding: "10px 12px", color: "#888", fontFamily: "monospace" }}>
+                      {s.minScore.toFixed(0)}-{s.maxScore.toFixed(0)}
+                    </td>
+                    <td style={{ textAlign: "right", padding: "10px 12px", fontFamily: "monospace", color: "#c1f11d" }}>
+                      {s.avgGrowth.toFixed(1)}
+                    </td>
+                    <td style={{ textAlign: "right", padding: "10px 12px", fontFamily: "monospace", color: "#c1f11d" }}>
+                      {s.avgLeadership.toFixed(1)}
+                    </td>
+                    <td style={{ padding: "10px 0 10px 16px" }}>
+                      <div style={{ flex: 1, height: "16px", backgroundColor: "#eee", borderRadius: "8px", overflow: "hidden" }}>
+                        <div
+                          style={{ height: "100%", backgroundColor: "#c1f11d", borderRadius: "8px", width: `${Math.min(s.avgScore, 100)}%` }}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
-          <div className="mt-5 p-4 bg-[#1a2a0a] rounded-xl border border-[#c1f11d]/20">
-            <p className="text-sm text-[#c1f11d]/80">
-              <strong className="text-[#c1f11d]">Interpretation:</strong> Growth trajectory scores differ by school type (by design —
-              students from under-resourced schools get credit for overcoming more).
-              Overall scores should show overlap across school types, proving that school background
-              alone does not determine outcome.
+          <div style={{ marginTop: "20px", padding: "16px", backgroundColor: "#f0f7e0", borderRadius: "12px", border: "1px solid rgba(193,241,29,0.3)" }}>
+            <p style={{ fontSize: "13px", color: "#555" }}>
+              <strong style={{ color: "#141414" }}>Interpretation:</strong> The system evaluates candidates based on their individual merits — leadership potential, growth trajectory, motivation, and communication. Background factors like school type are not used as success predictors.
             </p>
           </div>
         </div>
@@ -1053,7 +1038,7 @@ export default function Dashboard() {
               <a
                 href={link.href}
                 style={{
-                  padding: "14px 24px",
+                  padding: "14px 22px",
                   borderRadius: "10px",
                   textDecoration: "none",
                   fontWeight: link.current ? 700 : 500,
@@ -1079,66 +1064,53 @@ export default function Dashboard() {
         </div>
       </nav>
 
-      {/* Header subtitle */}
-      <div className="bg-[#141414] px-8 py-8">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-white">
-              Admissions Dashboard
-            </h1>
-            <p className="text-base text-gray-400 mt-1">
-              AI-Assisted Screening &middot; Human-in-the-Loop
-            </p>
+      {/* Dark header with dots */}
+      <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "12px 40px 0", position: "relative" }}>
+        <div style={{ backgroundColor: "#141414", borderRadius: "24px", overflow: "hidden", position: "relative", padding: "36px 40px 60px" }}>
+          <img src="/assets/Dots.png" alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.3, pointerEvents: "none" }} />
+          <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+            <div>
+              <h1 style={{ fontSize: "36px", fontWeight: 700, color: "#c1f11d", marginBottom: "4px" }}>Admissions Dashboard</h1>
+              <p style={{ fontSize: "16px", color: "#fff" }}>AI-Assisted Screening &middot; Human-in-the-Loop</p>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "15px", color: "#fff" }}>
+              <span style={{ width: "9px", height: "9px", borderRadius: "50%", backgroundColor: "#c1f11d", display: "inline-block" }} />
+              System active
+            </div>
           </div>
-          <div className="flex items-center gap-3 text-sm text-gray-400">
-            <span className="inline-block w-2.5 h-2.5 rounded-full bg-[#c1f11d]" />
-            System Active
-          </div>
+        </div>
+
+        {/* Stats bar — overlapping header */}
+        <div style={{ position: "relative", zIndex: 2, marginTop: "-36px", display: "flex", gap: "8px", padding: "12px 16px", backgroundColor: "#fff", borderRadius: "20px", border: "2px solid #d7d7d7" }}>
+          {[
+            { key: "all", label: "Total candidates", count: stats.total },
+            { key: "recommend", label: "Recommended", count: stats.recommend },
+            { key: "consider", label: "Consider", count: stats.consider },
+            { key: "needs_attention", label: "Needs Attention", count: stats.needsAttention },
+            { key: "hidden_gem", label: "Hidden Gems", count: stats.hiddenGems },
+          ].map((stat) => (
+            <button
+              key={stat.key}
+              onClick={() => setFilter(stat.key)}
+              style={{
+                flex: 1,
+                padding: "16px 16px",
+                borderRadius: "12px",
+                border: "none",
+                backgroundColor: filter === stat.key ? "#c1f11d" : "#eae9e9",
+                cursor: "pointer",
+                textAlign: "left",
+                transition: "all 0.2s ease",
+              }}
+            >
+              <p style={{ fontSize: "32px", fontWeight: 700, color: "#141414", lineHeight: 1, marginBottom: "2px" }}>{stat.count}</p>
+              <p style={{ fontSize: "13px", color: "#141414" }}>{stat.label}</p>
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-8 py-8">
-        {/* Stats */}
-        <div className="grid grid-cols-5 gap-5 mb-8">
-          <button
-            onClick={() => setFilter("all")}
-            className={`rounded-2xl p-6 text-left transition-all duration-200 hover:-translate-y-0.5 ${filter === "all" ? "bg-[#c1f11d] text-[#141414]" : "bg-[#141414] text-white"}`}
-          >
-            <p className={`text-4xl font-bold ${filter === "all" ? "text-[#141414]" : "text-[#c1f11d]"}`}>{stats.total}</p>
-            <p className={`text-sm mt-1 ${filter === "all" ? "text-[#141414]/70" : "text-gray-400"}`}>Total Candidates</p>
-          </button>
-          <button
-            onClick={() => setFilter("recommend")}
-            className={`rounded-2xl p-6 text-left transition-all duration-200 hover:-translate-y-0.5 ${filter === "recommend" ? "bg-[#c1f11d] text-[#141414]" : "bg-[#141414] text-white"}`}
-          >
-            <p className={`text-4xl font-bold ${filter === "recommend" ? "text-[#141414]" : "text-[#c1f11d]"}`}>{stats.recommend}</p>
-            <p className={`text-sm mt-1 ${filter === "recommend" ? "text-[#141414]/70" : "text-gray-400"}`}>Recommended</p>
-          </button>
-          <button
-            onClick={() => setFilter("consider")}
-            className={`rounded-2xl p-6 text-left transition-all duration-200 hover:-translate-y-0.5 ${filter === "consider" ? "bg-[#c1f11d] text-[#141414]" : "bg-[#141414] text-white"}`}
-          >
-            <p className={`text-4xl font-bold ${filter === "consider" ? "text-[#141414]" : "text-amber-400"}`}>{stats.consider}</p>
-            <p className={`text-sm mt-1 ${filter === "consider" ? "text-[#141414]/70" : "text-gray-400"}`}>Consider</p>
-          </button>
-          <button
-            onClick={() => setFilter("needs_attention")}
-            className={`rounded-2xl p-6 text-left transition-all duration-200 hover:-translate-y-0.5 ${filter === "needs_attention" ? "bg-[#c1f11d] text-[#141414]" : "bg-[#141414] text-white"}`}
-          >
-            <p className={`text-4xl font-bold ${filter === "needs_attention" ? "text-[#141414]" : "text-red-400"}`}>{stats.needsAttention}</p>
-            <p className={`text-sm mt-1 ${filter === "needs_attention" ? "text-[#141414]/70" : "text-gray-400"}`}>Needs Attention</p>
-          </button>
-          <button
-            onClick={() => setFilter("hidden_gem")}
-            className={`rounded-2xl p-6 text-left transition-all duration-200 hover:-translate-y-0.5 ${filter === "hidden_gem" ? "bg-[#141414] text-[#c1f11d] ring-2 ring-[#c1f11d]" : "bg-[#141414] text-white border border-lime-400/40"}`}
-          >
-            <p className={`text-4xl font-bold ${filter === "hidden_gem" ? "text-[#c1f11d]" : "text-lime-400"}`}>
-              {stats.hiddenGems} <span className="text-2xl">&#x2728;</span>
-            </p>
-            <p className={`text-sm mt-1 ${filter === "hidden_gem" ? "text-[#c1f11d]/70" : "text-gray-400"}`}>Hidden Gems</p>
-          </button>
-        </div>
-
+      <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "16px 40px 0" }}>
         {/* Evaluation Settings + Fairness Audit */}
         <WeightSimulator
           weights={weights}
@@ -1194,6 +1166,24 @@ export default function Dashboard() {
           detectLoading={detectLoading}
         />
       )}
+
+      {/* Footer */}
+      <footer style={{ backgroundColor: "#141414", position: "relative", overflow: "hidden", padding: "60px 0 40px", marginTop: "40px" }}>
+        <img src="/assets/InVision U GRADIENT.svg" alt="" style={{ position: "absolute", bottom: "-30px", left: "50%", transform: "translateX(-50%)", width: "clamp(600px, 80vw, 1200px)", opacity: 0.08, pointerEvents: "none" }} />
+        <div style={{ position: "relative", zIndex: 1, maxWidth: "1200px", margin: "0 auto", padding: "0 40px", textAlign: "center" }}>
+          <img src="/assets/InVision U white.png" alt="inVision U" style={{ width: "169px", height: "auto", margin: "0 auto 16px" }} />
+          <p style={{ fontSize: "14px", color: "#666", marginBottom: "24px" }}>AI-Assisted Evaluation System &mdash; All final admission decisions are made by the human admissions committee.</p>
+          <div style={{ display: "flex", justifyContent: "center", gap: "32px", marginBottom: "32px" }}>
+            {[{ href: "/", label: "Home" }, { href: "/#apply", label: "Apply" }, { href: "/teach", label: "Teaching Challenge" }, { href: "/dashboard", label: "Dashboard" }].map((link) => (
+              <a key={link.label} href={link.href} style={{ fontSize: "14px", color: "#888", textDecoration: "none", transition: "color 0.2s" }}
+                onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "#c1f11d")}
+                onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "#888")}
+              >{link.label}</a>
+            ))}
+          </div>
+          <div style={{ borderTop: "1px solid #333", paddingTop: "20px", fontSize: "12px", color: "#555" }}>Powered by inDrive &middot; Built for Decentrathon 5.0</div>
+        </div>
+      </footer>
     </main>
   );
 }

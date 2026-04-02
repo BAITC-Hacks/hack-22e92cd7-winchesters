@@ -5,6 +5,12 @@ import { api } from "@/lib/api";
 
 type Topic = { id: string; title: string; description: string };
 type Message = { role: "user" | "assistant"; content: string };
+type QuizAnswer = {
+  question: string;
+  answer: string;
+  confident: boolean;
+};
+
 type Score = {
   clarity: number;
   patience: number;
@@ -14,6 +20,7 @@ type Score = {
   overall_score: number;
   summary: string;
   message_count: number;
+  quiz_answers?: QuizAnswer[];
 };
 
 type Phase = "setup" | "teaching" | "scoring" | "results";
@@ -48,6 +55,8 @@ export default function TeachPage() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [canFinish, setCanFinish] = useState(false);
+  const [mustFinish, setMustFinish] = useState(false);
+  const [remaining, setRemaining] = useState(8);
   const [messageCount, setMessageCount] = useState(0);
   const [score, setScore] = useState<Score | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +65,13 @@ export default function TeachPage() {
 
   useEffect(() => {
     api.feynman.topics().then(setTopics).catch(() => {});
+    // Auto-fill candidate ID from application form
+    if (typeof window !== "undefined") {
+      const savedId = window.localStorage.getItem("invisionu_candidate_id");
+      const savedName = window.localStorage.getItem("invisionu_candidate_name");
+      if (savedId) setCandidateId(savedId);
+      else if (savedName) setCandidateId(savedName);
+    }
   }, []);
 
   useEffect(() => {
@@ -103,6 +119,12 @@ export default function TeachPage() {
       setMessages((prev) => [...prev, { role: "assistant", content: res.reply }]);
       setMessageCount(res.message_count);
       setCanFinish(res.can_finish);
+      setMustFinish(res.must_finish);
+      setRemaining(res.remaining);
+      // Auto-finish if max exchanges reached
+      if (res.must_finish) {
+        setTimeout(() => handleFinish(), 1500);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to send message");
     } finally {
@@ -129,6 +151,8 @@ export default function TeachPage() {
     setMessages([]);
     setInput("");
     setCanFinish(false);
+    setMustFinish(false);
+    setRemaining(8);
     setMessageCount(0);
     setScore(null);
     setError(null);
@@ -189,7 +213,7 @@ export default function TeachPage() {
                   textDecoration: "none",
                   fontWeight: 500,
                   color: "#141414",
-                  fontSize: "20px",
+                  fontSize: "18px",
                   whiteSpace: "nowrap",
                   transition: "background-color 0.2s",
                 }}
@@ -210,18 +234,33 @@ export default function TeachPage() {
       {/* ── Setup Phase ────────────────────────────────────── */}
       {phase === "setup" && (
         <>
-          {/* Lime header strip */}
+          {/* Header with brush background */}
           <div
             style={{
               backgroundColor: "#c1f11d",
               padding: "56px 32px 64px",
               textAlign: "center",
+              position: "relative",
+              overflow: "hidden",
             }}
           >
-            <h1 style={{ fontSize: "42px", fontWeight: 800, color: "#141414", marginBottom: "10px" }}>
+            <img
+              src="/assets/Brush BG.png"
+              alt=""
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                opacity: 0.15,
+                pointerEvents: "none",
+              }}
+            />
+            <h1 style={{ position: "relative", zIndex: 1, fontSize: "42px", fontWeight: 800, color: "#141414", marginBottom: "10px" }}>
               Feynman Teaching Challenge
             </h1>
-            <p style={{ fontSize: "18px", color: "#333", maxWidth: "580px", margin: "0 auto" }}>
+            <p style={{ position: "relative", zIndex: 1, fontSize: "18px", color: "#333", maxWidth: "580px", margin: "0 auto" }}>
               Prove you understand a concept by teaching it to Arman — a curious 10-year-old AI student.
               The better Arman understands, the higher your score.
             </p>
@@ -244,7 +283,7 @@ export default function TeachPage() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "24px" }}>
                 {[
                   "Pick a topic and teach it to Arman in a chat",
-                  "After 4+ exchanges, finish the session",
+                  "After 4-8 exchanges, finish the session",
                   "Arman takes a quiz. Your score = his understanding",
                 ].map((text, i) => (
                   <div key={i} style={{ display: "flex", gap: "14px", alignItems: "flex-start" }}>
@@ -273,10 +312,10 @@ export default function TeachPage() {
 
             {/* Form */}
             <div style={{ marginTop: "40px", paddingBottom: "56px" }}>
-              {/* Your Name input */}
+              {/* Candidate identifier */}
               <div style={{ marginBottom: "28px" }}>
                 <label style={{ display: "block", fontSize: "18px", fontWeight: 500, color: "#333", marginBottom: "10px" }}>
-                  Your Name <span style={{ color: "#ef4444" }}>*</span>
+                  {candidateId.startsWith("c-") ? "Candidate ID (linked from your application)" : "Your Name"} <span style={{ color: "#ef4444" }}>*</span>
                 </label>
                 <input
                   style={{
@@ -426,6 +465,8 @@ export default function TeachPage() {
               <p style={{ fontSize: "14px", color: "#888", margin: "4px 0 0 0" }}>
                 {messageCount} exchange{messageCount !== 1 ? "s" : ""}
                 {!canFinish && ` — need ${4 - messageCount} more to finish`}
+                {canFinish && !mustFinish && ` — ${remaining} remaining`}
+                {mustFinish && " — session complete, scoring..."}
               </p>
             </div>
             {canFinish && (
@@ -544,8 +585,8 @@ export default function TeachPage() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-                placeholder="Teach Arman..."
-                disabled={sending}
+                placeholder={mustFinish ? "Session complete — scoring..." : "Teach Arman..."}
+                disabled={sending || mustFinish}
                 onFocus={(e) => {
                   e.currentTarget.style.borderColor = "#c1f11d";
                   e.currentTarget.style.boxShadow = "0 0 0 3px rgba(193,241,29,0.3)";
@@ -557,7 +598,7 @@ export default function TeachPage() {
               />
               <button
                 onClick={handleSend}
-                disabled={!input.trim() || sending}
+                disabled={!input.trim() || sending || mustFinish}
                 style={{
                   borderRadius: "14px",
                   backgroundColor: "#c1f11d",
@@ -671,6 +712,47 @@ export default function TeachPage() {
             </div>
           </div>
 
+          {/* Quiz Results — transparency */}
+          {score.quiz_answers && score.quiz_answers.length > 0 && (
+            <div
+              style={{
+                background: "linear-gradient(180deg, #252525 0%, #0F0F0F 100%)",
+                border: "1px solid #525252",
+                borderRadius: "24px",
+                padding: "32px 36px",
+                marginBottom: "24px",
+              }}
+            >
+              <h3 style={{ fontWeight: 600, color: "#fff", marginBottom: "20px", fontSize: "18px" }}>
+                Quiz Results — What Arman Learned
+              </h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                {score.quiz_answers.map((qa, i) => (
+                  <div key={i} style={{ padding: "16px", backgroundColor: "rgba(255,255,255,0.05)", borderRadius: "12px" }}>
+                    <p style={{ fontSize: "14px", color: "#999", marginBottom: "6px" }}>
+                      Q{i + 1}: {qa.question}
+                    </p>
+                    <p style={{ fontSize: "16px", color: "#fff", margin: 0 }}>
+                      <span style={{ color: "#c1f11d", marginRight: "8px" }}>Arman:</span>
+                      {qa.answer}
+                    </p>
+                    <span style={{
+                      display: "inline-block",
+                      marginTop: "6px",
+                      fontSize: "12px",
+                      padding: "2px 10px",
+                      borderRadius: "10px",
+                      backgroundColor: qa.confident ? "rgba(193,241,29,0.15)" : "rgba(255,100,100,0.15)",
+                      color: qa.confident ? "#c1f11d" : "#ff6b6b",
+                    }}>
+                      {qa.confident ? "Confident" : "Not sure"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Summary */}
           <div
             style={{
@@ -749,6 +831,24 @@ export default function TeachPage() {
           50% { opacity: 0.5; }
         }
       `}</style>
+
+      {/* Footer */}
+      <footer style={{ backgroundColor: "#141414", position: "relative", overflow: "hidden", padding: "60px 0 40px" }}>
+        <img src="/assets/InVision U GRADIENT.svg" alt="" style={{ position: "absolute", bottom: "-30px", left: "50%", transform: "translateX(-50%)", width: "clamp(600px, 80vw, 1200px)", opacity: 0.08, pointerEvents: "none" }} />
+        <div style={{ position: "relative", zIndex: 1, maxWidth: "1200px", margin: "0 auto", padding: "0 40px", textAlign: "center" }}>
+          <img src="/assets/InVision U white.png" alt="inVision U" style={{ width: "169px", height: "auto", margin: "0 auto 16px" }} />
+          <p style={{ fontSize: "14px", color: "#666", marginBottom: "24px" }}>AI-Assisted Evaluation System &mdash; All final admission decisions are made by the human admissions committee.</p>
+          <div style={{ display: "flex", justifyContent: "center", gap: "32px", marginBottom: "32px" }}>
+            {[{ href: "/", label: "Home" }, { href: "/#apply", label: "Apply" }, { href: "/teach", label: "Teaching Challenge" }, { href: "/dashboard", label: "Dashboard" }].map((link) => (
+              <a key={link.label} href={link.href} style={{ fontSize: "14px", color: "#888", textDecoration: "none", transition: "color 0.2s" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#c1f11d")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "#888")}
+              >{link.label}</a>
+            ))}
+          </div>
+          <div style={{ borderTop: "1px solid #333", paddingTop: "20px", fontSize: "12px", color: "#555" }}>Powered by inDrive &middot; Built for Decentrathon 5.0</div>
+        </div>
+      </footer>
     </div>
   );
 }

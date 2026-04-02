@@ -70,7 +70,7 @@ export const api = {
         { method: "POST", body: JSON.stringify({ candidate_id: candidateId, topic_id: topicId }) },
       ),
     chat: (sessionId: string, message: string) =>
-      fetchJSON<{ reply: string; message_count: number; can_finish: boolean }>(
+      fetchJSON<{ reply: string; message_count: number; can_finish: boolean; must_finish: boolean; remaining: number }>(
         "/api/feynman/chat",
         { method: "POST", body: JSON.stringify({ session_id: sessionId, message }) },
       ),

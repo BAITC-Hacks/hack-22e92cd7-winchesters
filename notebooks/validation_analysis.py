@@ -45,7 +45,7 @@ def analyze_score_distributions(candidates: list[Candidate]):
 
     scores = []
     dimension_scores: dict[str, list[float]] = {}
-    recommendations: dict[str, int] = {"shortlist": 0, "review": 0, "decline": 0}
+    recommendations: dict[str, int] = {"recommend": 0, "consider": 0, "needs attention": 0}
 
     for c in candidates:
         result = compute_baseline_score(c)
