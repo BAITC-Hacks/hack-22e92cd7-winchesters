@@ -25,6 +25,8 @@ A hybrid evaluation platform where **AI assists, humans decide**:
 | **Hidden Gem Filter** | Surfaces candidates with low formal metrics but exceptional teaching ability or growth signals. |
 | **Committee Override** | Human-in-the-loop: override any AI dimension score with a note. Overall score recomputes automatically. |
 | **Sparse Profile Handling** | Missing data shifts weight to essay + teaching challenge instead of penalizing. |
+| **Video Presentation Analysis** | Compares video transcript voice with essay voice for authenticity. Extracts motivation signals. Supports Whisper API or manual transcript. |
+| **Auth System** | Register/login for applicants. Committee demo account included. Candidate ID linked to user account automatically. |
 | **PII Anonymization** | Names, emails, phone numbers stripped before any data reaches Claude AI. |
 
 ---
@@ -44,7 +46,7 @@ A hybrid evaluation platform where **AI assists, humans decide**:
 |-------|-----------|
 | Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS 4 |
 | Backend | Python 3.12, FastAPI, Pydantic v2 |
-| AI | Claude Sonnet 4 (scoring, detection, Feynman chat) |
+| AI | Claude Sonnet 4 (scoring, detection, Feynman chat), OpenAI Whisper (video transcription, optional) |
 | Non-AI | Pure Python signal extraction, rule-based baseline, statistical stylometry |
 
 ---
@@ -52,23 +54,27 @@ A hybrid evaluation platform where **AI assists, humans decide**:
 ## Architecture
 
 ```
+  Auth (Register/Login)
+          |
 Applicant Portal          Teaching Challenge          Admissions Dashboard
       |                         |                           |
       v                         v                           v
   [Application Form]    [Chat with AI Student]    [Candidate Rankings]
-  [Video Link]           [Quiz + Scoring]          [Evaluation Settings]
+  [Video + Transcript]   [Quiz + Scoring]          [Evaluation Settings]
       |                         |                  [Fairness Audit]
-      +-------------------------+                  [Committee Override]
-                |
+      +-------------------------+                  [Video Analysis]
+                |                                  [Committee Override]
          [FastAPI Backend]
-          /          \
-   [Signal Extractor]  [Feynman Engine]
-   [Baseline Scorer]   [AI Student Chat]
-   [AI Scorer]         [Quiz Evaluator]
-   [AI Detector]       [Teaching Scorer]
+        /        |        \
+   [Signal      [Feynman    [Video
+    Extractor]   Engine]     Analyzer]
+   [Baseline    [AI Chat]   [Whisper/
+    Scorer]     [Quiz]       Mock]
+   [AI Scorer]  [Evaluator]
+   [AI Detector]
    [PII Anonymizer]
-          |
-     [Claude API]
+        |            |
+   [Claude API]  [OpenAI API]
 ```
 
 > Detailed diagrams: [docs/architecture.md](docs/architecture.md)
@@ -84,7 +90,7 @@ cd invision-u-winchesters
 
 # Backend
 pip install -r backend/requirements.txt
-cp backend/.env.example backend/.env   # add your ANTHROPIC_API_KEY
+cp backend/.env.example backend/.env   # add ANTHROPIC_API_KEY (required), OPENAI_API_KEY (optional)
 python3 -m uvicorn backend.main:app --port 8000
 
 # Frontend (requires Node 20+)
@@ -126,8 +132,8 @@ Dual scoring proves AI value: rule-based baseline (instant, free) vs Claude AI (
 - LLM may hallucinate justifications → mitigated by requiring exact quote evidence
 - Stylometry may false-positive on strong writers → only 40% weight (60% Claude qualitative)
 - Kazakh stylometry baselines are less established than English/Russian
-- Video presentations are link-only (no audio/video processing)
-- In-memory cache — scores reset on restart
+- Video analysis uses mock transcript by default — add OPENAI_API_KEY for real Whisper transcription
+- In-memory storage — scores and auth reset on restart
 
 ---
 
@@ -136,12 +142,13 @@ Dual scoring proves AI value: rule-based baseline (instant, free) vs Claude AI (
 ```
 ├── backend/
 │   ├── main.py                # FastAPI entry point
-│   ├── routers/               # API endpoints (candidates, scoring, analysis, feynman)
-│   ├── scoring/               # Signal extraction, baseline, AI scorer, detector, aggregator
+│   ├── routers/               # API endpoints (auth, candidates, scoring, analysis, feynman)
+│   ├── scoring/               # Signal extraction, baseline, AI scorer, detector, aggregator, video analyzer
 │   ├── privacy.py             # PII anonymization
 │   └── data/                  # Synthetic dataset (15 candidates, 3 languages)
 ├── frontend/src/app/
 │   ├── page.tsx               # Landing + Application Form (5 steps)
+│   ├── auth/page.tsx          # Sign In / Sign Up
 │   ├── teach/page.tsx         # Feynman Teaching Challenge
 │   └── dashboard/page.tsx     # Admissions Dashboard
 ├── docs/                      # Architecture diagrams
