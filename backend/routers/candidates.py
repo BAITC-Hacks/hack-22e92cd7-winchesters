@@ -66,7 +66,15 @@ def list_candidates():
 def create_candidate(body: CandidateCreate):
     """Create a new candidate from an application form submission."""
     candidates = _load_candidates()
-    new_id = f"c-{len(candidates) + 1:03d}"
+    # Generate unique ID based on highest existing ID to avoid collisions
+    existing_nums = []
+    for c in candidates:
+        try:
+            existing_nums.append(int(c.id.split("-")[1]))
+        except (IndexError, ValueError):
+            pass
+    next_num = max(existing_nums, default=0) + 1
+    new_id = f"c-{next_num:03d}"
 
     candidate = Candidate(
         id=new_id,

@@ -931,7 +931,6 @@ export default function Dashboard() {
   // Fetch Feynman score when candidate is selected
   useEffect(() => {
     if (!selectedId || feynmanScores[selectedId]) return;
-    api.feynman.finish("").catch(() => {}); // no-op, we just fetch cached score
     fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/feynman/score/${selectedId}`)
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {

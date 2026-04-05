@@ -305,8 +305,10 @@ export default function LandingPage() {
                 setLanguages("");
                 setSkills("");
                 setEssayText("");
+                setEssayPrompt(ESSAY_PROMPTS[0]);
                 setRecommendation("");
                 setVideoLink("");
+                setSelectedProgram("Creative Engineering");
                 setCurrentStep(0);
               }}
               style={{ backgroundColor: "#eae9e9", color: "#141414", borderRadius: "12px", padding: "14px 24px", fontSize: "14px", fontWeight: 500, border: "none", cursor: "pointer" }}
