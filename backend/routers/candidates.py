@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import os
-import uuid
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
@@ -51,6 +50,8 @@ class CandidateCreate(BaseModel):
     essay: Essay
     interview_transcript: str = ""
     recommendation_summary: str = ""
+    video_link: str = ""
+    video_transcript: str = ""
 
 
 # ── Endpoints ──────────────────────────────────────────────────────
@@ -84,6 +85,8 @@ def create_candidate(body: CandidateCreate):
         essay=body.essay,
         interview_transcript=body.interview_transcript,
         recommendation_summary=body.recommendation_summary,
+        video_link=body.video_link,
+        video_transcript=body.video_transcript,
     )
 
     candidates.append(candidate)

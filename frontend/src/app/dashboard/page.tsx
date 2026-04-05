@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/useAuth";
 import type {
   RankedCandidate,
   CandidateScore,
@@ -39,8 +40,8 @@ const DIMENSION_WEIGHTS = DEFAULT_WEIGHTS;
 function Badge({ label, color }: { label: string; color: string }) {
   const colors: Record<string, string> = {
     green: "bg-[#c1f11d] text-[#141414]",
-    yellow: "bg-amber-400 text-[#141414]",
-    red: "bg-red-500 text-white",
+    yellow: "bg-[#eae9e9] text-[#141414]",
+    red: "bg-[#eae9e9] text-[#141414]",
     blue: "bg-[#141414] text-white",
     gray: "bg-[#eae9e9] text-[#141414]",
   };
@@ -60,21 +61,14 @@ function RecommendationBadge({ rec }: { rec: string }) {
     return <Badge label="Consider" color="yellow" />;
   return <Badge label="Needs Attention" color="red" />;
 }
-// Note: these are AI-generated recommendations only — final decisions are made by the committee
 
 function ScoreBar({ score, max = 100 }: { score: number; max?: number }) {
   const pct = Math.min((score / max) * 100, 100);
-  const color =
-    pct >= 70
-      ? "bg-[#c1f11d]"
-      : pct >= 50
-        ? "bg-amber-400"
-        : "bg-red-400";
   return (
     <div className="flex items-center gap-3 w-full">
-      <div className="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
+      <div className="flex-1 h-3 bg-[#eae9e9] rounded-full overflow-hidden">
         <div
-          className={`h-full rounded-full ${color}`}
+          className="h-full rounded-full bg-[#5d5d5d]"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -85,17 +79,11 @@ function ScoreBar({ score, max = 100 }: { score: number; max?: number }) {
 
 function ScoreBarDark({ score, max = 100 }: { score: number; max?: number }) {
   const pct = Math.min((score / max) * 100, 100);
-  const color =
-    pct >= 70
-      ? "bg-[#c1f11d]"
-      : pct >= 50
-        ? "bg-amber-400"
-        : "bg-red-400";
   return (
     <div className="flex items-center gap-3 w-full">
       <div className="flex-1 h-3 bg-[#333] rounded-full overflow-hidden">
         <div
-          className={`h-full rounded-full ${color}`}
+          className="h-full rounded-full bg-[#c1f11d]"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -186,51 +174,79 @@ function CandidateCard({
 }) {
   const score = ranked.baseline_score || ranked.ai_score;
   const c = ranked.candidate;
+
+  const recBadgeStyle = (rec: string) => {
+    if (rec === "recommend" || rec === "shortlist")
+      return "bg-[#c1f11d] text-[#141414]";
+    if (rec === "consider" || rec === "review")
+      return "bg-[#eae9e9] text-[#141414]";
+    return "bg-red-100 text-red-700";
+  };
+  const recBadgeLabel = (rec: string) => {
+    if (rec === "recommend" || rec === "shortlist") return "Recommend";
+    if (rec === "consider" || rec === "review") return "Consider";
+    return "Needs Attention";
+  };
+
   return (
     <div
-      className="bg-white rounded-2xl border border-gray-200 p-6 cursor-pointer transition-all duration-200 hover:border-[#c1f11d] hover:shadow-[0_0_20px_rgba(193,241,29,0.25)] hover:-translate-y-1"
+      className="bg-white rounded-[16px] border-2 border-[#d7d7d7] px-4 py-5 cursor-pointer transition-all duration-200 hover:border-[#c1f11d] hover:shadow-[0_0_20px_rgba(193,241,29,0.25)] hover:-translate-y-1"
       onClick={onSelect}
     >
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="w-10 h-10 rounded-full bg-[#c1f11d] text-[#141414] flex items-center justify-center text-base font-bold">
-              {ranked.rank}
-            </span>
-            <h3 className="font-semibold text-lg text-gray-900">{c.name}</h3>
-          </div>
-          <p className="text-sm text-gray-500 mt-1 ml-[52px]">
-            {c.id} &middot; Age {c.age} &middot;{" "}
-            {c.application.education.school_type} &middot; GPA{" "}
-            {c.application.education.gpa}
-          </p>
+      {/* Header row */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2.5">
+          <span className="w-[28px] h-[28px] rounded-[8px] bg-[#c1f11d] text-[#141414] flex items-center justify-center text-xs font-bold shrink-0">
+            {ranked.rank}
+          </span>
+          <h3 className="font-bold text-[#141414] text-base">{c.name}</h3>
         </div>
-        {score && <RecommendationBadge rec={score.recommendation} />}
+        {score && (
+          <span className={`inline-block px-2.5 py-1 rounded-[10px] text-sm font-medium whitespace-nowrap ${recBadgeStyle(score.recommendation)}`}>
+            {recBadgeLabel(score.recommendation)}
+          </span>
+        )}
       </div>
+
+      {/* Score row */}
       {score && (
         <>
-          <div className="flex items-center gap-3 mb-4">
-            <span className="text-3xl font-bold text-[#141414]">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="font-bold text-[#141414] text-xl">
               {score.overall_score.toFixed(1)}
             </span>
-            <span className="text-sm text-gray-400">/ 100</span>
-            <Badge
-              label={score.scorer_type.toUpperCase()}
-              color={score.scorer_type === "ai" ? "blue" : "gray"}
-            />
+            <span className="text-[#969696] text-sm">/</span>
+            <span className="text-[#969696] text-sm">100</span>
+            <span className="ml-2 inline-block px-2 py-0.5 rounded-[6.4px] bg-[#eae9e9] text-[#141414] text-xs font-medium uppercase">
+              {score.scorer_type === "ai" ? "AI" : "BASELINE"}
+            </span>
           </div>
-          <div className="space-y-2">
-            {score.dimensions.map((d) => (
-              <div key={d.dimension} className="flex items-center gap-3">
-                <span className="text-xs text-gray-500 w-24 truncate">
+
+          {/* Dimension bars */}
+          <div className="flex flex-col">
+            {score.dimensions.map((d, i) => (
+              <div
+                key={d.dimension}
+                className={`flex items-center gap-3 py-2.5 ${i < score.dimensions.length - 1 ? "border-b border-[#d7d7d7]" : ""}`}
+              >
+                <span className="w-[72px] shrink-0 text-xs text-[#969696] truncate">
                   {DIMENSION_LABELS[d.dimension] || d.dimension}
                 </span>
-                <ScoreBar score={d.score} />
+                <div className="flex-1 h-2.5 bg-[#eae9e9] rounded-[8px] overflow-hidden">
+                  <div
+                    className="h-full rounded-[8px] bg-[#5d5d5d]"
+                    style={{ width: `${Math.min((d.score / 100) * 100, 100)}%` }}
+                  />
+                </div>
+                <span className="w-[42px] shrink-0 text-center text-xs font-medium bg-[#c1f11d] text-[#141414] rounded-[8px] py-0.5">
+                  {d.score.toFixed(0)}
+                </span>
               </div>
             ))}
           </div>
         </>
       )}
+
       {/* Sparse Profile badge */}
       {(() => {
         const missingInterview = !c.interview_transcript || c.interview_transcript.trim() === "";
@@ -245,9 +261,16 @@ function CandidateCard({
           </div>
         );
       })()}
+
+      {/* Language tags */}
       <div className="mt-4 flex flex-wrap gap-1.5">
         {c.application.languages.map((l) => (
-          <Badge key={l} label={l} color="blue" />
+          <span
+            key={l}
+            className="inline-block px-1.5 py-0.5 rounded-[5px] bg-[#141414] text-white text-xs font-medium"
+          >
+            {l}
+          </span>
         ))}
       </div>
     </div>
@@ -259,13 +282,27 @@ type FeynmanScore = {
   quiz_transfer_score: number; overall_score: number; summary: string;
 };
 
+type VideoAnalysis = {
+  transcript: string;
+  language_detected: string;
+  authenticity_match: number;
+  motivation_score: number;
+  key_themes: string[];
+  growth_signals: string[];
+  concerns: string[];
+  summary: string;
+  is_mock: boolean;
+};
+
 function CandidateDetail({
   candidate,
   score,
   aiDetection,
   feynmanScore,
+  videoAnalysis,
   onClose,
   onDetectAI,
+  onAnalyzeVideo,
   onOverride,
   detectLoading,
 }: {
@@ -273,8 +310,10 @@ function CandidateDetail({
   score: CandidateScore | null;
   aiDetection: AIDetectionResult | null;
   feynmanScore: FeynmanScore | null;
+  videoAnalysis: VideoAnalysis | null;
   onClose: () => void;
   onDetectAI: () => void;
+  onAnalyzeVideo: () => void;
   onOverride: (dimension: string, value: number, note: string) => void;
   detectLoading: boolean;
 }) {
@@ -288,7 +327,7 @@ function CandidateDetail({
   return (
     <div className="fixed inset-0 flex items-center justify-center p-6" style={{ zIndex: 200 }}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-4xl max-h-[90vh] bg-white shadow-2xl overflow-y-auto rounded-2xl">
+      <div className="relative w-full max-w-4xl max-h-[90vh] bg-white shadow-2xl overflow-y-auto" style={{ borderRadius: "20px", border: "2.7px solid #d7d7d7" }}>
         <div className="sticky top-0 bg-white z-10 px-8 py-5 border-b border-gray-200 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-[#141414]">{c.name}</h2>
@@ -552,6 +591,63 @@ function CandidateDetail({
             )}
           </section>
 
+          {/* Video Analysis */}
+          <section>
+            <h3 className="text-base font-semibold text-[#141414] uppercase tracking-wider mb-3 flex items-center gap-3">
+              <span className="w-1.5 h-5 bg-[#c1f11d] rounded-full inline-block" />
+              Video Presentation Analysis
+            </h3>
+            {videoAnalysis ? (
+              <div style={{ background: "linear-gradient(180deg, #252525, #0F0F0F)", borderRadius: "16px", padding: "20px", border: "1px solid #333" }}>
+                {videoAnalysis.is_mock && (
+                  <div style={{ backgroundColor: "rgba(193,241,29,0.1)", borderRadius: "8px", padding: "8px 12px", marginBottom: "12px", fontSize: "12px", color: "#c1f11d" }}>
+                    Demo mode — using mock transcript. Add OPENAI_API_KEY for real Whisper transcription.
+                  </div>
+                )}
+                <div className="flex items-center gap-3 mb-3">
+                  <span style={{ color: "#999", fontSize: "13px" }}>Authenticity Match:</span>
+                  <ScoreBarDark score={videoAnalysis.authenticity_match} />
+                </div>
+                <div className="flex items-center gap-3 mb-3">
+                  <span style={{ color: "#999", fontSize: "13px" }}>Motivation Score:</span>
+                  <ScoreBarDark score={videoAnalysis.motivation_score} />
+                </div>
+                <p style={{ color: "#ccc", fontSize: "13px", lineHeight: 1.6, marginBottom: "12px" }}>{videoAnalysis.summary}</p>
+                {videoAnalysis.key_themes.length > 0 && (
+                  <div style={{ marginBottom: "8px" }}>
+                    <span style={{ color: "#999", fontSize: "12px" }}>Key themes: </span>
+                    {videoAnalysis.key_themes.map((t, i) => (
+                      <span key={i} style={{ display: "inline-block", backgroundColor: "rgba(193,241,29,0.15)", color: "#c1f11d", borderRadius: "8px", padding: "2px 8px", fontSize: "11px", margin: "2px 4px 2px 0" }}>{t}</span>
+                    ))}
+                  </div>
+                )}
+                {videoAnalysis.growth_signals.length > 0 && (
+                  <div style={{ marginBottom: "8px" }}>
+                    <span style={{ color: "#999", fontSize: "12px" }}>Growth signals: </span>
+                    {videoAnalysis.growth_signals.map((g, i) => (
+                      <span key={i} style={{ display: "inline-block", backgroundColor: "rgba(16,185,129,0.15)", color: "#10b981", borderRadius: "8px", padding: "2px 8px", fontSize: "11px", margin: "2px 4px 2px 0" }}>{g}</span>
+                    ))}
+                  </div>
+                )}
+                {videoAnalysis.concerns.length > 0 && (
+                  <div>
+                    <span style={{ color: "#999", fontSize: "12px" }}>Concerns: </span>
+                    {videoAnalysis.concerns.map((c, i) => (
+                      <span key={i} style={{ display: "inline-block", backgroundColor: "rgba(239,68,68,0.15)", color: "#ef4444", borderRadius: "8px", padding: "2px 8px", fontSize: "11px", margin: "2px 4px 2px 0" }}>{c}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                style={{ backgroundColor: "#141414", color: "#c1f11d", border: "none", borderRadius: "12px", padding: "10px 20px", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}
+                onClick={onAnalyzeVideo}
+              >
+                Analyze Video Presentation
+              </button>
+            )}
+          </section>
+
           {/* Feynman Teaching Score */}
           {feynmanScore && (
             <section>
@@ -666,17 +762,17 @@ function WeightSimulator({
   );
 
   return (
-    <div style={{ backgroundColor: "#fff", borderRadius: "30px", border: "2.68px solid #d7d7d7", padding: "15px", marginBottom: "16px" }}>
+    <div style={{ backgroundColor: "#fff", borderRadius: "24px", border: "2px solid #d7d7d7", padding: "14px", marginBottom: "14px" }}>
       <button
         className="w-full flex items-center text-left"
-        style={{ backgroundColor: "#eae9e9", borderRadius: "15px", padding: "20px", border: "none", cursor: "pointer", gap: "15px" }}
+        style={{ backgroundColor: "#eae9e9", borderRadius: "14px", padding: "18px 20px", border: "none", cursor: "pointer", gap: "14px" }}
         onClick={() => setOpen(!open)}
       >
-        <div style={{ width: "53px", height: "53px", backgroundColor: "#141414", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <img src="/assets/Settings.svg" alt="" style={{ width: "28px", height: "28px" }} />
+        <div style={{ width: "46px", height: "46px", backgroundColor: "#141414", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <img src="/assets/Settings.svg" alt="" style={{ width: "24px", height: "24px" }} />
         </div>
         <div className="flex items-center gap-3">
-          <span style={{ fontSize: "20px", fontWeight: 600, color: "#141414" }}>Evaluation Settings</span>
+          <span style={{ fontSize: "18px", fontWeight: 600, color: "#141414" }}>Evaluation Settings</span>
           {!isDefault && (
             <span className="text-xs bg-[#c1f11d] text-[#141414] px-2.5 py-1 rounded-full font-medium">
               Custom weights active
@@ -765,16 +861,16 @@ function FairnessAudit({ ranked }: { ranked: RankedCandidate[] }) {
   }, [ranked]);
 
   return (
-    <div style={{ backgroundColor: "#fff", borderRadius: "30px", border: "2.68px solid #d7d7d7", padding: "15px", marginBottom: "16px" }}>
+    <div style={{ backgroundColor: "#fff", borderRadius: "24px", border: "2px solid #d7d7d7", padding: "14px", marginBottom: "14px" }}>
       <button
         className="w-full flex items-center text-left"
-        style={{ backgroundColor: "#eae9e9", borderRadius: "15px", padding: "20px", border: "none", cursor: "pointer", gap: "15px" }}
+        style={{ backgroundColor: "#eae9e9", borderRadius: "14px", padding: "18px 20px", border: "none", cursor: "pointer", gap: "14px" }}
         onClick={() => setOpen(!open)}
       >
-        <div style={{ width: "53px", height: "53px", backgroundColor: "#141414", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <img src="/assets/Scales.svg" alt="" style={{ width: "28px", height: "28px" }} />
+        <div style={{ width: "46px", height: "46px", backgroundColor: "#141414", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <img src="/assets/Scales.svg" alt="" style={{ width: "24px", height: "24px" }} />
         </div>
-        <span style={{ fontSize: "20px", fontWeight: 600, color: "#141414" }}>Fairness Audit</span>
+        <span style={{ fontSize: "18px", fontWeight: 600, color: "#141414" }}>Fairness Audit</span>
       </button>
       {open && (
         <div style={{ padding: "20px 24px 24px", borderTop: "1px solid #ddd" }}>
@@ -837,6 +933,7 @@ function FairnessAudit({ ranked }: { ranked: RankedCandidate[] }) {
 }
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const [rawRanked, setRawRanked] = useState<RankedCandidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -845,8 +942,12 @@ export default function Dashboard() {
     Record<string, AIDetectionResult>
   >({});
   const [feynmanScores, setFeynmanScores] = useState<Record<string, FeynmanScore>>({});
+  const [videoAnalyses, setVideoAnalyses] = useState<Record<string, VideoAnalysis>>({});
   const [detectLoading, setDetectLoading] = useState(false);
   const [filter, setFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(0);
+  const ITEMS_PER_PAGE = 9;
   const [weights, setWeights] = useState<Record<string, number>>({ ...DEFAULT_WEIGHTS });
   const [scrollProgress, setScrollProgress] = useState(0);
 
@@ -952,6 +1053,16 @@ export default function Dashboard() {
     }
   };
 
+  const handleAnalyzeVideo = async () => {
+    if (!selectedId) return;
+    try {
+      const result = await api.analysis.analyzeVideo(selectedId);
+      setVideoAnalyses((prev) => ({ ...prev, [selectedId]: result }));
+    } catch {
+      /* ignore */
+    }
+  };
+
   const handleOverride = async (
     dimension: string,
     value: number,
@@ -982,12 +1093,27 @@ export default function Dashboard() {
     return score.dimensions.some((d) => d.score > 70);
   };
 
-  const filtered =
+  const filteredByCategory =
     filter === "all"
       ? ranked
       : filter === "hidden_gem"
         ? ranked.filter((r) => isHiddenGem(r))
         : ranked.filter((r) => recGroup(r) === filter);
+
+  // Apply search filter
+  const filtered = searchQuery.trim()
+    ? filteredByCategory.filter((r) =>
+        r.candidate.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.candidate.id.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : filteredByCategory;
+
+  // Pagination
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const paginatedCandidates = filtered.slice(
+    currentPage * ITEMS_PER_PAGE,
+    (currentPage + 1) * ITEMS_PER_PAGE
+  );
 
   const stats = {
     total: ranked.length,
@@ -998,7 +1124,7 @@ export default function Dashboard() {
   };
 
   return (
-    <main className="min-h-screen bg-[#eae9e9]">
+    <main className="min-h-screen bg-white">
       {/* Scroll progress bar */}
       <div
         className="fixed top-0 left-0 h-[3px] bg-[#c1f11d] z-[200] transition-all duration-150"
@@ -1065,11 +1191,11 @@ export default function Dashboard() {
 
       {/* Dark header with dots */}
       <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "12px 40px 0", position: "relative" }}>
-        <div style={{ backgroundColor: "#141414", borderRadius: "24px", overflow: "hidden", position: "relative", padding: "36px 40px 60px" }}>
+        <div style={{ backgroundColor: "#141414", borderRadius: "24px", overflow: "hidden", position: "relative", padding: "36px 40px 56px" }}>
           <img src="/assets/Dots.png" alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.3, pointerEvents: "none" }} />
           <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
             <div>
-              <h1 style={{ fontSize: "36px", fontWeight: 700, color: "#c1f11d", marginBottom: "4px" }}>Admissions Dashboard</h1>
+              <h1 style={{ fontSize: "34px", fontWeight: 700, color: "#c1f11d", marginBottom: "4px" }}>Admissions Dashboard</h1>
               <p style={{ fontSize: "16px", color: "#fff" }}>AI-Assisted Screening &middot; Human-in-the-Loop</p>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "15px", color: "#fff" }}>
@@ -1080,7 +1206,7 @@ export default function Dashboard() {
         </div>
 
         {/* Stats bar — overlapping header */}
-        <div style={{ position: "relative", zIndex: 2, marginTop: "-36px", display: "flex", gap: "8px", padding: "12px 16px", backgroundColor: "#fff", borderRadius: "20px", border: "2px solid #d7d7d7" }}>
+        <div style={{ position: "relative", zIndex: 2, marginTop: "-34px", display: "flex", gap: "8px", padding: "14px 16px", backgroundColor: "#fff", borderRadius: "20px", border: "2px solid #d7d7d7" }}>
           {[
             { key: "all", label: "Total candidates", count: stats.total },
             { key: "recommend", label: "Recommended", count: stats.recommend },
@@ -1093,7 +1219,7 @@ export default function Dashboard() {
               onClick={() => setFilter(stat.key)}
               style={{
                 flex: 1,
-                padding: "16px 16px",
+                padding: "16px 18px",
                 borderRadius: "12px",
                 border: "none",
                 backgroundColor: filter === stat.key ? "#c1f11d" : "#eae9e9",
@@ -1102,8 +1228,8 @@ export default function Dashboard() {
                 transition: "all 0.2s ease",
               }}
             >
-              <p style={{ fontSize: "32px", fontWeight: 700, color: "#141414", lineHeight: 1, marginBottom: "2px" }}>{stat.count}</p>
-              <p style={{ fontSize: "13px", color: "#141414" }}>{stat.label}</p>
+              <p style={{ fontSize: "28px", fontWeight: 700, color: "#141414", lineHeight: 1, marginBottom: "4px" }}>{stat.count}</p>
+              <p style={{ fontSize: "14px", color: "#141414" }}>{stat.label}</p>
             </button>
           ))}
         </div>
@@ -1132,18 +1258,92 @@ export default function Dashboard() {
           </div>
         )}
 
+        {/* Search + pagination top bar */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px", backgroundColor: "#fff", borderRadius: "20px", border: "2px solid #d7d7d7", padding: "10px 14px" }}>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(0); }}
+            placeholder="Search candidates by name..."
+            style={{
+              flex: 1,
+              padding: "10px 14px",
+              borderRadius: "10px",
+              border: "none",
+              backgroundColor: "#f5f5f5",
+              fontSize: "14px",
+              outline: "none",
+              boxSizing: "border-box" as const,
+            }}
+          />
+          {totalPages > 1 && (
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+              <span style={{ fontSize: "13px", color: "#969696", whiteSpace: "nowrap" }}>
+                {currentPage * ITEMS_PER_PAGE + 1}–{Math.min((currentPage + 1) * ITEMS_PER_PAGE, filtered.length)} of {filtered.length}
+              </span>
+              <button
+                onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                disabled={currentPage === 0}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: "10px",
+                  border: "none",
+                  backgroundColor: currentPage === 0 ? "#eae9e9" : "#141414",
+                  color: currentPage === 0 ? "#969696" : "#fff",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  cursor: currentPage === 0 ? "not-allowed" : "pointer",
+                }}
+              >
+                &larr;
+              </button>
+              <button
+                onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
+                disabled={currentPage >= totalPages - 1}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: "10px",
+                  border: "none",
+                  backgroundColor: currentPage >= totalPages - 1 ? "#eae9e9" : "#141414",
+                  color: currentPage >= totalPages - 1 ? "#969696" : "#c1f11d",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  cursor: currentPage >= totalPages - 1 ? "not-allowed" : "pointer",
+                }}
+              >
+                &rarr;
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Candidate grid */}
         {!loading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filtered.map((r) => (
-              <CandidateCard
-                key={r.candidate.id}
-                ranked={r}
-                onSelect={() => setSelectedId(r.candidate.id)}
-              />
-            ))}
+          <div className="flex flex-col">
+            {(() => {
+              const cols = 3;
+              const rows: RankedCandidate[][] = [];
+              for (let i = 0; i < paginatedCandidates.length; i += cols) {
+                rows.push(paginatedCandidates.slice(i, i + cols));
+              }
+              return rows.map((row, rowIdx) => (
+                <div
+                  key={rowIdx}
+                  className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-5 ${rowIdx < rows.length - 1 ? "border-b-2 border-[#d7d7d7]" : ""}`}
+                >
+                  {row.map((r) => (
+                    <CandidateCard
+                      key={r.candidate.id}
+                      ranked={r}
+                      onSelect={() => setSelectedId(r.candidate.id)}
+                    />
+                  ))}
+                </div>
+              ));
+            })()}
           </div>
         )}
+
 
         {filtered.length === 0 && !loading && (
           <div className="text-center py-14 text-gray-400 text-lg">
@@ -1159,28 +1359,28 @@ export default function Dashboard() {
           score={selectedScore}
           aiDetection={aiDetections[selected.candidate.id] || null}
           feynmanScore={feynmanScores[selected.candidate.id] || null}
+          videoAnalysis={videoAnalyses[selected.candidate.id] || null}
           onClose={() => setSelectedId(null)}
           onDetectAI={handleDetectAI}
+          onAnalyzeVideo={handleAnalyzeVideo}
           onOverride={handleOverride}
           detectLoading={detectLoading}
         />
       )}
 
       {/* Footer */}
-      <footer style={{ backgroundColor: "#141414", position: "relative", overflow: "hidden", padding: "60px 0 40px", marginTop: "40px" }}>
-        <img src="/assets/InVision U GRADIENT.svg" alt="" style={{ position: "absolute", bottom: "-30px", left: "50%", transform: "translateX(-50%)", width: "clamp(600px, 80vw, 1200px)", opacity: 0.08, pointerEvents: "none" }} />
-        <div style={{ position: "relative", zIndex: 1, maxWidth: "1200px", margin: "0 auto", padding: "0 40px", textAlign: "center" }}>
-          <img src="/assets/InVision U white.png" alt="inVision U" style={{ width: "169px", height: "auto", margin: "0 auto 16px" }} />
-          <p style={{ fontSize: "14px", color: "#666", marginBottom: "24px" }}>AI-Assisted Evaluation System &mdash; All final admission decisions are made by the human admissions committee.</p>
-          <div style={{ display: "flex", justifyContent: "center", gap: "32px", marginBottom: "32px" }}>
+      <footer style={{ position: "relative", overflow: "hidden", padding: 0, marginTop: "40px" }}>
+        <img src="/assets/Footer BG.png" alt="" style={{ width: "100%", display: "block" }} />
+        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", padding: "0 40px 40px" }}>
+          <div style={{ display: "flex", justifyContent: "center", gap: "32px", marginBottom: "24px" }}>
             {[{ href: "/", label: "Home" }, { href: "/#apply", label: "Apply" }, { href: "/teach", label: "Teaching Challenge" }, { href: "/dashboard", label: "Dashboard" }].map((link) => (
-              <a key={link.label} href={link.href} style={{ fontSize: "14px", color: "#888", textDecoration: "none", transition: "color 0.2s" }}
+              <a key={link.label} href={link.href} style={{ fontSize: "14px", color: "rgba(255,255,255,0.7)", textDecoration: "none", transition: "color 0.2s" }}
                 onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "#c1f11d")}
-                onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "#888")}
+                onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "rgba(255,255,255,0.7)")}
               >{link.label}</a>
             ))}
           </div>
-          <div style={{ borderTop: "1px solid #333", paddingTop: "20px", fontSize: "12px", color: "#555" }}>Powered by inDrive &middot; Built for Decentrathon 5.0</div>
+          <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)", textAlign: "center" }}>Powered by inDrive &middot; Built for Decentrathon 5.0</p>
         </div>
       </footer>
     </main>

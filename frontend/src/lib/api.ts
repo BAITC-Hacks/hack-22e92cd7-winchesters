@@ -20,6 +20,27 @@ import type {
 } from "./types";
 
 export const api = {
+  auth: {
+    register: (email: string, password: string, full_name: string) =>
+      fetchJSON<{ token: string; user: { id: string; email: string; full_name: string; candidate_id: string | null; role: string } }>("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ email, password, full_name }),
+      }),
+    login: (email: string, password: string) =>
+      fetchJSON<{ token: string; user: { id: string; email: string; full_name: string; candidate_id: string | null; role: string } }>("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      }),
+    me: (token: string) =>
+      fetchJSON<{ id: string; email: string; full_name: string; candidate_id: string | null; role: string }>("/api/auth/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+    linkCandidate: (token: string, candidateId: string) =>
+      fetchJSON<{ status: string; candidate_id: string }>(`/api/auth/link-candidate?candidate_id=${candidateId}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+  },
   candidates: {
     list: () => fetchJSON<Candidate[]>("/api/candidates/"),
     get: (id: string) => fetchJSON<Candidate>(`/api/candidates/${id}`),
@@ -59,6 +80,20 @@ export const api = {
   analysis: {
     detectAI: (id: string) =>
       fetchJSON<AIDetectionResult>(`/api/analysis/ai-detection/${id}`, {
+        method: "POST",
+      }),
+    analyzeVideo: (id: string) =>
+      fetchJSON<{
+        transcript: string;
+        language_detected: string;
+        authenticity_match: number;
+        motivation_score: number;
+        key_themes: string[];
+        growth_signals: string[];
+        concerns: string[];
+        summary: string;
+        is_mock: boolean;
+      }>(`/api/analysis/video-analysis/${id}`, {
         method: "POST",
       }),
   },

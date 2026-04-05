@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/useAuth";
 import type {
   Education,
   Extracurricular,
@@ -14,7 +15,7 @@ import type {
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="text-xl font-semibold text-gray-900 border-b border-gray-200 pb-3 mb-5">
+    <h2 style={{ fontSize: "22px", fontWeight: 400, color: "#141414", lineHeight: "45px", marginBottom: "16px" }}>
       {children}
     </h2>
   );
@@ -30,17 +31,17 @@ function Label({
   required?: boolean;
 }) {
   return (
-    <label htmlFor={htmlFor} className="block text-base font-medium text-gray-700 mb-1.5">
+    <label htmlFor={htmlFor} style={{ display: "block", fontSize: "18px", fontWeight: 600, color: "#141414", lineHeight: "45px", marginBottom: "4px" }}>
       {children}
-      {required && <span className="text-red-500 ml-0.5">*</span>}
+      {required && <span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>}
     </label>
   );
 }
 
 const inputClass =
-  "w-full rounded-lg border border-gray-300 px-4 py-3 text-base focus:border-[#c1f11d] focus:ring-1 focus:ring-[#c1f11d] outline-none transition";
+  "w-full rounded-[16px] border-none bg-[#fafafa] px-5 py-3.5 text-base text-[#676767] outline-none transition focus:ring-2 focus:ring-[#c1f11d]";
 const btnSecondary =
-  "rounded-lg border border-gray-300 px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 transition";
+  "rounded-[12px] border border-[#d7d7d7] px-4 py-2 text-base font-medium text-[#141414] hover:bg-[#f5f5f5] transition";
 
 const SCHOOL_TYPES = [
   { value: "public", label: "Public school" },
@@ -73,6 +74,7 @@ const PROGRAMS = [
 /* ── Main page ─────────────────────────────────────────────────────── */
 
 export default function LandingPage() {
+  const { user, token, logout } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -81,13 +83,20 @@ export default function LandingPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedProgram, setSelectedProgram] = useState("Creative Engineering");
   const [videoLink, setVideoLink] = useState("");
+  const [videoTranscript, setVideoTranscript] = useState("");
 
   // Personal
   const [name, setName] = useState("");
+
+  // Auto-fill name from auth profile
+  useEffect(() => {
+    if (user?.full_name && !name) setName(user.full_name);
+  }, [user, name]);
   const [age, setAge] = useState(17);
 
   // Education
   const [schoolType, setSchoolType] = useState("public");
+  const [schoolName, setSchoolName] = useState("");
   const [gpa, setGpa] = useState("");
   const [achievements, setAchievements] = useState<string[]>([""]);
   const [yearsOfStudy, setYearsOfStudy] = useState(11);
@@ -212,12 +221,18 @@ export default function LandingPage() {
         essay,
         interview_transcript: "",
         recommendation_summary: recommendation,
+        video_link: videoLink,
+        video_transcript: videoTranscript,
       });
 
-      // Store the new candidate ID so Teaching Challenge can link the score
+      // Store the new candidate ID and link to user account
       if (typeof window !== "undefined") {
         window.localStorage.setItem("invisionu_candidate_id", created.id);
         window.localStorage.setItem("invisionu_candidate_name", name);
+        // Link candidate to authenticated user
+        if (token) {
+          api.auth.linkCandidate(token, created.id).catch(() => {});
+        }
       }
 
       setSuccess(true);
@@ -258,7 +273,7 @@ export default function LandingPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-white px-4">
         <div className="max-w-md w-full text-center space-y-4">
           <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
             <svg className="w-8 h-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -308,6 +323,7 @@ export default function LandingPage() {
                 setEssayPrompt(ESSAY_PROMPTS[0]);
                 setRecommendation("");
                 setVideoLink("");
+                setVideoTranscript("");
                 setSelectedProgram("Creative Engineering");
                 setCurrentStep(0);
               }}
@@ -392,6 +408,20 @@ export default function LandingPage() {
               </a>
             </div>
           ))}
+          {user && (
+            <>
+              <div style={{ width: "1px", height: "40px", backgroundColor: "#141414" }} />
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "0 16px" }}>
+                <span style={{ fontSize: "14px", fontWeight: 600, color: "#141414" }}>{user.full_name}</span>
+                <button
+                  onClick={logout}
+                  style={{ background: "none", border: "none", cursor: "pointer", fontSize: "13px", color: "#555", textDecoration: "underline" }}
+                >
+                  Logout
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </nav>
 
@@ -399,67 +429,55 @@ export default function LandingPage() {
       <section style={{ background: "linear-gradient(180deg, #ffffff 0%, #f8f8f4 50%, #f0f4e8 100%)", position: "relative", overflow: "hidden" }}>
         <div
           style={{
-            maxWidth: "1200px",
+            maxWidth: "1400px",
             margin: "0 auto",
-            padding: "80px 60px 0",
+            padding: "80px 80px 0",
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "40px",
+            flexWrap: "wrap",
           }}
         >
-          {/* Heading — 2 lines */}
-          <h1
-            className="reveal reveal-up"
-            style={{
-              fontSize: "clamp(40px, 4.5vw, 76px)",
-              fontWeight: 700,
-              color: "#141414",
-              lineHeight: 1.08,
-              marginBottom: "40px",
-            }}
-          >
-            <span style={{ whiteSpace: "nowrap" }}>Empowering those who are</span><br />
-            <span>ready to{" "}</span>
-            <span style={{ position: "relative", display: "inline", whiteSpace: "nowrap" }}>
-              <span style={{ position: "relative", zIndex: 1 }}>change the world.</span>
-              <span
-                style={{
-                  position: "absolute",
-                  top: "-4px",
-                  bottom: "-4px",
-                  left: "-8px",
-                  right: "-8px",
-                  backgroundColor: "#c1f11d",
-                  zIndex: 0,
-                  borderRadius: "4px",
-                  transformOrigin: "left",
-                  animation: "highlightSlide 0.8s ease-out 0.5s both",
-                }}
-              />
-            </span>
-          </h1>
+          {/* Left column */}
+          <div style={{ flex: "1 1 58%", minWidth: "320px" }}>
+            {/* Heading image */}
+            <img
+              className="reveal reveal-up"
+              src="/assets/Heading Text.png"
+              alt="Empowering those who are ready to change the world"
+              style={{
+                width: "clamp(400px, 60vw, 900px)",
+                maxWidth: "100%",
+                height: "auto",
+                display: "block",
+                marginBottom: "24px",
+              }}
+            />
 
-          {/* Subtitle */}
-          <p
-            className="reveal reveal-up delay-1"
-            style={{
-              maxWidth: "800px",
-              fontSize: "clamp(18px, 2vw, 24px)",
-              color: "#555",
-              lineHeight: 1.6,
-              marginBottom: "40px",
-            }}
-          >
-            Join a global network of future leaders at <strong style={{ color: "#141414" }}>inVision U</strong> — where ideas meet action, and education drives real change.
-          </p>
+            {/* Subtitle */}
+            <p
+              className="reveal reveal-up delay-1"
+              style={{
+                maxWidth: "800px",
+                fontSize: "clamp(18px, 2vw, 24px)",
+                color: "#555",
+                lineHeight: 1.6,
+                marginBottom: "40px",
+              }}
+            >
+              Join a global network of future leaders at <strong style={{ color: "#141414" }}>inVision U</strong> — where ideas meet action, and education drives real change.
+            </p>
 
-          {/* Buttons — left aligned */}
-          <div
-            className="reveal reveal-up delay-2"
-            style={{
-              display: "flex",
-              justifyContent: "flex-start",
-              gap: "12px",
-              marginBottom: "32px",
-            }}
-          >
+            {/* Buttons — left aligned */}
+            <div
+              className="reveal reveal-up delay-2"
+              style={{
+                display: "flex",
+                justifyContent: "flex-start",
+                gap: "12px",
+                marginBottom: "32px",
+              }}
+            >
               <a
                 href="#apply"
                 style={{
@@ -469,7 +487,7 @@ export default function LandingPage() {
                   justifyContent: "center",
                   backgroundColor: "#141414",
                   color: "#ffffff",
-                  borderRadius: "12px",
+                  borderRadius: "20px",
                   padding: "18px 40px",
                   fontSize: "20px",
                   fontWeight: 500,
@@ -510,7 +528,7 @@ export default function LandingPage() {
                   justifyContent: "center",
                   backgroundColor: "#eae9e9",
                   color: "#141414",
-                  borderRadius: "12px",
+                  borderRadius: "20px",
                   padding: "18px 40px",
                   fontSize: "20px",
                   fontWeight: 500,
@@ -526,26 +544,43 @@ export default function LandingPage() {
                   (e.currentTarget as HTMLElement).style.transform = "scale(1)";
                 }}
               >
-                Explore programs
+                Learn More
               </a>
             </div>
 
-          {/* Powered by */}
-          <div
-            className="reveal reveal-up delay-2"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              opacity: 0.4,
-              marginBottom: "40px",
-            }}
-          >
-            <span style={{ fontSize: "16px", color: "#141414" }}>Powered by</span>
+            {/* Powered by */}
+            <div
+              className="reveal reveal-up delay-2"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                opacity: 0.4,
+                marginBottom: "40px",
+              }}
+            >
+              <span style={{ fontSize: "16px", color: "#141414" }}>Powered by</span>
+              <img
+                src="/assets/InDrive LOGO.svg"
+                alt="inDrive"
+                style={{ width: "100px", height: "auto" }}
+              />
+            </div>
+          </div>
+
+          {/* Right column — hero photo */}
+          <div style={{ flex: "1 1 38%", minWidth: "280px", display: "flex", justifyContent: "flex-end", alignItems: "flex-start" }}>
             <img
-              src="/assets/InDrive LOGO.svg"
-              alt="inDrive"
-              style={{ width: "100px", height: "auto" }}
+              className="reveal reveal-up delay-1"
+              src="/assets/Photo for Hero.png"
+              alt="Students"
+              style={{
+                width: "clamp(350px, 40vw, 700px)",
+                height: "auto",
+                objectFit: "cover",
+                display: "block",
+                marginTop: "-10px",
+              }}
             />
           </div>
         </div>
@@ -591,7 +626,7 @@ export default function LandingPage() {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              minHeight: "420px",
+              minHeight: "320px",
               border: "1px solid rgba(193, 241, 29, 0.1)",
             }}
           >
@@ -602,24 +637,24 @@ export default function LandingPage() {
               style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.5, pointerEvents: "none", borderRadius: "24px" }}
             />
             {/* Title */}
-            <p style={{ position: "relative", zIndex: 1, fontWeight: 700, color: "#ffffff", fontSize: "clamp(32px, 4vw, 56px)", lineHeight: 1.15, maxWidth: "520px", padding: "56px" }}>
-              Explore your academic path and find what fits you
+            <p style={{ position: "relative", zIndex: 1, fontWeight: 700, color: "#ffffff", fontSize: "clamp(24px, 3vw, 40px)", lineHeight: 1.2, maxWidth: "650px", padding: "40px", whiteSpace: "nowrap" }}>
+              Explore your academic path<br />and find what fits you
             </p>
             {/* Fanned cards — animate on scroll, spread on hover */}
             <div
               className="card-fan"
               style={{
                 position: "relative",
-                width: "480px",
-                height: "340px",
+                width: "360px",
+                height: "260px",
                 flexShrink: 0,
-                marginRight: "50px",
+                marginRight: "40px",
               }}
             >
               {PROGRAMS.map((prog, i) => {
                 const rotations = [-12, -8, -4, 0, 4, 8];
-                const stackedLeft = [40, 52, 64, 76, 88, 100];
-                const stackedTop = [35, 28, 21, 14, 7, 0];
+                const stackedLeft = [30, 40, 50, 60, 70, 80];
+                const stackedTop = [28, 22, 16, 10, 4, 0];
                 return (
                   <a
                     key={prog.num}
@@ -629,8 +664,8 @@ export default function LandingPage() {
                     className="card-fan-item"
                     style={{
                       position: "absolute",
-                      width: "250px",
-                      height: "310px",
+                      width: "190px",
+                      height: "230px",
                       left: `${stackedLeft[i]}px`,
                       top: `${stackedTop[i]}px`,
                       transform: `rotate(${rotations[i]}deg)`,
@@ -638,8 +673,8 @@ export default function LandingPage() {
                       display: "flex",
                       flexDirection: "column",
                       justifyContent: "space-between",
-                      padding: "24px 22px 32px",
-                      borderRadius: "24px",
+                      padding: "18px 16px 24px",
+                      borderRadius: "18px",
                       border: "1.3px solid #525252",
                       background: prog.num === "F"
                         ? "linear-gradient(180deg, #1a2a0a 0%, #0a1505 100%)"
@@ -657,7 +692,7 @@ export default function LandingPage() {
                         {prog.tag}
                       </div>
                     </div>
-                    <div style={{ fontWeight: 500, color: "#ffffff", fontSize: "20px", lineHeight: 1.25 }}>
+                    <div style={{ fontWeight: 500, color: "#ffffff", fontSize: "15px", lineHeight: 1.25 }}>
                       {prog.title}
                     </div>
                   </a>
@@ -669,7 +704,7 @@ export default function LandingPage() {
       </section>
 
       {/* ══════ APPLICATION FORM ══════ */}
-      <section id="apply" style={{ backgroundColor: "#f5f5f5", paddingBottom: "60px" }}>
+      <section id="apply" style={{ backgroundColor: "#ffffff", paddingBottom: "60px" }}>
         {/* Application header group — same style as dashboard */}
         <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "12px 40px 0", position: "relative" }}>
           {/* Dark banner with dots */}
@@ -735,7 +770,7 @@ export default function LandingPage() {
 
               {/* Step 1: Personal Information */}
               <div style={{ display: currentStep === 0 ? "block" : "none" }}>
-                <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", border: "1px solid #e5e5e5", padding: "32px", marginBottom: "16px" }}>
+                <div style={{ backgroundColor: "#ffffff", borderRadius: "20px", border: "2.7px solid #d7d7d7", padding: "36px", marginBottom: "16px" }}>
                   <SectionTitle>Personal Information</SectionTitle>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
                     <div>
@@ -780,7 +815,7 @@ export default function LandingPage() {
 
               {/* Step 2: Education */}
               <div style={{ display: currentStep === 1 ? "block" : "none" }}>
-                <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", border: "1px solid #e5e5e5", padding: "32px", marginBottom: "16px" }}>
+                <div style={{ backgroundColor: "#ffffff", borderRadius: "20px", border: "2.7px solid #d7d7d7", padding: "36px", marginBottom: "16px" }}>
                   <SectionTitle>Education</SectionTitle>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px", marginBottom: "20px" }}>
                     <div>
@@ -823,6 +858,17 @@ export default function LandingPage() {
                         max={13}
                       />
                     </div>
+                  </div>
+
+                  <div style={{ marginBottom: "20px" }}>
+                    <Label htmlFor="schoolName">School Name</Label>
+                    <input
+                      id="schoolName"
+                      className={inputClass}
+                      value={schoolName}
+                      onChange={(e) => setSchoolName(e.target.value)}
+                      placeholder="e.g. Nazarbayev Intellectual School of Almaty"
+                    />
                   </div>
 
                   <div style={{ marginBottom: "20px" }}>
@@ -874,7 +920,7 @@ export default function LandingPage() {
 
               {/* Step 3: Essay & Motivation */}
               <div style={{ display: currentStep === 2 ? "block" : "none" }}>
-                <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", border: "1px solid #e5e5e5", padding: "32px", marginBottom: "16px" }}>
+                <div style={{ backgroundColor: "#ffffff", borderRadius: "20px", border: "2.7px solid #d7d7d7", padding: "36px", marginBottom: "16px" }}>
                   <SectionTitle>Essay &amp; Motivation</SectionTitle>
                   <div style={{ marginBottom: "20px" }}>
                     <Label htmlFor="essayPrompt" required>Essay Prompt</Label>
@@ -946,13 +992,27 @@ export default function LandingPage() {
                     <p style={{ fontSize: "12px", color: "#999", marginTop: "6px" }}>
                       Upload to YouTube (unlisted) or Google Drive and paste the link here.
                     </p>
+                    <div style={{ marginTop: "20px" }}>
+                      <Label htmlFor="videoTranscript">Video Transcript (Optional)</Label>
+                      <p style={{ fontSize: "12px", color: "#888", marginBottom: "8px" }}>
+                        Paste what you said in your video. This helps us analyze your presentation even if the video isn&apos;t accessible.
+                      </p>
+                      <textarea
+                        id="videoTranscript"
+                        className={inputClass}
+                        style={{ minHeight: "140px", resize: "vertical" }}
+                        value={videoTranscript}
+                        onChange={(e) => setVideoTranscript(e.target.value)}
+                        placeholder="Paste the text of what you said in your video presentation..."
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Step 4: Extracurriculars & Projects */}
               <div style={{ display: currentStep === 3 ? "block" : "none" }}>
-                <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", border: "1px solid #e5e5e5", padding: "32px", marginBottom: "16px" }}>
+                <div style={{ backgroundColor: "#ffffff", borderRadius: "20px", border: "2.7px solid #d7d7d7", padding: "36px", marginBottom: "16px" }}>
                   <SectionTitle>Extracurricular Activities</SectionTitle>
                   {extracurriculars.map((ec, i) => (
                     <div key={i} style={{ display: "grid", gridTemplateColumns: "5fr 3fr 3fr auto", gap: "12px", alignItems: "end", paddingBottom: "12px", borderBottom: i < extracurriculars.length - 1 ? "1px solid #f0f0f0" : "none", marginBottom: "12px" }}>
@@ -999,7 +1059,7 @@ export default function LandingPage() {
                   </button>
                 </div>
 
-                <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", border: "1px solid #e5e5e5", padding: "32px" }}>
+                <div style={{ backgroundColor: "#ffffff", borderRadius: "20px", border: "2.7px solid #d7d7d7", padding: "36px" }}>
                   <SectionTitle>Projects</SectionTitle>
                   {projects.map((proj, i) => (
                     <div key={i} style={{ display: "grid", gridTemplateColumns: "4fr 3fr 4fr auto", gap: "12px", alignItems: "end", paddingBottom: "12px", borderBottom: i < projects.length - 1 ? "1px solid #f0f0f0" : "none", marginBottom: "12px" }}>
@@ -1048,7 +1108,7 @@ export default function LandingPage() {
 
               {/* Step 5: Review & Submit */}
               <div style={{ display: currentStep === 4 ? "block" : "none" }}>
-                <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", border: "1px solid #e5e5e5", padding: "32px" }}>
+                <div style={{ backgroundColor: "#ffffff", borderRadius: "20px", border: "2.7px solid #d7d7d7", padding: "36px" }}>
                   <SectionTitle>Review Your Application</SectionTitle>
                   <p style={{ fontSize: "14px", color: "#888", marginBottom: "24px" }}>
                     Please review all information before submitting. You can click any tab above to make changes.
@@ -1210,31 +1270,31 @@ export default function LandingPage() {
           {/* Sidebar */}
           <div style={{ flex: "0 0 340px" }}>
             {/* Important Dates */}
-            <div style={{ backgroundColor: "#ffffff", borderRadius: "18px", border: "1.5px solid #d7d7d7", padding: "28px", marginBottom: "14px" }}>
-              <h3 style={{ fontSize: "17px", fontWeight: 700, color: "#141414", margin: "0 0 16px 0" }}>Important Dates</h3>
-              <div style={{ fontSize: "14px", color: "#555", lineHeight: 1.9 }}>
+            <div style={{ backgroundColor: "#ffffff", borderRadius: "20px", border: "2.7px solid #d7d7d7", padding: "32px", marginBottom: "14px" }}>
+              <h3 style={{ fontSize: "20px", fontWeight: 700, color: "#141414", margin: "0 0 20px 0" }}>Important Dates</h3>
+              <div style={{ fontSize: "16px", color: "#676767", lineHeight: 2.2 }}>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span>Application Opens</span>
-                  <span style={{ fontWeight: 600, color: "#141414" }}>Apr 1, 2026</span>
+                  <span style={{ fontWeight: 700, color: "#141414" }}>Apr 1, 2026</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span>Early Decision</span>
-                  <span style={{ fontWeight: 600, color: "#141414" }}>May 15, 2026</span>
+                  <span style={{ fontWeight: 700, color: "#141414" }}>May 15, 2026</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span>Final Deadline</span>
-                  <span style={{ fontWeight: 600, color: "#d97706" }}>Jun 30, 2026</span>
+                  <span style={{ fontWeight: 700, color: "#f1791d" }}>Jun 30, 2026</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span>Results Announced</span>
-                  <span style={{ fontWeight: 600, color: "#141414" }}>Jul 20, 2026</span>
+                  <span style={{ fontWeight: 700, color: "#141414" }}>Jul 20, 2026</span>
                 </div>
               </div>
             </div>
 
             {/* Required Documents */}
-            <div style={{ backgroundColor: "#ffffff", borderRadius: "18px", border: "1.5px solid #d7d7d7", padding: "28px" }}>
-              <h3 style={{ fontSize: "17px", fontWeight: 700, color: "#141414", margin: "0 0 16px 0" }}>Required Documents</h3>
+            <div style={{ backgroundColor: "#ffffff", borderRadius: "20px", border: "2.7px solid #d7d7d7", padding: "32px" }}>
+              <h3 style={{ fontSize: "20px", fontWeight: 700, color: "#141414", margin: "0 0 20px 0" }}>Required Documents</h3>
               {[
                 { label: "Personal Information", done: !!name },
                 { label: "GPA & Education", done: !!gpa },
@@ -1243,17 +1303,17 @@ export default function LandingPage() {
                 { label: "Achievements", done: achievements.some(a => a.trim()) },
                 { label: "Languages", done: !!languages.trim() },
               ].map((item) => (
-                <div key={item.label} style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "10px", fontSize: "14px" }}>
+                <div key={item.label} style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "12px", fontSize: "16px" }}>
                   <span style={{
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    width: "22px",
-                    height: "22px",
-                    borderRadius: "5px",
-                    border: item.done ? "none" : "1.5px solid #ddd",
+                    width: "24px",
+                    height: "24px",
+                    borderRadius: "4px",
+                    border: item.done ? "none" : "2px solid #676767",
                     backgroundColor: item.done ? "#c1f11d" : "transparent",
-                    fontSize: "12px",
+                    fontSize: "14px",
                     color: "#141414",
                     flexShrink: 0,
                   }}>
@@ -1269,28 +1329,37 @@ export default function LandingPage() {
       </section>
 
       {/* ══════ FOOTER ══════ */}
-      <footer style={{ backgroundColor: "#141414", position: "relative", overflow: "hidden", padding: "60px 0 40px" }}>
-        {/* Gradient logo as background decoration */}
+      <footer
+        style={{
+          position: "relative",
+          overflow: "hidden",
+          padding: "0",
+        }}
+      >
+        {/* Footer background image */}
         <img
-          src="/assets/InVision U GRADIENT.svg"
+          src="/assets/Footer BG.png"
           alt=""
           style={{
-            position: "absolute",
-            bottom: "-30px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: "clamp(600px, 80vw, 1200px)",
-            opacity: 0.08,
-            pointerEvents: "none",
+            width: "100%",
+            display: "block",
           }}
         />
-        <div style={{ position: "relative", zIndex: 1, maxWidth: "1200px", margin: "0 auto", padding: "0 40px", textAlign: "center" }}>
-          <img src="/assets/InVision U white.png" alt="inVision U" style={{ width: "169px", height: "auto", margin: "0 auto 16px" }} />
-          <p style={{ fontSize: "14px", color: "#666", marginBottom: "24px" }}>
-            AI-Assisted Evaluation System &mdash; All final admission decisions are made by the human admissions committee.
-          </p>
-          <div style={{ display: "flex", justifyContent: "center", gap: "32px", marginBottom: "32px" }}>
+        {/* Content overlay */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "flex-end",
+            padding: "0 40px 40px",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "center", gap: "32px", marginBottom: "24px" }}>
             {[
+              { href: "/", label: "Home" },
               { href: "/#apply", label: "Apply" },
               { href: "/teach", label: "Teaching Challenge" },
               { href: "/dashboard", label: "Dashboard" },
@@ -1298,17 +1367,17 @@ export default function LandingPage() {
               <a
                 key={link.label}
                 href={link.href}
-                style={{ fontSize: "14px", color: "#888", textDecoration: "none", transition: "color 0.2s" }}
+                style={{ fontSize: "14px", color: "rgba(255,255,255,0.7)", textDecoration: "none", transition: "color 0.2s" }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = "#c1f11d")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "#888")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.7)")}
               >
                 {link.label}
               </a>
             ))}
           </div>
-          <div style={{ borderTop: "1px solid #333", paddingTop: "20px", fontSize: "12px", color: "#555" }}>
+          <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)", textAlign: "center" }}>
             Powered by inDrive &middot; Built for Decentrathon 5.0
-          </div>
+          </p>
         </div>
       </footer>
     </div>

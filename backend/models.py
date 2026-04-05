@@ -52,6 +52,8 @@ class Candidate(BaseModel):
     essay: Essay
     interview_transcript: str = ""
     recommendation_summary: str = ""
+    video_link: str = ""
+    video_transcript: str = ""
 
 
 # ── Scoring Models ──────────────────────────────────────────────────
@@ -91,6 +93,19 @@ class AIDetectionResult(BaseModel):
     flags: list[str] = Field(default_factory=list)
     explanation: str = ""
     stylometry: StylometryMetrics | None = None
+
+
+class VideoAnalysisResult(BaseModel):
+    """Result of analyzing a candidate's video presentation transcript."""
+    transcript: str = ""
+    language_detected: str = ""
+    authenticity_match: float = Field(0, ge=0, le=100, description="How well video voice matches essay voice. 100 = perfect match")
+    motivation_score: float = Field(0, ge=0, le=100)
+    key_themes: list[str] = Field(default_factory=list)
+    growth_signals: list[str] = Field(default_factory=list)
+    concerns: list[str] = Field(default_factory=list)
+    summary: str = ""
+    is_mock: bool = False
 
 
 class CandidateScore(BaseModel):

@@ -39,6 +39,8 @@ export interface Candidate {
   essay: Essay;
   interview_transcript: string;
   recommendation_summary: string;
+  video_link: string;
+  video_transcript: string;
 }
 
 export interface DimensionScore {
@@ -83,21 +85,4 @@ export interface RankedCandidate {
   candidate: Candidate;
   ai_score: CandidateScore | null;
   baseline_score: CandidateScore | null;
-}
-
-export interface ComparisonResult {
-  candidate_id: string;
-  baseline_overall: number;
-  ai_overall: number;
-  overall_difference: number;
-  dimensions: {
-    dimension: string;
-    baseline_score: number;
-    ai_score: number | null;
-    difference: number | null;
-    baseline_explanation: string;
-    ai_explanation: string;
-  }[];
-  baseline_recommendation: string;
-  ai_recommendation: string;
 }
