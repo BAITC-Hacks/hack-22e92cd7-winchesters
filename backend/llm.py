@@ -146,6 +146,13 @@ async def complete_chat(
 
     Used by the teaching challenge, where the counterpart must answer in free
     prose rather than a schema.
+
+    Thinking is disabled here. `max_tokens` covers thinking and text combined,
+    and a persona turn is capped at a few hundred tokens: with adaptive
+    thinking on (the default when the parameter is omitted) the budget can be
+    spent entirely on reasoning, the reply comes back with no text block at
+    all, and `_text_of` raises. Judgement calls keep thinking on and pay for it
+    with a much larger budget.
     """
     chosen = model or settings.MODEL_CHAT
 
@@ -153,6 +160,7 @@ async def complete_chat(
         message = await client.messages.create(
             model=chosen,
             max_tokens=settings.MAX_TOKENS_CHAT,
+            thinking={"type": "disabled"},
             system=system,
             messages=messages,
         )
