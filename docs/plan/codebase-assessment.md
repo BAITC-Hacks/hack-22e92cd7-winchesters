@@ -112,8 +112,9 @@ exception text to clients as 500 detail.
 
 **Mostly fixed 2026-09-20.** The fence-stripping is gone: the API enforces the schema and
 `complete_json` returns a parsed dict. `tests/` holds 17 offline tests (`pytest.ini`,
-`asyncio_mode = auto`) covering the call contract and the scoring pipeline. **CI still does not
-exist** — nothing runs those tests on push, so Phase B's second half is untouched. See
+`asyncio_mode = auto`) covering the call contract and the scoring pipeline, and
+`.github/workflows/ci.yml` runs them plus the frontend build on every push and PR. What is still
+missing is router coverage and a Python linter. See
 [phase-b-testing-ci.md](phase-b-testing-ci.md).
 
 ### 8. Dead dependencies will inflate every image you build

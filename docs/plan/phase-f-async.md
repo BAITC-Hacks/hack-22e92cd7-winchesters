@@ -111,7 +111,7 @@ while one runs either queues or 409s (pick one, document it).
 `client.messages.stream(...)` (async) yields text deltas as they generate. Not
 required for F1/F2 correctness, but Arman Live's voice mode wants
 time-to-first-word, and the SSE endpoint spec lives in
-[feature-arman-live.md](feature-arman-live.md#al6--streaming-replies-stretch).
+[feature-arman-live.md](feature-arman-live.md#al6--streaming-replies).
 That helper now exists: `llm.complete_chat` is the single "call Claude, get text" step, so the
 switch to `client.messages.stream` is one function body and no call-site changes. Note that
 `complete_chat` passes `thinking={"type": "disabled"}` — see

@@ -6,7 +6,9 @@
 
 ---
 
-## Async vision (agreed: sync SQLAlchemy now → clear path later)
+## Async vision
+
+_Agreed: sync SQLAlchemy now → clear path later._
 
 **Stage 1 — hackathon/pilot (what Phases D+F deliver):**
 - DB: synchronous SQLAlchemy 2.0. DB-only endpoints are `def` (FastAPI
@@ -51,7 +53,9 @@ bidirectional needs appear (they haven't).
 
 ---
 
-## Cost self-sustainability (broke-students → pilot budget)
+## Cost self-sustainability
+
+_Broke-students → pilot budget._
 
 Current pricing (verify at platform.claude.com/docs/en/pricing before big
 decisions): Opus 4.8 $5/$25 per MTok · Sonnet 5 $3/$15 (intro $2/$10 through

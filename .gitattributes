@@ -1,0 +1,29 @@
+# Normalize line endings. Without this, files committed from Windows carry CRLF
+# into the repository; a CRLF shell script inside a Linux container fails with
+# an unreadable error ("\r: not found"), which is a miserable thing to debug on
+# demo morning. Git already warns about four backend files.
+* text=auto eol=lf
+
+# Anything executed by a shell must be LF, no exceptions.
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.Dockerfile text eol=lf
+docker-compose*.yml text eol=lf
+*.env.example text eol=lf
+
+# Windows-only scripts stay CRLF.
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary: never touch, never diff.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.mp4 binary
+*.pdf binary
