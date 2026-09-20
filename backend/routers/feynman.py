@@ -14,18 +14,13 @@ import uuid
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from anthropic import Anthropic
+from backend.ai_client import CHAT_MODEL, MODEL, get_client, text_of
 
 router = APIRouter(prefix="/api/feynman", tags=["feynman"])
 
-_client: Anthropic | None = None
-
-
-def _get_client() -> Anthropic:
-    global _client
-    if _client is None:
-        _client = Anthropic()
-    return _client
+# Persona replies are short; adaptive thinking would eat the small max_tokens
+# budget, so it is explicitly disabled on chat/quiz calls.
+_NO_THINKING = {"type": "disabled"}
 
 
 # ── Topics (generic, school-level) ─────────────────────────────────
@@ -267,15 +262,16 @@ def start_session(req: StartSessionRequest):
     session_id = str(uuid.uuid4())[:8]
     system = STUDENT_SYSTEM_PROMPT.format(topic_description=topic["description"])
 
-    client = _get_client()
+    client = get_client()
     response = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model=CHAT_MODEL,
         max_tokens=200,
+        thinking=_NO_THINKING,
         system=system,
         messages=[{"role": "user", "content": f"Hi Arman! Today I'm going to teach you about {topic['title']}."}],
     )
 
-    first_msg = response.content[0].text
+    first_msg = text_of(response)
 
     _sessions[session_id] = {
         "candidate_id": req.candidate_id,
@@ -310,15 +306,16 @@ def chat(req: ChatRequest):
 
     session["messages"].append({"role": "user", "content": req.message})
 
-    client = _get_client()
+    client = get_client()
     response = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model=CHAT_MODEL,
         max_tokens=200,
+        thinking=_NO_THINKING,
         system=session["system"],
         messages=session["messages"],
     )
 
-    reply = response.content[0].text
+    reply = text_of(response)
     session["messages"].append({"role": "assistant", "content": reply})
     session["exchange_count"] += 1
 
@@ -343,7 +340,7 @@ def finish_session(session_id: str):
 
     topic = session["topic"]
     topic_id = session["topic_id"]
-    client = _get_client()
+    client = get_client()
 
     # ── Step 1: Quiz the AI student ────────────────────────────────
     questions = QUIZ_QUESTIONS.get(topic_id, QUIZ_QUESTIONS["gravity"])
@@ -356,15 +353,16 @@ def finish_session(session_id: str):
     )
 
     quiz_response = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model=CHAT_MODEL,
         max_tokens=500,
+        thinking=_NO_THINKING,
         system=quiz_system,
         messages=session["messages"] + [
             {"role": "user", "content": "Okay Arman, quiz time! Answer the questions based on what I taught you."},
         ],
     )
 
-    quiz_text = quiz_response.content[0].text
+    quiz_text = text_of(quiz_response)
 
     # Parse quiz answers for transparency
     parsed_quiz: list[QuizAnswer] = []
@@ -400,13 +398,14 @@ def finish_session(session_id: str):
         quiz_results=quiz_text,
     )
 
+    # Judgment call: adaptive thinking stays on; max_tokens covers it + the JSON
     score_response = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=500,
+        model=MODEL,
+        max_tokens=2000,
         messages=[{"role": "user", "content": scorer_prompt}],
     )
 
-    raw = score_response.content[0].text.strip()
+    raw = text_of(score_response).strip()
     if raw.startswith("```"):
         raw = raw.split("\n", 1)[1]
     if raw.endswith("```"):

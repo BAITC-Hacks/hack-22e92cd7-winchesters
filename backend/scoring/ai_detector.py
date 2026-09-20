@@ -27,28 +27,13 @@ AFTER (new approach):
 from __future__ import annotations
 
 import json
-import math
-import os
 import re
 import statistics
 from collections import Counter
 
-import anthropic
-from dotenv import load_dotenv
-
+from backend.ai_client import MODEL, get_client, text_of
 from backend.models import AIDetectionResult, Candidate, StylometryMetrics
 from backend.privacy import anonymize_candidate
-
-load_dotenv()
-
-_client: anthropic.Anthropic | None = None
-
-
-def _get_client() -> anthropic.Anthropic:
-    global _client
-    if _client is None:
-        _client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-    return _client
 
 
 # ── Language detection ──────────────────────────────────────────────
@@ -406,7 +391,7 @@ async def detect_ai_content(candidate: Candidate) -> AIDetectionResult:
     )
 
     # Stage 2: Claude qualitative analysis
-    client = _get_client()
+    client = get_client()
     metrics_summary = _format_metrics_for_prompt(metrics, stat_flags, lang)
 
     prompt = DETECTION_PROMPT.format(
@@ -415,14 +400,15 @@ async def detect_ai_content(candidate: Candidate) -> AIDetectionResult:
         interview_text=safe.interview_transcript or "Not available",
     )
 
+    # max_tokens covers adaptive thinking + the JSON answer on this model
     message = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=1000,
+        model=MODEL,
+        max_tokens=2000,
         messages=[{"role": "user", "content": prompt}],
     )
 
     ai_score, ai_flags, ai_explanation = _parse_detection_response(
-        message.content[0].text
+        text_of(message)
     )
 
     # Stage 3: Weighted combination

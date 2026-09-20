@@ -13,20 +13,12 @@ from __future__ import annotations
 import json
 import os
 
-from anthropic import Anthropic
+from backend.ai_client import MODEL, get_client, text_of
 from backend.models import Candidate, VideoAnalysisResult
 from backend.privacy import anonymize_candidate
 from backend.scoring.ai_detector import detect_language
 
-_anthropic_client: Anthropic | None = None
 _openai_client = None
-
-
-def _get_anthropic() -> Anthropic:
-    global _anthropic_client
-    if _anthropic_client is None:
-        _anthropic_client = Anthropic()
-    return _anthropic_client
 
 
 def _get_openai():
@@ -157,20 +149,21 @@ async def analyze_video(candidate: Candidate) -> VideoAnalysisResult:
     lang = detect_language(transcript)
 
     # Run Claude analysis
-    client = _get_anthropic()
+    client = get_client()
     prompt = VIDEO_ANALYSIS_PROMPT.format(
         essay_text=safe.essay.text,
         video_transcript=transcript,
     )
 
     try:
+        # max_tokens covers adaptive thinking + the JSON answer on this model
         response = client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=800,
+            model=MODEL,
+            max_tokens=2000,
             messages=[{"role": "user", "content": prompt}],
         )
 
-        raw = response.content[0].text.strip()
+        raw = text_of(response).strip()
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[1]
         if raw.endswith("```"):

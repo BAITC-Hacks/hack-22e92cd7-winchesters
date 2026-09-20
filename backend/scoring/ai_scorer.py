@@ -21,11 +21,8 @@ This means:
 from __future__ import annotations
 
 import json
-import os
 
-import anthropic
-from dotenv import load_dotenv
-
+from backend.ai_client import MODEL, get_client, text_of
 from backend.models import (
     Candidate,
     CandidateScore,
@@ -35,17 +32,6 @@ from backend.models import (
 )
 from backend.privacy import anonymize_candidate
 from backend.scoring.signal_extractor import extract_signals, signals_to_context
-
-load_dotenv()
-
-_client: anthropic.Anthropic | None = None
-
-
-def _get_client() -> anthropic.Anthropic:
-    global _client
-    if _client is None:
-        _client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-    return _client
 
 
 SYSTEM_PROMPT = """\
@@ -213,7 +199,7 @@ async def compute_ai_score(
     Stage 2: Send signals + raw text to Claude for subjective scoring
     Stage 3: Apply weights and return
     """
-    client = _get_client()
+    client = get_client()
 
     # Stage 1: Extract signals (pure code, auditable)
     safe_candidate = anonymize_candidate(candidate)
@@ -224,16 +210,17 @@ async def compute_ai_score(
     raw_text_context = _build_candidate_context(safe_candidate)
     full_context = f"{signal_context}\n\n{raw_text_context}"
 
+    # max_tokens covers adaptive thinking + the JSON answer on this model
     message = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=2000,
+        model=MODEL,
+        max_tokens=4000,
         system=SYSTEM_PROMPT,
         messages=[
             {"role": "user", "content": f"{full_context}\n\n{SCORING_PROMPT}"}
         ],
     )
 
-    raw_response = message.content[0].text
+    raw_response = text_of(message)
     score = _parse_ai_response(raw_response, candidate.id)
 
     # Stage 3: Apply custom weights if provided
