@@ -1,0 +1,514 @@
+# AI Leader ID — Stage 2 Task Board
+
+Companion to `STAGE2_IMPROVEMENT_PLAN.md` (section references like §5.1 point there). Same board interactive: open `docs/task_board.html` in a browser (progress is saved per browser).
+
+**Team:** two fullstack developers + one designer (UX/UI and graphic). Tasks are grouped by **workstream**, not by person: either developer takes any `Dev` task; order is decided by the dependency chain. `Demo-critical` = must be live or cached for Demo Day Oct 1–3.
+
+**Dates:** today Sep 20, 2026 · Demo Day Oct 1–3 · Stage 2 Oct 5 – Nov 10 · Final Demo Day Nov 10.
+
+**Legend:** `Dev` either developer · `Designer` · `Team` everyone · effort S = 1–3 days, M = 4–10, L = more · weeks: W0 Sep 20 – 26 · W1 Sep 27 – Oct 3 · DEMO Oct 1 – 3 · AI & Digital Bridge · W2 Oct 5 – 11 · W3 Oct 12 – 18 · W4 Oct 19 – 25 · W5 Oct 26 – Nov 1 · W6 Nov 2 – 10
+
+## Workstreams at a glance
+
+| Stream | Delivers | Tasks | Demo-critical |
+|---|---|---|---|
+| **FND** Foundation and security | SDK, models, structured outputs, database, auth, PII, batching. Everything else runs on this. | 11 | 7 |
+| **LED** Evidence Ledger and scoring pipeline | The 9-competency × 3-level BARS ledger, the two-stage blind pipeline, the committee card. The core of the pivot. | 16 | 12 |
+| **FAIR** Fairness, evaluation and governance | Attribute-grouped audit, swap-and-rescore probe, eval harness, pre-registration, model card, Nov 10 numbers. | 14 | 7 |
+| **COM** Interviewer and committee tools | Interviewer pre-brief, override ledger, compare view, triage queues, decision memo, note structurer. | 12 | 3 |
+| **CAND** Candidate-facing | Leadership Growth Map in KZ/RU/EN, release gate, leak guard, objection note. | 8 | 4 |
+| **INP** Inputs and multilingual | Ipsative test ingestion, written presentation and ASR, Scenario Lab, language identification, stylometry. | 7 | 2 |
+| **DEMO** Demo, pitch and docs | Demo script, deck, rehearsals, committee documentation. | 5 | 3 |
+
+## FND · Foundation and security
+
+_SDK, models, structured outputs, database, auth, PII, batching. Everything else runs on this._
+
+### Week 0 · Foundation · Sep 20 – 26
+
+- [ ] **FND-01** — Upgrade the Anthropic SDK and model IDs  
+  _Dev · effort S · **demo-critical** · §5.5_  
+  anthropic>=1.7,<2. One settings.py with MODEL_JUDGE=claude-opus-5 and MODEL_EXTRACT=claude-sonnet-5, never hardcoded in call sites. The pinned Sonnet 4 is retired: nothing AI-scored runs today.
+- [ ] **FND-02** — AsyncAnthropic everywhere with a semaphore  
+  _Dev · effort S · **demo-critical** · §5.5_  
+  Replace the synchronous client inside async routes; iterate content blocks to find the text block (a thinking block may come first).  
+  Depends on: FND-01
+- [ ] **FND-03** — JSON-schema structured outputs on every model call  
+  _Dev · effort S · **demo-critical** · §5.5_  
+  additionalProperties:false, levels as enums, no free-text JSON parsing. A failed parse is stored as status=failed, never as a 0 score.  
+  Depends on: FND-01
+- [ ] **FND-04** — SQLite core tables via SQLModel and import of the 16 demo records  
+  _Dev · effort M · **demo-critical** · §5.5_  
+  applicants, protected_attributes (audit only), consents, artifacts, rubric_versions, prompt_versions, model_runs, evidence_items, ratings, competency_scores, committee_overrides (append-only), audit_log, users.  
+  Depends on: FND-01
+- [ ] **FND-05** — Auth: JWT + argon2 + role guards on every router  
+  _Dev · effort S · **demo-critical** · §5.5_  
+  Roles applicant / interviewer / committee / admin; object-level checks (applicant sees only own record); CORS allowlist; demo account only under DEMO_MODE. Today no scoring endpoint checks auth.  
+  Depends on: FND-04
+- [ ] **FND-06** — Prompt-injection firewall  
+  _Dev · effort S · **demo-critical** · §5.5_  
+  Wrap every applicant artifact in <document> tags; the system prompt states document text is data, never instruction. Quote verification (LED-04) makes injected text unable to become evidence.  
+  Depends on: FND-03
+
+### Week 1 · Demo build · Sep 27 – Oct 3
+
+- [ ] **FND-07** — Pseudonymous IDs and widened PII regexes on all free-text fields  
+  _Dev · effort S · **demo-critical** · §5.5_  
+  UUID per applicant; Cyrillic/KZ phone formats (+7 (7xx) xxx-xx-xx, 8 7xx…), 12-digit IIN, emails, handles; apply to essay, written presentation, transcript, project impact, activities.  
+  Depends on: FND-04
+
+### Week 2 · Methodology and data arrive · Oct 5 – 11
+
+- [ ] **FND-08** — Batch API, 1-hour cached rubric, cost telemetry  
+  _Dev · effort S · §5.5_  
+  Cohort runs via Message Batches with the rubric as a cached system block; usage, cost and cache-hit rate stored per run.  
+  Depends on: FND-04
+
+### Week 3 · First evidence · Oct 12 – 18
+
+- [ ] **FND-09** — PII v2: NER redaction, consent records, retention job  
+  _Dev · effort M · §5.5_  
+  Sonnet 5 structured-output NER for KZ/RU/EN names, schools, settlements; legal-representative consent for under-18s (confirm the age rule with inVision counsel); raw video deleted 30 days after decision.  
+  Depends on: FND-07
+
+### Week 5 · Held-out numbers · Oct 26 – Nov 1
+
+- [ ] **FND-10** — Postgres in-country, backup/restore drill, audit-log export  
+  _Dev · effort M · §5.5_  
+  Only if inVision hosts; Kazakhstan data localization requires the database to sit in the country.  
+  Depends on: FND-09
+- [ ] **FND-11** — 500-applicant synthetic load test through the Batch path  
+  _Dev · effort S · §5.5_  
+  Cost and latency numbers for the pilot slide.  
+  Depends on: FND-08
+
+## LED · Evidence Ledger and scoring pipeline
+
+_The 9-competency × 3-level BARS ledger, the two-stage blind pipeline, the committee card. The core of the pivot._
+
+### Week 0 · Foundation · Sep 20 – 26
+
+- [ ] **LED-01** — Deletion day: remove every demographic proxy from the score path  
+  _Dev · effort S · **demo-critical** · §5.2_  
+  Delete SCHOOL_ADVANTAGE, the adversity-keyword decrement, the GPA/academic dimension, the growth delta, length sub-scores and all English keyword banks. Move school type, region, language, Foundation status to protected_attributes.
+- [ ] **LED-02** — Remove the AI-text authenticity score  
+  _Dev · effort S · **demo-critical** · §5.17_  
+  Drop the 40/60 blend and every 'possibly AI-generated' label from API and UI. Keep at most a neutral 'verify authorship' interviewer hint.  
+  Depends on: LED-01
+- [ ] **LED-03** — Agree the ledger JSON schema and a fixture on day 1  
+  _Team · effort S · **demo-critical** · §5.1_  
+  Per competency: indicator_id, status, quote, source, char span, atola_component, confidence; level enum incl. no_evidence. Both developers and the designer build against the fixture so nobody waits.
+- [ ] **LED-04** — Ledger skeleton: two-stage blind pipeline on the two public BARS  
+  _Dev · effort L · **demo-critical** · §5.1, §5.10_  
+  Extraction (Sonnet 5, verbatim quotes) → substring verification → BARS rating (Opus 5, verified evidence only, insufficient_evidence enum) → deterministic level → score. Leadership abilities and Wounded leadership first; provisional indicators for the other seven, labeled provisional.  
+  Depends on: FND-03, FND-04, LED-01, LED-03
+- [ ] **LED-05** — Split the 1,388-line dashboard into views rendered from the fixture  
+  _Dev · effort M · **demo-critical** · §7_  
+  Committee Card, Interviewer Brief, Growth Map, Fairness Audit as separate components.  
+  Depends on: LED-03
+- [ ] **LED-06** — Committee card design  
+  _Designer · effort M · **demo-critical** · §5.1_  
+  Nine competencies, 3-level BARS chips, verbatim quotes, indicator ids, 'no evidence' as a distinct state, slot for the contrastive tooltip, override affordance.  
+  Depends on: LED-03
+- [ ] **LED-07** — Visual system for BARS levels and anchors  
+  _Designer · effort S · **demo-critical** · §5.1_  
+  Weak / normal / high / no-evidence colors and marks that work in light, dark and print.
+
+### Week 1 · Demo build · Sep 27 – Oct 3
+
+- [ ] **LED-08** — ATOLA mapper and water checklist fields  
+  _Dev · effort S · **demo-critical** · §5.9_  
+  atola_component on each evidence item; missing-component flags drawn from the client's weak anchors; status claimed_only caps a level at Normal. A checklist with quotes, never a deception number.  
+  Depends on: LED-04
+- [ ] **LED-09** — Contrastive field in the rating schema  
+  _Dev · effort S · **demo-critical** · §5.15_  
+  'What would move this to the next level' in the anchor's own words; reused by the committee tooltip, the interviewer probe and the candidate feedback.  
+  Depends on: LED-04
+- [ ] **LED-10** — Competencies 8 and 9 as flags only  
+  _Dev · effort S · **demo-critical** · §5.14_  
+  Indicator ledger plus attention flags with spans; no AI level; spans not persisted beyond the committee session; no trauma prompt anywhere in the form.  
+  Depends on: LED-04
+- [ ] **LED-11** — Wire the committee card to the real ledger API  
+  _Dev · effort M · **demo-critical** · §5.1_  
+  Levels, quotes, indicator ids, no-evidence state, contrastive tooltip, Blind/Informed toggle all reading real data.  
+  Depends on: LED-04, LED-05, LED-06
+- [ ] **LED-12** — Demo data seeding and cached results  
+  _Dev · effort S · **demo-critical** · §8_  
+  Every demo click reads from the database; no live model call without a fallback.  
+  Depends on: LED-11
+
+### Week 2 · Methodology and data arrive · Oct 5 – 11
+
+- [ ] **LED-13** — Load the full rubric and extend the pipeline to all 9 competencies  
+  _Dev · effort M · §5.1_  
+  rubric_versions with content hash; Talent Craft BARS verbatim; 162-case gold set written with the designer.  
+  Depends on: LED-04
+
+### Week 3 · First evidence · Oct 12 – 18
+
+- [ ] **LED-14** — k=3 sampling and unresolved routing  
+  _Dev · effort S · §5.10_  
+  Majority level across three samples; disagreement or any insufficient_evidence → unresolved → interviewer probe.  
+  Depends on: FND-08, LED-13
+
+### Week 4 · Iterate on the train half · Oct 19 – 25
+
+- [ ] **LED-15** — Prompt iteration on the train half; rubric v1.1 if anchors change  
+  _Dev · effort M · §5.6_  
+  Bias-correction-first: estimate per-competency offsets on the labeled set. Never touch the holdout.  
+  Depends on: FAIR-09
+
+### Week 6 · Freeze and final · Nov 2 – 10
+
+- [ ] **LED-16** — Freeze prompts and rubric version; final model card  
+  _Team · effort S · §7_  
+  No changes after the held-out run.  
+  Depends on: FAIR-12
+
+## FAIR · Fairness, evaluation and governance
+
+_Attribute-grouped audit, swap-and-rescore probe, eval harness, pre-registration, model card, Nov 10 numbers._
+
+### Week 0 · Foundation · Sep 20 – 26
+
+- [ ] **FAIR-01** — Blind / Informed toggle and Context strip  
+  _Dev · effort S · **demo-critical** · §5.2_  
+  School, region, language, Foundation shown to humans under 'context — not part of the score'; the toggle re-renders the identical AI score.  
+  Depends on: LED-03
+- [ ] **FAIR-02** — Remove the fairness-by-recommendation-category panel  
+  _Dev · effort S · **demo-critical** · §5.12_  
+  It cannot detect bias. Replace with a placeholder for the attribute-grouped audit.
+- [ ] **FAIR-03** — Fairness visual language  
+  _Designer · effort S · **demo-critical** · §5.11, §5.12_  
+  Three states (OK / review / not enough data), the 0.8 review line, CI whiskers, impact-ratio bars, the swap-and-rescore result strip.
+- [ ] **FAIR-04** — Author half of the 36 gold-set cases from the BARS text  
+  _Designer · effort M · **demo-critical** · §5.6_  
+  Answers at planted levels in three languages, written without seeing the prompts, so the eval isn't authored by the scorer's author.  
+  Depends on: LED-07
+
+### Week 1 · Demo build · Sep 27 – Oct 3
+
+- [ ] **FAIR-05** — Evaluation harness v0 with a results page  
+  _Dev · effort M · **demo-critical** · §5.6_  
+  36 synthetic cases; counterfactual probes (village↔Almaty, public↔private, Kazakh↔trilingual, polished↔imperfect grammar, hardship↔none) with ≤5% level flips; 5-run consistency ≥0.85; injection suite; cross-lingual pairs.  
+  Depends on: LED-04, FAIR-04
+- [ ] **FAIR-06** — Swap-and-rescore: endpoint plus button  
+  _Dev · effort M · **demo-critical** · §5.11_  
+  K≈6 single-marker variants re-scored with the identical prompt; tolerance = 2×SD of re-score noise per prompt version; dots on the 3-level strip; flips logged to a red-team log; a 'run with the Stage-1 scorer' comparison.  
+  Depends on: LED-04, FAIR-03
+- [ ] **FAIR-07** — Attribute-grouped fairness audit plus panel  
+  _Dev · effort S · **demo-critical** · §5.12_  
+  Impact ratio vs the best group with 1,000-sample bootstrap CI; three states; per language incl. 'mixed' and intersections. Generate ~200 synthetic profiles so CIs are visible on Oct 3.  
+  Depends on: LED-01, FAIR-03
+
+### Week 2 · Methodology and data arrive · Oct 5 – 11
+
+- [ ] **FAIR-08** — Write the pre-registration before opening the historical data  
+  _Dev · effort S · §5.6_  
+  Hypotheses, metrics, thresholds, subgroups, train/holdout split. One page. Never tune on the holdout.
+
+### Week 3 · First evidence · Oct 12 – 18
+
+- [ ] **FAIR-09** — Ingest the anonymized history and produce the first agreement report  
+  _Dev · effort M · §5.6_  
+  Per-competency QWK/ICC vs committee levels, calibration tables, impact ratios; identify weak competencies (expect 8 and 9).  
+  Depends on: FAIR-08, INP-05
+- [ ] **FAIR-10** — Model card and fairness pages auto-filled from live data  
+  _Dev · effort S · §5.16_  
+  Intended use, factors, current metrics, evaluation data hash, known limits, where the AI abstains; impact-assessment section on the EU AI Act Art. 27 elements.  
+  Depends on: FAIR-09
+
+### Week 4 · Iterate on the train half · Oct 19 – 25
+
+- [ ] **FAIR-11** — Cohort probe suite and fairness gate  
+  _Dev · effort S · §5.11_  
+  Robustness rate per marker × competency on 30–50 sampled candidates; the gate blocks 'publish scorer version' when a probe fails.  
+  Depends on: FAIR-06, LED-13
+- [ ] **FAIR-14** — Funder cohort memo  
+  _Designer · effort S · §5.16_  
+  Impact ratios, calibration statistics, abstention rates for inDrive.  
+  Depends on: FAIR-09
+
+### Week 5 · Held-out numbers · Oct 26 – Nov 1
+
+- [ ] **FAIR-12** — Held-out evaluation: the Nov 10 headline numbers  
+  _Dev · effort M · §5.6_  
+  Per-competency kappa/ICC vs committee, impact ratios with CIs, screening-safety check on the lowest band.  
+  Depends on: LED-15
+- [ ] **FAIR-13** — Reproducibility demo  
+  _Dev · effort S · §7_  
+  Recompute every score from stored ratings; byte-identical.  
+  Depends on: FAIR-12
+
+## COM · Interviewer and committee tools
+
+_Interviewer pre-brief, override ledger, compare view, triage queues, decision memo, note structurer._
+
+### Week 0 · Foundation · Sep 20 – 26
+
+- [ ] **COM-01** — Override ledger: append-only backend plus UI  
+  _Dev · effort S · **demo-critical** · §5.4_  
+  Override at level or indicator with a mandatory reason code; model composite and committee composite side by side; the original AI row is never overwritten; weights read from the versioned rubric config labeled 'owned by inVision U / Talent Craft'; bands not decimals.  
+  Depends on: LED-03, FND-04
+- [ ] **COM-02** — Interviewer one-pager  
+  _Designer · effort M · **demo-critical** · §5.3_  
+  Phone-size and printable: nine evidence states (no number), three ATOLA probes from the client bank, discrepancy alerts, water hotspots, tick boxes, 'do not name the competency aloud' reminder.
+
+### Week 1 · Demo build · Sep 27 – Oct 3
+
+- [ ] **COM-03** — Interviewer pre-brief rendered from the ledger  
+  _Dev · effort S · **demo-critical** · §5.3_  
+  States, probes selected by competency × missing ATOLA component, discrepancy alerts, two verbatim strengths; score withheld. Print and phone views.  
+  Depends on: LED-11, COM-02
+- [ ] **COM-04** — Decision Memo PDF  
+  _Dev · effort S · §5.16_  
+  Levels, quotes, anchors, test bands, overrides with reasons and authors, probe result, model and prompt hashes, signature lines, 'AI drafted N of M items; committee changed K'.  
+  Depends on: LED-11, COM-05
+- [ ] **COM-05** — Decision Memo and model-card templates  
+  _Designer · effort S · §5.16_  
+  Print-ready, KZ/RU, signature block.
+
+### Week 2 · Methodology and data arrive · Oct 5 – 11
+
+- [ ] **COM-06** — Pre-brief v2 with the real probe bank  
+  _Dev · effort S · §5.3_  
+  Probe selection keyed by competency × missing component from the extended methodology; canonical probe shown next to any paraphrase.  
+  Depends on: LED-13, COM-03
+- [ ] **COM-07** — Side-by-side Evidence Compare and triage queues  
+  _Dev · effort S · §5.22_  
+  2–4 candidates × 9 rows, one best quote per cell, BARS anchor in the row header; queues with the deterministic rule that fired; abstention rate as a health metric.  
+  Depends on: LED-11
+- [ ] **COM-08** — Observe the interview flow with real interviewers  
+  _Designer · effort S · §5.3_  
+  Use the AMA slot; watch how the one-pager is used; adjust.  
+  Depends on: COM-03
+
+### Week 3 · First evidence · Oct 12 – 18
+
+- [ ] **COM-09** — Calibration pack layout  
+  _Designer · effort S · §5.19_  
+  Only if Talent Craft agrees to review anchor answers per competency × level.
+
+### Week 4 · Iterate on the train half · Oct 19 – 25
+
+- [ ] **COM-10** — Post-interview note-to-BARS structurer  
+  _Dev · effort M · §5.3_  
+  Typed or dictated notes → ledger tuples with one-tap confirm; lists competencies with no notes. No live transcription.  
+  Depends on: LED-14
+- [ ] **COM-11** — Usability test of brief and card with 2–3 interviewers  
+  _Designer · effort S · §5.3_  
+  Fix anchoring and readability issues before the held-out run.  
+  Depends on: COM-08
+
+### Week 5 · Held-out numbers · Oct 26 – Nov 1
+
+- [ ] **COM-12** — Committee documentation  
+  _Designer · effort S · §7_  
+  How to read a card, how to override, what 'unresolved' means, model limits per competency.  
+  Depends on: FAIR-10
+
+## CAND · Candidate-facing
+
+_Leadership Growth Map in KZ/RU/EN, release gate, leak guard, objection note._
+
+### Week 0 · Foundation · Sep 20 – 26
+
+- [ ] **CAND-01** — Growth Map layout (mobile, KZ/RU/EN)  
+  _Designer · effort M · **demo-critical** · §5.8_  
+  Strengths in the candidate's words, 'not yet seen' as opportunity, one zero-budget next step, the re-application door. Kazakh register сіз, Cyrillic.
+
+### Week 1 · Demo build · Sep 27 – Oct 3
+
+- [ ] **CAND-02** — Growth Map generation with a release gate  
+  _Dev · effort M · **demo-critical** · §5.8_  
+  Language-neutral plan from the ledger → render in KZ/RU/EN with register lints; released_at NULL until a committee member approves; competency 9 suppressed by default.  
+  Depends on: LED-04
+- [ ] **CAND-03** — Growth Map render plus the objection button  
+  _Dev · effort S · **demo-critical** · §5.8_  
+  Three-language render; 'this does not reflect me' note attached to the record with a mandatory committee outcome.  
+  Depends on: CAND-01, CAND-02
+- [ ] **CAND-04** — Leak guard against the one public test item  
+  _Dev · effort S · §5.18_  
+  n-gram and embedding similarity on all outward text; rewrite or drop, and log the drop.  
+  Depends on: CAND-02
+- [ ] **CAND-05** — Candidate-facing tone in three languages, checked with a native speaker  
+  _Designer · effort S · **demo-critical** · §5.8_  
+  сіз throughout; never mix registers; no level names, no comparisons.  
+  Depends on: CAND-01
+
+### Week 2 · Methodology and data arrive · Oct 5 – 11
+
+- [ ] **CAND-06** — Growth Map content in three languages  
+  _Designer · effort M · §5.8_  
+  Resource lists, next-step phrasing, Foundation pathway; hand to native review.  
+  Depends on: CAND-05
+
+### Week 3 · First evidence · Oct 12 – 18
+
+- [ ] **CAND-07** — Native-speaker QA protocol for Kazakh feedback  
+  _Designer · effort S · §5.8_  
+  30 texts, 2 reviewers, naturalness ≥ 4/5, zero register violations.  
+  Depends on: CAND-06
+
+### Week 4 · Iterate on the train half · Oct 19 – 25
+
+- [ ] **CAND-08** — Leak guard against the full 95-item bank  
+  _Dev · effort S · §5.18_  
+  Embedding plus n-gram similarity; drops logged for the methodology owners.  
+  Depends on: CAND-04, LED-13
+
+## INP · Inputs and multilingual
+
+_Ipsative test ingestion, written presentation and ASR, Scenario Lab, language identification, stylometry._
+
+### Week 1 · Demo build · Sep 27 – Oct 3
+
+- [ ] **INP-01** — Written presentation as the canonical input; never score a mock  
+  _Dev · effort S · **demo-critical** · §5.21_  
+  Form field (150–300 words, any language). Video analysis returns status=no_transcript instead of scoring the hardcoded mock. Pin ElevenLabs Scribe v2 if ASR is used; never Whisper for Kazakh.  
+  Depends on: FND-04
+- [ ] **INP-02** — Ipsative mock profile, claimed-vs-demonstrated matrix, triangulation radar  
+  _Dev · effort S · §5.7_  
+  Schema and fixture adapter now; the client's bands verbatim; discrepancies become probes, never score changes.  
+  Depends on: LED-04
+- [ ] **INP-03** — Feynman → Scenario Lab: hardening plus one cached fork  
+  _Dev · effort S · **demo-critical** · §5.13_  
+  Sessions in DB, auth-bound, attempt-limited; the quiz reads a <lesson> document; re-skin one Teamwork/Values fork; cache a full transcript for the demo; weight fixed at zero; label 'observed in simulation'.  
+  Depends on: FND-05, FND-06
+- [ ] **INP-04** — Code-switch-aware language ID and the bias-exclusion manifest  
+  _Dev · effort S · §5.22_  
+  GlotLID document-level plus span-level LID with 'mixed' first-class; Latin-Kazakh transliteration; excluded_features.yaml rendered on the dashboard with a unit test proving none reach a scorer.  
+  Depends on: LED-01
+
+### Week 2 · Methodology and data arrive · Oct 5 – 11
+
+- [ ] **INP-05** — Ipsative and interview-note adapters against inVision fixtures  
+  _Dev · effort M · §5.7_  
+  Response-quality flags (incomplete blocks, same-slot pattern, implausibly fast); never re-score or re-band the test.  
+  Depends on: INP-02
+
+### Week 4 · Iterate on the train half · Oct 19 – 25
+
+- [ ] **INP-06** — Dual-ASR evaluation on 10–20 real Kazakh videos  
+  _Dev · effort M · §5.21_  
+  Scribe v2 vs ISSAI Söyle; word-level agreement as displayed confidence; the first WER numbers on spontaneous applicant speech.  
+  Depends on: INP-01
+- [ ] **INP-07** — Lemma-level stylometry with per-language norms (advisory only)  
+  _Dev · effort S · §5.22_  
+  pymorphy3 for Russian, Stanza/TurkicNLP for Kazakh; drop hapax, word length, filler ratios; percentile shown, never a score input; keep or kill by false-positive rate.  
+  Depends on: LED-13
+
+## DEMO · Demo, pitch and docs
+
+_Demo script, deck, rehearsals, committee documentation._
+
+### Week 1 · Demo build · Sep 27 – Oct 3
+
+- [ ] **DEMO-01** — Demo flow and script  
+  _Designer · effort M · **demo-critical** · §8_  
+  Three-minute narrative in the client's order: before / fairness / inside / committee / after / model card. Every live action has a cached fallback.  
+  Depends on: LED-06, COM-02, CAND-01
+- [ ] **DEMO-02** — Pitch deck and demo visuals  
+  _Designer · effort M · **demo-critical** · §8_  
+  The crossed-out 'village = 25 points' slide; the ledger diagram; the three views; the roadmap-not-promised slide.  
+  Depends on: LED-07
+
+### Demo Day · Oct 1 – 3 · AI & Digital Bridge
+
+- [ ] **DEMO-03** — Freeze and rehearse from cached results  
+  _Team · effort S · **demo-critical** · §8_  
+  Eval report on the wall; state plainly what is method and what is evidence.  
+  Depends on: LED-12, FAIR-05, DEMO-01
+
+### Week 5 · Held-out numbers · Oct 26 – Nov 1
+
+- [ ] **DEMO-04** — Final deck  
+  _Designer · effort M · §8_  
+  Evidence, not promises: the table of where the model agrees with the committee and where it abstains.  
+  Depends on: FAIR-12
+
+### Week 6 · Freeze and final · Nov 2 – 10
+
+- [ ] **DEMO-05** — Rehearsals and Final Demo Day, Nov 10  
+  _Team · effort S · §8_  
+  Depends on: LED-16, DEMO-04
+
+## Week-by-week index
+
+**Week 0 · Foundation · Sep 20 – 26**  
+Developers: FND-01, FND-02, FND-03, FND-04, FND-05, FND-06, LED-01, LED-02, LED-04, LED-05, FAIR-01, FAIR-02, COM-01  
+Designer: LED-06, LED-07, FAIR-03, FAIR-04, COM-02, CAND-01  
+Team: LED-03  
+
+**Week 1 · Demo build · Sep 27 – Oct 3**  
+Developers: FND-07, LED-08, LED-09, LED-10, LED-11, LED-12, FAIR-05, FAIR-06, FAIR-07, COM-03, COM-04, CAND-02, CAND-03, CAND-04, INP-01, INP-02, INP-03, INP-04  
+Designer: COM-05, CAND-05, DEMO-01, DEMO-02  
+
+**Demo Day · Oct 1 – 3 · AI & Digital Bridge**  
+Team: DEMO-03  
+
+**Week 2 · Methodology and data arrive · Oct 5 – 11**  
+Developers: FND-08, LED-13, FAIR-08, COM-06, COM-07, INP-05  
+Designer: COM-08, CAND-06  
+
+**Week 3 · First evidence · Oct 12 – 18**  
+Developers: FND-09, LED-14, FAIR-09, FAIR-10  
+Designer: COM-09, CAND-07  
+
+**Week 4 · Iterate on the train half · Oct 19 – 25**  
+Developers: LED-15, FAIR-11, COM-10, CAND-08, INP-06, INP-07  
+Designer: FAIR-14, COM-11  
+
+**Week 5 · Held-out numbers · Oct 26 – Nov 1**  
+Developers: FND-10, FND-11, FAIR-12, FAIR-13  
+Designer: COM-12, DEMO-04  
+
+**Week 6 · Freeze and final · Nov 2 – 10**  
+Team: LED-16, DEMO-05  
+
+## Priorities (three-voter Borda ranking, points out of 45)
+
+1. **Evidence Ledger on 9 competencies × 3 BARS levels** (44 pts, ranked by 3/3) — Every score decomposes to indicator → verbatim quote; 'no evidence' ≠ 'weak'. Everything else is a view of it.
+2. **Remove demographic proxies; Blind/Informed toggle** (40 pts, ranked by 3/3) — School type, region, language, income out of every score path; context for humans only.
+3. **Interviewer pre-brief (no score)** (31 pts, ranked by 3/3) — One page, 9 evidence states, 3 ATOLA probes from the client bank. The 'inside interview' insertion point nobody else builds.
+4. **Client-owned weights + append-only override ledger** (31 pts, ranked by 3/3) — Composite = Σ weight × level from a signed rubric; bands not decimals; overrides with reasons, never overwriting.
+5. **Engineering foundation** (28 pts, ranked by 2/3) — SDK, model IDs, structured outputs, DB, auth, PII, injection firewall. The demo is dead without it.
+6. **Evaluation harness + pre-registration** (25 pts, ranked by 3/3) — 36 cases now, history later: kappa vs committee per competency, probes, abstention, impact ratios.
+7. **Ipsative test ingestion + claimed-vs-demonstrated matrix** (19 pts, ranked by 3/3) — Their bands verbatim; discrepancies → probes, never score changes; never re-scored.
+8. **Candidate Leadership Growth Map** (18 pts, ranked by 3/3) — KZ/RU/EN, own quotes, 'not yet seen', zero-budget next steps, release gate, competency 9 suppressed.
+9. **ATOLA mapper + water checklist** (18 pts, ranked by 3/3) — Missing Action/Outcome/Application with quotes; flags → probes; never a deception number.
+10. **Two-stage blind pipeline** (18 pts, ranked by 2/3) — Extract → verify → rate on verified evidence only; k samples; disagreement → human.
+11. **Counterfactual bias probe (swap and rescore)** (17 pts, ranked by 2/3) — Noise-calibrated tolerance; cohort suite; fairness gate that blocks publishing a failing scorer.
+12. **Real fairness audit by protected attribute** (15 pts, ranked by 2/3) — Impact ratios with bootstrap CIs, 0.8 review line, three states, language incl. 'mixed'.
+13. **Leadership Scenario Lab (creativity slot, contested)** (9 pts, ranked by 1/3 · 2 demotes) — Feynman transformed into competency-linked forks; unweighted, cached, 'observed in simulation', Talent Craft approves forks.
+14. **Wounded / purpose-driven leadership as flags only** (9 pts, ranked by 2/3) — Indicator ledger + attention flags; no AI level; no trauma prompt.
+15. **Contrastive explanations** (8 pts, ranked by 2/3) — 'What would move this to the next level' in the anchor's words; one field, three audiences.
+16. **Decision Memo + Model Card + Impact Assessment** (8 pts, ranked by 1/3) — Reconstructable rejections; EU-AI-Act-style impact assessment; Kazakhstan laws cited.
+17. **Kill the AI-text authenticity score** (7 pts, ranked by 3/3) — 50–100% false positives on non-native writing; no Kazakh calibration; replace with consistency + specificity.
+18. **Test-bank leak guard** (7 pts, ranked by 1/3) — Every outward sentence checked against the 95 items before it reaches a teenager.
+
+## Rules that bind every task
+
+- **No demographics in any score path.** School type, region, language label, income proxy, name, fluency and timing features live only in the protected-attributes table for audits.
+- **Every level decomposes into verified quotes.** A quote that is not a literal substring of the source is dropped. "No evidence" is a state, never "weak".
+- **One candidate per model call, absolute rubric.** Never ask the model to compare or rank two people. Ranking is computed from levels.
+- **Competencies 8 and 9 (purpose-driven, wounded leadership) get flags, never an AI level.** The form never asks about trauma.
+- **Weights, cut-offs, bands are the client's.** Displayed as "owned by inVision U / Talent Craft", versioned, signed. Overrides append, never overwrite.
+- **Nothing candidate-facing ships without the leak guard and a committee release gate.** No level names, no test items, no comparisons, competency 9 suppressed.
+- **Kazakh first.** Rubric in English, candidate text native, strongest model for kk/mixed, written presentation is the canonical input, ASR only for quotes. Never Whisper for Kazakh.
+- **Demo from cached results.** Anything live on stage has a cached fallback. Scenario Lab is unweighted and labeled "observed in simulation".
+
+## Stop doing (delete, don't tune)
+
+1. English-only keyword banks and role-name matching
+1. School-advantage table, adversity decrement, growth delta, GPA dimension, length scores
+1. The AI-text "authenticity score" and every "possibly AI-generated" label
+1. Character-frequency language detection as a gate
+1. Any scoring that depends on a Kazakh ASR transcript; Whisper for Kazakh
+1. Filler ratios, word length, hapax, speech rate, pauses as score inputs
+1. Haiku-class models for Kazakh or mixed text
+1. Fairness audit grouped by recommendation category
+1. Recording "weak" when nothing was found; scoring a mock transcript; ranking a failed run as 0
+1. Overwriting an AI score on override
+
+_Excluded by all reviewers: facial or emotion analysis, voice-stress or fluency scoring, social-media scraping, third-party reference forms for minors, per-language score calibration, a rejection-explaining chatbot, rewriting candidate text before scoring._
