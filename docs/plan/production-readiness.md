@@ -80,8 +80,10 @@ night before the demo."
 
 **4. Budget guardrails (must-have before any public URL):**
 - A `usage_log` table: per call — endpoint, model, input/output/cache tokens
-  (from `response.usage`), timestamp. One helper in `ai_client.py` records it;
-  a `GET /api/admin/usage` sums by day.
+  (from `response.usage`), timestamp. `llm.py` is the natural place: both
+  `complete_json` and `complete_chat` already log model, in/out tokens and stop
+  reason, so this is swapping that `logger.info` for a row write — every call in
+  the product goes through those two functions. A `GET /api/admin/usage` sums by day.
 - Daily budget env var; when exceeded, guest/sandbox endpoints return a
   friendly 503 (`DEMO_KILL_SWITCH` machinery, wired in AL3/Fool-the-Machine).
 - Per-IP rate limits (slowapi) on every unauthenticated endpoint.

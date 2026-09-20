@@ -2,6 +2,14 @@
 
 > Snapshot: branch `feat/docker-compose` at `b401013` plus the uncommitted working tree.
 > Scope: ~3,300 LOC Python backend, ~4,100 LOC TypeScript frontend (4 page files), 16 synthetic candidates.
+>
+> **Update 2026-09-20 — four findings below have been fixed** by `backend/settings.py` +
+> `backend/llm.py`, merged from `main` (task FND-01/02/03/06). This file is kept as the dated
+> snapshot it was; the affected sections are annotated in place rather than rewritten. Fixed:
+> weakness **#2** (blocking sync calls), **#3** (sequential batch loop), **#7** (zero tests — 17
+> now run), and the hand-rolled JSON parsing everywhere. Still open and still the ranked priority:
+> **#1 persistence**, **#4 auth**. The header claim "zero tests" and the closing section on
+> uncommitted work are both out of date.
 
 ## Headline
 
@@ -27,7 +35,7 @@ not to add more ideas.**
 | **Code-computed stylometry** | `ai_detector.py` — TTR, hapax ratio, sentence-length variance, essay↔interview vocab overlap | Cheap, reproducible, defensible under Q&A. Language-aware (`detect_language` + per-language filler phrases), which is correct for a KZ/RU/EN product. |
 | **Domain model carries provenance** | `models.py` — `DimensionScore` has `confidence`, `evidence_quotes`, `positive_factors`, `concerns` | Designed a step ahead: exactly the primitives Uncertainty Triage and the explainability UI need. |
 | **Privacy layer exists at all** | `privacy.py`, called from all three AI modules | Anonymize-before-send was a deliberate design choice, not an afterthought. |
-| **Central AI client** | `ai_client.py` (uncommitted) | Phase A3 is effectively done in the working tree; `text_of()` correctly skips thinking blocks. |
+| **Single Claude call path** | `settings.py` + `llm.py` | Model ids in one place, one async schema-constrained entry point, applicant text wrapped as data. `_text_of()` correctly skips thinking blocks; `_assert_strict_schema()` turns a demo-time 400 into an import-time error. |
 | **Real design, implemented** | `frontend/src/app/*` | Weight sliders, committee overrides, baseline-vs-AI comparison, Figma-matched. The UI is ahead of the backend. |
 
 ---
@@ -60,14 +68,21 @@ Verified still present:
 - `scoring/video_analyzer.py:152,160` — same, inside `async def analyze_video`
 
 One candidate being scored freezes *every other request* for 10–30 seconds.
-`get_async_client()` already exists in `ai_client.py` and is unused — the fix is three call sites
-plus `await`. (`feynman.py` chat is a plain `def`, so FastAPI threadpools it; that one is
-accidentally safe.)
+
+**Fixed 2026-09-20.** All three go through `await llm.complete_json(...)` on a module-level
+`AsyncAnthropic`, and the Feynman routes became `async def` in the same change. A semaphore
+(`MAX_CONCURRENT_LLM_CALLS`, default 4) caps how many calls are open at once, so a cohort run
+cannot exhaust the rate limit.
 
 ### 3. `/api/scoring/ai/all` is a sequential for-loop
 
-`routers/scoring.py:57-73`. 16 candidates × ~15s ≈ 4 minutes with the server unresponsive. Needs
-bounded `asyncio.gather`, or a job + polling, or the Batches API (50% cheaper) for the pre-demo run.
+`routers/scoring.py:57-73`. 16 candidates × ~15s ≈ 4 minutes with the server unresponsive.
+
+**Fixed 2026-09-20.** It is now `asyncio.gather(..., return_exceptions=True)` under the `llm`
+semaphore, and a failed candidate is logged and dropped instead of being cached as a zero — a
+zero sorted to the bottom of the ranking, so an API timeout used to look exactly like a weak
+application. The Batches API (50% cheaper) is still worth having for the pre-demo run; see
+task FND-08.
 
 ### 4. Auth is decorative — the one thing that stops a pilot cold
 
@@ -94,6 +109,12 @@ The most regression-prone code in the repo is hand-rolled JSON-fence stripping a
 duplicated in four places (`_parse_ai_response`, `_parse_detection_response`, and inline in
 `video_analyzer.py` and `feynman.py`). None of it is covered. `except Exception` blocks forward raw
 exception text to clients as 500 detail.
+
+**Mostly fixed 2026-09-20.** The fence-stripping is gone: the API enforces the schema and
+`complete_json` returns a parsed dict. `tests/` holds 17 offline tests (`pytest.ini`,
+`asyncio_mode = auto`) covering the call contract and the scoring pipeline. **CI still does not
+exist** — nothing runs those tests on push, so Phase B's second half is untouched. See
+[phase-b-testing-ci.md](phase-b-testing-ci.md).
 
 ### 8. Dead dependencies will inflate every image you build
 
@@ -127,12 +148,17 @@ frontend contributor without constant merge conflicts.
 
 ---
 
-## The uncommitted work is itself a risk
+## ~~The uncommitted work is itself a risk~~ — resolved 2026-09-20
 
-The working tree holds the deprecated-model migration (`ai_client.py` + five modified modules) and
-the entire `docs/plan/` set, untracked, on a branch named `feat/docker-compose`. The most valuable
-fix in the repo is sitting where a bad `git checkout` destroys it. Commit it today, as its own PR,
-separate from Docker work — and rename or split the branch so its name matches its contents.
+Everything described here is committed. `docs/plan/` landed as its own commit; the deprecated-model
+migration landed as another; the branch was renamed `fix/anthropic-model-routing` to match its
+contents.
+
+The episode left one lesson worth keeping: this branch and `main` implemented the same task twice,
+in parallel, and the duplicate was only discovered at merge time. `backend/ai_client.py` was thrown
+away. Before starting anything from this plan, check whether the
+[Stage 2 task board](../STAGE2_TASK_BOARD.md) already has someone on it — the boards overlap, and
+FND/LED task ids are the shared vocabulary.
 
 ---
 

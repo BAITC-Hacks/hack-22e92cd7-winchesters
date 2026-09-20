@@ -1,6 +1,7 @@
 # Phase A — Foundations
 
 > Four small PRs that unblock everything else. Total effort: ~1–2 days.
+> **Status 2026-09-20: A3 is done, A2 is half-done — read the notes on each before starting.**
 > Prerequisites: none. Read the Go-dev primer in [../backend-plan.md](../backend-plan.md) first.
 
 ---
@@ -35,10 +36,11 @@ npx next dev --port 3000
 2. `GET /api/candidates/` returns 16 candidates.
 3. `POST /api/auth/login` with `committee@invisionu.edu` / `demo2026` returns a token.
 4. http://localhost:3000 renders; dashboard loads candidates.
-5. (Costs tokens) `POST /api/scoring/ai/c-001` returns a score — **if this 404s
-   on the model name, the deprecated-model problem (A3) is already live.**
+5. (Costs tokens) `POST /api/scoring/ai/c-001` returns a score. The deprecated-model
+   404 that used to break this is fixed (A3); a failure here now means the key, not the model.
+6. `python -m pytest` → 17 passed, and passes with the network off.
 
-**Done when:** all five checks pass (or #5 fails *only* on the model, which we fix in A3).
+**Done when:** all six checks pass.
 
 **Troubleshooting table:**
 
@@ -64,8 +66,17 @@ environment variables / a `.env` file, validated at startup. Think
 `envconfig`/`viper`, but it crashes loudly at boot if required config is missing
 (which is what you want).
 
-**Files:** new `backend/config.py`; edit `backend/main.py`; add
-`pydantic-settings` to `requirements.txt`; expand `backend/.env.example`.
+> **Partly overtaken 2026-09-20.** `backend/settings.py` now exists and owns the AI-related
+> config (model ids, token caps, concurrency, timeouts, `DEMO_MODE`) — but with plain `os.getenv`
+> and defaults, **not** pydantic-settings, so nothing is validated at boot and a missing
+> `ANTHROPIC_API_KEY` still fails at the first request. What remains of A2: the CORS fix, the
+> auth/database/frontend fields, and the decision whether to convert `settings.py` to a
+> `pydantic-settings` class or leave it. Do **not** create `config.py` beside it — one settings
+> module, whichever shape wins.
+
+**Files:** `backend/settings.py` (exists — extend it rather than adding `config.py`); edit
+`backend/main.py`; add `pydantic-settings` to `requirements.txt` if the class shape wins; expand
+`backend/.env.example`.
 
 **Spec — `Settings` fields:**
 
@@ -83,84 +94,83 @@ environment variables / a `.env` file, validated at startup. Think
 | `ai_provider` | str | `"anthropic"` | Ollama fallback (feature) |
 
 **Steps:**
-1. Add `pydantic-settings` to requirements; create `backend/config.py` with the
-   class above, `model_config` pointing at `backend/.env`, and a module-level
-   `settings = Settings()` singleton.
-2. `main.py`: replace the CORS block with `allow_origins=settings.cors_origins`;
+1. Decide the shape first: keep `backend/settings.py` as module-level constants, or convert it to
+   a `pydantic-settings` class. The class buys boot-time validation (a missing
+   `ANTHROPIC_API_KEY` crashes at startup with a clear error instead of at the first scoring
+   request) at the cost of touching every `settings.MODEL_JUDGE`-style reference. Either way it
+   stays one module.
+2. Add the fields the table above lists and `settings.py` does not have yet: `auth_secret`,
+   `access_token_expire_minutes`, `database_url`, `cors_origins`, `openai_api_key`,
+   `whisper_url`. (`DEMO_MODE` and the model/runtime fields already exist.)
+3. `main.py`: replace the CORS block with `allow_origins=settings.CORS_ORIGINS`;
    keep `allow_credentials=True`. For the LAN demo, `.env` will list the laptop's
    LAN origin (e.g. `http://192.168.1.42:3000`) — no code change needed.
-3. Move the `load_dotenv()` calls into `config.py` (one place); delete them from
-   `main.py`, `ai_scorer.py`, `ai_detector.py`.
-4. Update `.env.example` documenting every key with a comment.
+4. `settings.py` already calls `load_dotenv()`; delete the remaining calls from `main.py` and
+   anywhere else that still has one.
+5. Update `.env.example` documenting every key with a comment.
 
-**Done when:** app boots reading all config through `settings`; missing
-`ANTHROPIC_API_KEY` fails at startup with a clear pydantic error (not at first
-request); frontend still works; grep for `os.getenv` finds hits only in `config.py`.
+**Done when:** app boots reading all config through `settings`; a missing `ANTHROPIC_API_KEY`
+fails at startup rather than at first request; frontend still works; grep for `os.getenv` finds
+hits only in `settings.py`.
 
-**Gotchas:** import order — `config.py` must not import any router. `cors_origins`
-as a list from env: pydantic-settings parses JSON (`["http://..."]`) or you add a
-comma-split validator; pick one and document it in `.env.example`.
+**Gotchas:** import order — `settings.py` must not import any router (it currently imports
+nothing from the app, keep it that way). `cors_origins` as a list from env: pydantic-settings
+parses JSON (`["http://..."]`) or you add a comma-split validator; pick one and document it in
+`.env.example`.
 
-**Prod note:** in production the same class reads real env vars (no `.env` file);
+**Prod note:** in production the same module reads real env vars (no `.env` file);
 secrets come from the platform's secret store. Nothing changes in code.
 
 ---
 
-## A3 — Centralize the Anthropic client + **migrate the deprecated model** · S/M
+## A3 — The single Claude call path · **done**
 
-**Why (two reasons, one urgent):**
-1. **The pinned model `claude-sonnet-4-20250514` is deprecated and past its
-   published retirement date (2026-06-15).** All four AI modules will 404 when
-   it is switched off, if they don't already.
-2. Four files each build their own client and hardcode the model string in ~6
-   places. One choke point = one-line model swaps forever, plus a clean seam for
-   Phase F (sync→async) and the Ollama-fallback provider interface.
+> **Landed 2026-09-20, and not as specced below.** This task was implemented twice in parallel:
+> `backend/ai_client.py` on this branch, and `backend/settings.py` + `backend/llm.py` on `main`
+> (task FND-01 of [../STAGE2_TASK_BOARD.md](../STAGE2_TASK_BOARD.md)). The merge kept main's and
+> deleted `ai_client.py`. The section is kept for the migration reasoning, which is still the
+> reason the code looks the way it does — but **`backend/llm.py` is the source of truth now.**
 
-**Files:** new `backend/ai_client.py`; edit `ai_scorer.py`, `ai_detector.py`,
-`video_analyzer.py`, `feynman.py` (remove local `_get_client()` + model strings).
+**Why it was urgent:** the pinned model `claude-sonnet-4-20250514` was deprecated and past its
+published retirement date (2026-06-15), and four files each built their own client and hardcoded
+the model string in ~6 places.
 
-**Spec — `backend/ai_client.py`:**
-- `get_client() -> anthropic.Anthropic` — sync singleton (kept until F1 lands).
-- `get_async_client() -> anthropic.AsyncAnthropic` — async singleton (used from F1 on).
-- `MODEL = settings.anthropic_model` and `CHAT_MODEL = settings.anthropic_model_chat or MODEL`.
-- Later (local-models feature) this file grows a minimal provider Protocol; do
-  **not** build that now — this PR is behavior-preserving de-duplication plus
-  the model swap.
+**What shipped:**
 
-**Migration notes for `claude-sonnet-4` → `claude-sonnet-5`** (from Anthropic's
-migration guide — these are the ones that apply to *this* codebase):
-- **Silent default change:** on Sonnet 5, omitting `thinking` runs **adaptive
-  thinking by default** (on Sonnet 4 it ran without thinking). `max_tokens` caps
-  *thinking + text combined*. Our Feynman chat uses `max_tokens=200` — adaptive
-  thinking would eat that budget and truncate Arman's replies. **Action:** pass
-  `thinking={"type": "disabled"}` explicitly on the Feynman chat/quiz calls
-  (fast, cheap, persona work) and leave adaptive thinking on (with a raised
-  `max_tokens`, e.g. 4000) for the scorer/detector/evaluator calls where
-  judgment quality matters.
-- We pass no `temperature`/`top_p`/`top_k` anywhere — good; Sonnet 5 rejects
-  non-default values. Do not add them.
-- No assistant prefills in the codebase — good; they 400 on Sonnet 5.
-- New tokenizer: ~30% more tokens for the same text vs the 4.x family. Raise
-  `max_tokens` headroom on the scorer (2000 → 4000) and re-baseline any cost
-  expectations. Per-token price: $3/$15 per MTok (intro $2/$10 through 2026-08-31).
+- `backend/settings.py` — every model id and runtime knob, from env, with working defaults:
+  `MODEL_JUDGE=claude-opus-5` for rating and scoring, `MODEL_EXTRACT=MODEL_CHAT=claude-sonnet-5`
+  for extraction and persona turns, plus `MAX_CONCURRENT_LLM_CALLS`, timeouts, retries and
+  `MODEL_FOR_LOW_RESOURCE` (Kazakh and code-switched text never routes to a small model).
+- `backend/llm.py` — two entry points and nothing else:
+  `await llm.complete_json(prompt, schema, system=..., model=...) -> dict` and
+  `await llm.complete_chat(messages, system=..., model=...) -> str`. Async (`AsyncAnthropic`),
+  capped by a shared `asyncio.Semaphore`, JSON constrained by the API rather than parsed out of
+  markdown fences, and applicant text wrapped by `llm.wrap_document(text, source, doc_id)`.
+- `ai_scorer.py`, `ai_detector.py`, `video_analyzer.py`, `feynman.py` — no clients, no model
+  strings, no fence stripping. Each owns a `*_SCHEMA` dict instead of a parser.
+- `anthropic>=1.7,<2` in `backend/requirements.txt`.
 
-**Also in this PR (small, high value):** the model change is a natural moment to
-note (not necessarily implement) that all four modules hand-strip markdown fences
-and `json.loads` the reply. Anthropic now has **structured outputs**
-(`output_config={"format": {"type": "json_schema", "schema": ...}}` or
-`client.messages.parse(..., output_format=PydanticModel)`) which guarantees
-schema-valid JSON and deletes that whole fragile parsing layer. Spec the switch
-as its own follow-up PR ("A3b — structured outputs") touching `_parse_ai_response`,
-`_parse_detection_response`, the quiz parser, and the Feynman scorer parser. This
-directly de-risks the live demo (JSON-parse crashes are the #1 way LLM demos die).
+So this one module also closed the A3b structured-outputs follow-up, **F1** (async — see
+[phase-f-async.md](phase-f-async.md)) and **FND-06** (prompt-injection firewall).
 
-**Done when:** exactly one module constructs clients and names models;
-`grep -r "claude-sonnet-4" backend/` returns zero hits outside `config.py`
-defaults/`.env.example`; a manual `POST /api/scoring/ai/c-001` succeeds on the
-new model; Feynman chat replies are not truncated.
+**The two `thinking` decisions, which still apply** (they are the reason `complete_chat` looks
+different from `complete_json`):
 
-**Gotchas:** keep the PR reviewable — client dedup + model swap + the two
-`thinking` decisions. Structured outputs go in the follow-up PR, not this one.
+- On Sonnet 5 and Opus 5, omitting `thinking` runs **adaptive thinking by default**, and
+  `max_tokens` caps *thinking + text combined*. A persona turn capped at `MAX_TOKENS_CHAT=400`
+  can therefore spend its whole budget on reasoning and come back with **no text block at all**,
+  at which point `_text_of` raises. `complete_chat` passes `thinking={"type": "disabled"}` for
+  exactly this reason — do not remove it without raising the budget.
+- Judgement calls keep adaptive thinking on and pay for it with `MAX_TOKENS_JSON=4096`.
+
+**Still true, do not undo:** we pass no `temperature`/`top_p`/`top_k` anywhere (Sonnet 5 and
+Opus 5 reject non-default values) and there are no assistant prefills (they 400).
+
+**Not done, and now the open half of this task:** `EFFORT_JUDGE` / `EFFORT_EXTRACT` in
+`settings.py` default to empty, so no `effort` is sent at all. They were left unverified against a
+funded key. Pick levels deliberately — `high` is the API default when the parameter is omitted, so
+the current behavior is "high everywhere", which is not obviously what a 16-candidate cohort run
+wants paying Opus rates.
 
 ---
 

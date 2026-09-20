@@ -2,7 +2,12 @@
 
 > The safety net. Lands right after Phase A so every later PR (persistence,
 > auth, async, prompt changes) ships with tests. Total effort: ~1–2 days.
-> Prerequisites: A2 (config), A3 (central AI client — the thing we mock).
+> Prerequisites: A2 (config), A3 (the single call path — the thing we mock; **done**).
+>
+> **Status 2026-09-20: B1 is partly done, B2 (CI) is not started.** `tests/` holds 17 offline
+> tests and a `pytest.ini`, merged from `main`. They came from the FND-01/03 work and cover the
+> call contract and the AI scorer — not the routers. The gap list is under "What already
+> exists" below; **CI is the more valuable half and nobody has touched it.**
 
 ---
 
@@ -14,26 +19,42 @@ only by clicking through the UI. Tests with a **mocked Claude client** make
 those changes safe, free, and deterministic.
 
 **New concepts:**
-- `pytest` — test runner; auto-discovers `backend/tests/test_*.py`. Like `go test`.
+- `pytest` — test runner; auto-discovers `tests/test_*.py` (repo root, not `backend/tests/` —
+  that is where they landed, and `pytest.ini` points `testpaths` there). Like `go test`.
 - `fastapi.testclient.TestClient` — calls the app **in-process** (no server, no
   port). Like `httptest`.
 - `conftest.py` — shared fixtures file, auto-loaded. Fixtures are pytest's DI:
   a test that declares a `client` parameter receives the object built by the
   `client` fixture.
-- `monkeypatch` — pytest's built-in for swapping attributes for one test. After
-  A3 there is exactly one place to patch: `backend.ai_client.get_client` /
-  `get_async_client`.
+- `monkeypatch` — pytest's built-in for swapping attributes for one test. After A3 there is
+  exactly one place to patch, and it is **not** the client: stub the two functions in
+  `backend.llm`. The existing tests do
+  `monkeypatch.setattr(llm, "complete_json", fake)` where `fake` is an `async def` returning a
+  plain dict — no fake client object, no fake response blocks, because structured outputs mean
+  `complete_json` hands back a parsed dict. Patch `llm.complete_chat` the same way for Feynman.
 
-**Files:** new `backend/tests/__init__.py`, `conftest.py`,
-`test_candidates.py`, `test_scoring_baseline.py`, `test_auth.py`,
-`test_ai_mocked.py`; new `requirements-dev.txt` (`pytest`, `httpx`).
+## What already exists (read before writing any of this)
+
+| File | Covers |
+|---|---|
+| `pytest.ini` | `testpaths = tests`, `asyncio_mode = auto` (so `async def` tests need no decorator) |
+| `tests/test_llm_contract.py` | Model ids come from `settings`; the retired id cannot reappear; low-resource routing avoids small models; `_assert_strict_schema` rejects open objects, optional properties and bad nested arrays; every shipped `*_SCHEMA` survives it; `_text_of` finds text past a thinking block and raises when there is none; `wrap_document` attributes and marks empty artifacts; the Feynman quiz reads only the candidate's own words |
+| `tests/test_scoring_pipeline.py` | `compute_ai_score` with `llm.complete_json` stubbed: shape, clamping, committee weights, recommendation vocabulary |
+
+**Still missing, in value order:** the routers (`test_candidates.py`, `test_auth.py`), the
+baseline scorer's determinism, `complete_chat` behavior for Feynman, and **B2 — CI**. Add
+`requirements-dev.txt` (`pytest`, `pytest-asyncio`, `httpx`) while you are there; the test deps
+are currently installed by hand and pinned nowhere.
+
+**Files:** new `tests/conftest.py`, `tests/test_candidates.py`,
+`tests/test_scoring_baseline.py`, `tests/test_auth.py`; new `requirements-dev.txt`.
 
 **Spec — `conftest.py` fixtures:**
 
 | Fixture | Provides |
 |---|---|
 | `client` | `TestClient(app)` with a dummy `ANTHROPIC_API_KEY` env so imports don't fail |
-| `mock_anthropic` | a fake client object whose `messages.create(...)` returns a canned response object (`.content[0].text` = fixture JSON); installed via `monkeypatch` on `backend.ai_client` |
+| `mock_llm` | `monkeypatch.setattr(backend.llm, "complete_json", ...)` with an `async def` returning a fixture **dict** (not a JSON string, not a fake response object) — and the same for `complete_chat` returning a string |
 | canned fixtures | one valid JSON string per parser: scorer response (5 dimensions), detection response, Feynman quiz, Feynman evaluation — stored under `backend/tests/fixtures/` so prompt-format changes update one file |
 
 **Test list (initial):**
@@ -47,10 +68,10 @@ those changes safe, free, and deterministic.
 | `test_baseline_weights` | custom weights change `overall_score` as expected |
 | `test_register_login_me` | register → login → `/me` happy path; wrong password → 401 |
 | `test_ai_score_mocked` | with `mock_anthropic`, `POST /api/scoring/ai/c-001` returns parsed dimensions from the fixture; **no network** |
-| `test_ai_parse_garbage` | mock returns non-JSON → endpoint returns 500 with a clear detail, not a stack trace (documents current behavior; structured outputs will change this) |
+| ~~`test_ai_parse_garbage`~~ | **Drop this one.** It documented the hand-rolled fence-stripping, which no longer exists — the API enforces the schema. The useful replacement: `complete_json` raising (timeout, refusal) must leave the candidate *out* of `/ai/all` rather than cached as a zero, which is what `routers/scoring.py` now does. |
 
-**Done when:** `pytest` green locally in <10s; disconnecting from the internet
-changes nothing (proof no real API calls); the create-candidate test does not
+**Done when:** `pytest` green locally in <10s (currently ~3s for 17 tests); disconnecting from
+the internet changes nothing (proof no real API calls); the create-candidate test does not
 permanently mutate `backend/data/candidates.json`.
 
 **Gotchas:**

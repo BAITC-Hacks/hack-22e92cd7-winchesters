@@ -3,6 +3,11 @@
 > Highest value-per-hour in the whole plan, and a **hard prerequisite for Arman
 > Live judge mode** (many concurrent chat sessions). Independent of D/E — do it
 > right after Phase A.
+>
+> **Status 2026-09-20: F1 and F2 are done**, delivered by `backend/llm.py` as part of the
+> FND-01/02 work rather than as their own PR. F3 (background jobs) is untouched and is now the
+> whole of this phase. Read the two sections anyway — the *done-when* proofs were never run, and
+> the streaming note at the bottom still shapes Arman Live.
 > Prerequisite reading: the asyncio row of the Go-dev primer in
 > [../backend-plan.md](../backend-plan.md).
 
@@ -16,68 +21,62 @@ freeze the loop, but they still burn one threadpool worker per in-flight call.
 
 ---
 
-## F1 — AsyncAnthropic in the async paths · S
+## F1 — AsyncAnthropic in the async paths · **done**
 
-**Files:** `backend/ai_client.py` (A3 already exposes `get_async_client()`),
-`backend/scoring/ai_scorer.py`, `backend/scoring/ai_detector.py`,
-`backend/scoring/video_analyzer.py`.
+**Shipped as:** `backend/llm.py` constructs one module-level `AsyncAnthropic` with
+`max_retries=LLM_MAX_RETRIES` and `timeout=LLM_TIMEOUT_SECONDS` from `settings.py`, and every
+call site awaits `llm.complete_json` / `llm.complete_chat`. `ai_scorer.py`, `ai_detector.py` and
+`video_analyzer.py` no longer touch a client, and `feynman.py`'s start/chat/finish became
+`async def` in the same change — which is what judge mode needs, since N concurrent chats cost
+~nothing on the event loop versus one threadpool worker each.
 
-**Spec:**
-- In each of the three async functions, take the client from
-  `get_async_client()` and `await client.messages.create(...)`. Everything else
-  in those functions (prompt building, parsing) is CPU-trivial and stays as-is.
-- Keep SDK defaults for retries (2, with backoff on 429/5xx) — do **not**
-  hand-roll retry loops. Set an explicit per-call `timeout` (e.g.
-  `client.with_options(timeout=60.0)`) so a hung request can't pin a coroutine
-  forever.
-- Once D lands, DB reads/writes inside these async endpoints wrap the sync
-  session call: `await run_in_threadpool(save_score, db, score)`
-  (`fastapi.concurrency.run_in_threadpool`) — a sync DB call directly in
-  `async def` would re-introduce the freeze, just shorter.
+**Still to honor when D lands:** DB reads/writes inside these async endpoints must wrap the sync
+session call — `await run_in_threadpool(save_score, db, score)`
+(`fastapi.concurrency.run_in_threadpool`). A sync DB call directly in `async def` re-introduces
+the freeze, just shorter.
 
-**Convert Feynman deliberately in the same PR:** `feynman.py`'s start/chat/
-finish become `async def` + `await` on the async client. Rationale: judge mode
-needs N concurrent chats; on the event loop they cost ~nothing while awaiting,
-versus one threadpool worker each (default pool ≈ 40) as sync `def`.
+**Done when — and this was never actually proved, so do it:** start an AI scoring call, then
+immediately `GET /api/candidates/` from a second terminal; the second request should return
+instantly instead of queuing behind the first. Write it as a test: `asyncio.gather` a stubbed
+slow `llm.complete_json` (sleeps 1s via `asyncio.sleep`) and a candidates request, assert the
+candidates request finishes first. That test does not exist yet — it belongs in Phase B's gap
+list.
 
-**Done when (the proof matters):** start an AI scoring call, then immediately
-`GET /api/candidates/` from a second terminal — the second request returns
-instantly instead of queuing behind the first. Write this as a test:
-`asyncio.gather` a mocked slow AI call (mock sleeps 1s via `asyncio.sleep`) and
-a candidates request; assert the candidates request completes first.
-
-**Gotchas:** never mix — `await` only inside `async def`; a `def` endpoint
-can't await. Grep for any remaining `get_client()` (sync) users after this PR;
-the sync client should have zero call sites left (delete it, or keep it only
-for the seed/CLI scripts).
+**Gotchas:** never mix — `await` only inside `async def`; a `def` endpoint can't await. There is
+no sync client left anywhere; keep it that way.
 
 ---
 
-## F2 — Parallel batch scoring · S
+## F2 — Parallel batch scoring · **done**
 
-**Why:** `/api/scoring/ai/all` loops candidates one at a time — 16 candidates
-× ~5s = ~80s wall-clock and a guaranteed HTTP timeout behind any proxy. With F1
-done, run them concurrently with a cap.
+**Why:** `/api/scoring/ai/all` looped candidates one at a time — 16 candidates
+× ~5s = ~80s wall-clock and a guaranteed HTTP timeout behind any proxy.
 
 **New concepts:** `asyncio.gather(*tasks)` ≈ launching goroutines + WaitGroup;
 `asyncio.Semaphore(n)` ≈ a buffered channel used as a concurrency limiter.
 
-**Spec (in `scoring.py`):**
-- Wrap `compute_ai_score(c)` in `async def _bounded(c)` that acquires a
-  `Semaphore(4)` (tune to the org's Anthropic rate-limit tier; 4 is safe to start).
-- `results = await asyncio.gather(*[_bounded(c) for c in candidates], return_exceptions=True)`.
-- Keep the existing per-candidate failure behavior: an exception becomes the
-  "Scoring failed" placeholder score, and one failure must not sink the batch
-  (`return_exceptions=True` does exactly this).
-- Persist results (post-D) with `run_in_threadpool`.
+**Shipped as:** `routers/scoring.py` does
+`asyncio.gather(*(compute_ai_score(c, weights) for c in candidates), return_exceptions=True)`.
+The concurrency cap lives one level down, in `llm._limiter` — a single
+`asyncio.Semaphore(MAX_CONCURRENT_LLM_CALLS)` (default 4) shared by *every* call path, so
+detection and video analysis count against the same budget as scoring rather than each router
+enforcing its own.
 
-**Done when:** scoring 16 candidates takes ~⌈16/4⌉ × single-call time instead of
-16×; a mocked 429 on one candidate yields 15 real scores + 1 failure record.
+**One deliberate behavior change from the spec above.** The plan said to keep the "Scoring
+failed" placeholder score. The implementation **drops** the failed candidate instead, and logs
+it. The reason is worth remembering: the placeholder had `overall_score=0`, which sorts to the
+bottom of the ranking — so an API timeout was indistinguishable from a weak application, on the
+committee's screen. Silence is the safer failure here. The cost is that the caller cannot tell
+16-scored-fine from 12-scored-and-4-timed-out; when Phase D lands, that belongs in a run record,
+not a fake score.
 
-**Gotchas:** the semaphore must be created inside the running loop (module-level
-creation is fine on Python 3.12 but create-per-request is simplest); watch
-Anthropic 429s in logs and lower the cap if they appear — the SDK retries them,
-but retries burn latency.
+**Done when — not yet proved:** scoring 16 candidates takes ~⌈16/4⌉ × single-call time instead
+of 16×; a mocked 429 on one candidate yields 15 scores and one logged failure.
+
+**Gotchas:** watch Anthropic 429s in logs and lower `MAX_CONCURRENT_LLM_CALLS` if they appear —
+the SDK retries them, but retries burn latency. The semaphore is created at import time, which is
+fine on Python 3.12+; if the module is ever imported before the loop exists, this is the first
+thing to check.
 
 ---
 
@@ -113,6 +112,8 @@ while one runs either queues or 409s (pick one, document it).
 required for F1/F2 correctness, but Arman Live's voice mode wants
 time-to-first-word, and the SSE endpoint spec lives in
 [feature-arman-live.md](feature-arman-live.md#al6--streaming-replies-stretch).
-Keep F1's code shaped so the chat call site can switch from
-`await client.messages.create` to `client.messages.stream` without touching the
-rest (i.e., isolate the "call Claude, get text" step in one helper).
+That helper now exists: `llm.complete_chat` is the single "call Claude, get text" step, so the
+switch to `client.messages.stream` is one function body and no call-site changes. Note that
+`complete_chat` passes `thinking={"type": "disabled"}` — see
+[phase-a-foundations.md](phase-a-foundations.md#a3--the-single-claude-call-path--done) for why,
+and keep it when adding streaming.

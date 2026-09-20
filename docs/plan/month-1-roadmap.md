@@ -16,19 +16,24 @@ those weeks**. So feature scope must be planned against two weeks, not four. The
 ## Week-by-week
 
 ### Week 1 — stop the bleeding, prove the claim
-- **Commit the uncommitted model migration as its own PR, today.** It is the most valuable change in
-  the repo and it currently lives only in a working tree.
+- ~~Commit the uncommitted model migration as its own PR, today.~~ **Done 2026-09-20** — landed
+  as `backend/settings.py` + `backend/llm.py` from `main`, which also took the async fix and
+  parallel batch scoring listed under Week 2 with it. See
+  [phase-a-foundations.md § A3](phase-a-foundations.md#a3--the-single-claude-call-path--done).
 - `.gitattributes`, `.dockerignore`, notebook deps split out of `requirements.txt`, `/healthz` + `/readyz`.
 - Typed settings object (Phase A2) + CORS fix — prerequisite for compose env handling.
 - `docker compose` up to and including the `backend` service.
-- GitHub Actions: lint / test-with-mocked-Claude / docker build.
+- GitHub Actions: lint / test-with-mocked-Claude / docker build. **The 17 tests now in `tests/`
+  make this cheap and it is still not done — highest-value item left in Week 1.**
 - **Compute the pitch number** (see risk 1). Before any feature work.
 - Persistence PR 1: schema + candidates off the JSON file.
 
 ### Week 2 — make it a system
 - Persistence PRs 2–4: scores, detection/video results, Feynman sessions, users. Every module-global
   dict deleted. (This is what unlocks `--workers > 1`.)
-- Async fix (three call sites) + parallel batch scoring.
+- ~~Async fix (three call sites) + parallel batch scoring.~~ **Done** — arrived early, with the
+  model migration. The unproved part is the concurrency test; see
+  [phase-f-async.md](phase-f-async.md).
 - Auth hardening: bcrypt, JWT with expiry, DB-backed users, **role gating on committee endpoints**,
   re-enable the frontend guard.
 - Frontend: same-origin `/api` proxy, OpenAPI type generation, split the two biggest monoliths.

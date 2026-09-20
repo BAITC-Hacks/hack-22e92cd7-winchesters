@@ -103,12 +103,13 @@ capable" slide* — never a quality path. If venue Wi-Fi or the Anthropic API
 dies mid-demo, flip an env var and the Feynman chat limps along locally.
 
 **Spec:**
-- `backend/ai_client.py` grows a minimal seam: `async complete(system, messages,
-  max_tokens) -> str` with two implementations — Anthropic (default) and Ollama
-  (`qwen2.5:7b-instruct` via Ollama's HTTP API). Selected by
-  `settings.ai_provider`. **Only the Feynman chat call goes through the seam**;
-  scorer/detector/letters stay Anthropic-only (fail loudly rather than silently
-  degrade judgment quality).
+- The seam goes in `backend/llm.py`, and `complete_chat(messages, system, model)` is already
+  shaped like it — give it two implementations, Anthropic (default) and Ollama
+  (`qwen2.5:7b-instruct` via Ollama's HTTP API), selected by a new `settings.AI_PROVIDER`.
+  **Only `complete_chat` gets the seam**; `complete_json` stays Anthropic-only, because a local
+  model cannot honor the structured-output schema the scorer, detector and letters depend on —
+  and we want those to fail loudly rather than silently degrade judgment quality. That split
+  falls out of the existing two-function API for free.
 - Compose: `ollama` service under a **profile** (`--profile fallback`) so it
   never runs by default; model pulled at image build or documented one-time
   `ollama pull`.
