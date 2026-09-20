@@ -10,13 +10,15 @@ To enable real Whisper: add OPENAI_API_KEY to .env
 
 from __future__ import annotations
 
-import json
+import logging
 import os
 
-from backend.ai_client import MODEL, get_client, text_of
+from backend import llm, settings
 from backend.models import Candidate, VideoAnalysisResult
 from backend.privacy import anonymize_candidate
 from backend.scoring.ai_detector import detect_language
+
+logger = logging.getLogger(__name__)
 
 _openai_client = None
 
@@ -92,24 +94,11 @@ advantages. That's what drives me. Thank you.
 VIDEO_ANALYSIS_PROMPT = """You are analyzing a university admissions video presentation transcript.
 The candidate submitted both a written essay and a video presentation.
 
-ESSAY TEXT:
-{essay_text}
+{essay_document}
 
-VIDEO TRANSCRIPT:
-{video_transcript}
+{video_document}
 
-Analyze the video transcript and compare it with the essay. Return your analysis as JSON:
-
-{{
-  "authenticity_match": <0-100, how well the video voice matches the essay voice.
-    High = consistent personality and vocabulary across both.
-    Low = essay sounds AI-generated but video sounds natural, or vice versa>,
-  "motivation_score": <0-100, how genuine and driven the candidate appears based on video>,
-  "key_themes": ["<theme 1>", "<theme 2>", ...],
-  "growth_signals": ["<specific growth signal from video>", ...],
-  "concerns": ["<concern if any>", ...],
-  "summary": "<2-3 sentence assessment of the candidate based on their video>"
-}}
+Compare the video transcript with the essay.
 
 Key things to evaluate:
 - Does the speaking style match the writing style? (vocabulary level, sentence complexity)
@@ -117,7 +106,38 @@ Key things to evaluate:
 - Are there signs of genuine motivation, or does it sound rehearsed/generic?
 - Does the video reveal anything the essay doesn't?
 
-Return ONLY valid JSON, no markdown fences."""
+Score authenticity_match from 0 to 100: high means a consistent personality and
+vocabulary across both sources; low means the two voices do not look like the
+same person.
+
+Score motivation_score from 0 to 100 based on what the candidate says about why
+they want this, not on how fluent or polished the delivery is.
+
+A transcript of speech is disfluent by nature, and a transcript of Kazakh speech
+carries a high error rate from the transcription system itself. Never read
+hesitation, repetition, grammatical slips or garbled words as a signal about the
+candidate. Raise a concern only for something the candidate actually said."""
+
+VIDEO_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": [
+        "authenticity_match",
+        "motivation_score",
+        "key_themes",
+        "growth_signals",
+        "concerns",
+        "summary",
+    ],
+    "properties": {
+        "authenticity_match": {"type": "number"},
+        "motivation_score": {"type": "number"},
+        "key_themes": {"type": "array", "items": {"type": "string"}},
+        "growth_signals": {"type": "array", "items": {"type": "string"}},
+        "concerns": {"type": "array", "items": {"type": "string"}},
+        "summary": {"type": "string"},
+    },
+}
 
 
 async def analyze_video(candidate: Candidate) -> VideoAnalysisResult:
@@ -148,44 +168,37 @@ async def analyze_video(candidate: Candidate) -> VideoAnalysisResult:
     # Detect language
     lang = detect_language(transcript)
 
-    # Run Claude analysis
-    client = get_client()
     prompt = VIDEO_ANALYSIS_PROMPT.format(
-        essay_text=safe.essay.text,
-        video_transcript=transcript,
+        essay_document=llm.wrap_document(safe.essay.text, "essay", safe.id),
+        video_document=llm.wrap_document(transcript, "video_transcript", safe.id),
     )
+    model = settings.MODEL_FOR_LOW_RESOURCE if lang != "english" else settings.MODEL_EXTRACT
 
     try:
-        # max_tokens covers adaptive thinking + the JSON answer on this model
-        response = client.messages.create(
-            model=MODEL,
-            max_tokens=2000,
-            messages=[{"role": "user", "content": prompt}],
+        payload = await llm.complete_json(
+            prompt=prompt,
+            schema=VIDEO_SCHEMA,
+            model=model,
         )
-
-        raw = text_of(response).strip()
-        if raw.startswith("```"):
-            raw = raw.split("\n", 1)[1]
-        if raw.endswith("```"):
-            raw = raw.rsplit("```", 1)[0]
-
-        data = json.loads(raw.strip())
-
+    except Exception:
+        # Log the cause here; the caller gets a result that is plainly marked as
+        # having no analysis rather than a zero that ranks like a real score.
+        logger.exception("video analysis failed for %s", candidate.id)
         return VideoAnalysisResult(
             transcript=transcript,
             language_detected=lang,
-            authenticity_match=data.get("authenticity_match", 0),
-            motivation_score=data.get("motivation_score", 0),
-            key_themes=data.get("key_themes", []),
-            growth_signals=data.get("growth_signals", []),
-            concerns=data.get("concerns", []),
-            summary=data.get("summary", ""),
+            summary="Analysis unavailable — the transcript was not assessed.",
             is_mock=is_mock,
         )
-    except Exception as e:
-        return VideoAnalysisResult(
-            transcript=transcript,
-            language_detected=lang,
-            summary=f"Analysis failed: {str(e)}",
-            is_mock=is_mock,
-        )
+
+    return VideoAnalysisResult(
+        transcript=transcript,
+        language_detected=lang,
+        authenticity_match=max(0.0, min(float(payload["authenticity_match"]), 100.0)),
+        motivation_score=max(0.0, min(float(payload["motivation_score"]), 100.0)),
+        key_themes=payload["key_themes"],
+        growth_signals=payload["growth_signals"],
+        concerns=payload["concerns"],
+        summary=payload["summary"],
+        is_mock=is_mock,
+    )

@@ -1,0 +1,278 @@
+<title>AI Leader ID Board</title>
+<meta name="description" content="Stage 2 task board for the InVision U hackathon team: workstreams, weeks, dependencies, ranked priorities.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --bg:#f1f0ec; --surface:#ffffff; --surface-2:#e9e8e3; --ink:#141414; --ink-2:#4a4a46; --ink-3:#7a7a74;
+    --line:#d6d5cf; --accent:#141414; --accent-ink:#c1f11d; --lime:#c1f11d; --lime-ink:#141414; --lime-soft:#e6f7b3;
+    --ok:#2f7d4f; --ok-soft:#dff1e5; --warn:#a2621b; --warn-soft:#f8e7cf; --crit:#a83232; --crit-soft:#f6dcdc;
+    --role-ink:#ffffff; --prio-ink:#141414;
+    --shadow:0 1px 2px rgba(20,20,20,.06),0 8px 24px rgba(20,20,20,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#141414; --surface:#1e1e1c; --surface-2:#282826; --ink:#f3f2ee; --ink-2:#c8c7c1; --ink-3:#8f8e88;
+      --line:#34342f; --accent:#c1f11d; --accent-ink:#141414; --lime-soft:#33401a;
+      --ok:#7fd39b; --ok-soft:#1f3a2a; --warn:#e8a860; --warn-soft:#3c2e1a; --crit:#f08b8b; --crit-soft:#3d2222;
+      --role-ink:#141414; --prio-ink:#c1f11d;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#141414; --surface:#1e1e1c; --surface-2:#282826; --ink:#f3f2ee; --ink-2:#c8c7c1; --ink-3:#8f8e88;
+    --line:#34342f; --accent:#c1f11d; --accent-ink:#141414; --lime-soft:#33401a;
+    --ok:#7fd39b; --ok-soft:#1f3a2a; --warn:#e8a860; --warn-soft:#3c2e1a; --crit:#f08b8b; --crit-soft:#3d2222;
+    --role-ink:#141414; --prio-ink:#c1f11d;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Instrument Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:15px;line-height:1.5;padding-inline:clamp(16px,4vw,48px);padding-block:0 64px}
+  h1,h2,h3{font-family:"Bricolage Grotesque","Instrument Sans",system-ui,sans-serif;text-wrap:balance;margin:0}
+  .mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86em}
+  .wrap{max-width:1180px;margin:0 auto}
+  header.top{display:flex;flex-wrap:wrap;gap:16px 32px;align-items:flex-end;justify-content:space-between;padding-block:28px 20px;border-bottom:1px solid var(--line)}
+  .eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+  h1{font-size:clamp(28px,4vw,44px);font-weight:700;line-height:1.05;margin-top:6px}
+  .dates{display:flex;gap:10px;flex-wrap:wrap}
+  .date{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:13px;color:var(--ink-2)}
+  .date b{display:block;color:var(--ink);font-size:14px}
+  .thesis{margin:20px 0 0;padding:18px 20px;background:var(--accent);color:var(--accent-ink);border-radius:14px;font-size:15.5px;line-height:1.55}
+  .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:20px}
+  .tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow);border-top:4px solid var(--wsc);cursor:pointer;text-align:left;font:inherit;color:inherit}
+  .tile[aria-pressed="true"]{outline:2px solid var(--wsc);outline-offset:1px}
+  .tile .k{font-size:12px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+  .tile .n{font-weight:600;font-size:14px;margin-top:2px;line-height:1.3}
+  .tile .v{font-family:"Bricolage Grotesque",sans-serif;font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:4px}
+  .tile .v small{font-size:13px;color:var(--ink-3);font-weight:500;font-family:"Instrument Sans",sans-serif}
+  .bar{height:6px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin-top:10px}
+  .bar i{display:block;height:100%;background:var(--wsc);border-radius:99px;transition:width .3s}
+  section{margin-top:36px}
+  h2{font-size:22px;font-weight:700;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+  h2 .sub{font-family:"Instrument Sans",sans-serif;font-size:14px;color:var(--ink-3);font-weight:500}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0;align-items:center}
+  .controls+.controls{margin-top:8px}
+  .chip{border:1px solid var(--line);background:var(--surface);color:var(--ink-2);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:7px;font-family:inherit}
+  .chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  .chip:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
+  .spacer{flex:1}
+  .toggle{font-size:13px;color:var(--ink-2);display:inline-flex;align-items:center;gap:6px}
+  .lbl{font-size:12px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-right:4px}
+  .group{margin-top:22px}
+  .group-h{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding:8px 0;border-bottom:2px solid var(--gc,var(--ink));margin-bottom:12px}
+  .group-h h3{font-size:17px;font-weight:700}
+  .group-h .when{font-size:13px;color:var(--ink-3)}
+  .group-h .cnt{margin-left:auto;font-size:13px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+  .blurb{font-size:13.5px;color:var(--ink-2);margin:-6px 0 12px}
+  .subh{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:600;margin:14px 0 8px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+  .task{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px 12px 12px;display:grid;grid-template-columns:22px 1fr;gap:10px;border-left:4px solid var(--wsc)}
+  .task.done{opacity:.55}
+  .task.done .t{text-decoration:line-through}
+  .task input[type=checkbox]{width:18px;height:18px;margin:3px 0 0;accent-color:var(--lime);cursor:pointer}
+  .task .t{font-weight:600;font-size:14.5px;line-height:1.35;cursor:pointer}
+  .task .d{color:var(--ink-2);font-size:13.5px;margin-top:4px}
+  .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}
+  .tag{font-size:11.5px;padding:2px 8px;border-radius:6px;background:var(--surface-2);color:var(--ink-2);font-weight:500;white-space:nowrap}
+  .tag.ws{background:var(--wsc);color:var(--role-ink)}
+  .tag.eff-S{background:var(--ok-soft);color:var(--ok)} .tag.eff-M{background:var(--warn-soft);color:var(--warn)} .tag.eff-L{background:var(--crit-soft);color:var(--crit)}
+  .tag.prio{background:var(--lime-soft);color:var(--prio-ink)}
+  .deps{font-size:12px;color:var(--ink-3);margin-top:6px}
+  .empty{color:var(--ink-3);font-size:14px;padding:12px 0}
+  .prio-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-top:14px}
+  .prio{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:start}
+  .prio .n{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:22px;color:var(--ink-3);font-variant-numeric:tabular-nums;line-height:1.1}
+  .prio .t{font-weight:600;font-size:14.5px}
+  .prio .w{font-size:13px;color:var(--ink-2);margin-top:3px}
+  .prio .pts{font-size:12px;color:var(--ink-3);margin-top:4px}
+  .stop{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px 18px;margin-top:12px;padding-left:18px;color:var(--ink-2);font-size:14px}
+  .rules{margin-top:12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+  .rule{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:14px;color:var(--ink-2)}
+  .rule b{color:var(--ink)}
+  footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-3)}
+  .note{font-size:13px;color:var(--ink-3);margin-top:10px}
+  @media (max-width:640px){ .task{grid-template-columns:20px 1fr} .group-h .cnt{margin-left:0} }
+  @media (prefers-reduced-motion: reduce){ .bar i{transition:none} }
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div>
+    <div class="eyebrow">InVision U · GovTech Camp · Stage 2</div>
+    <h1>AI Leader ID Board</h1>
+  </div>
+  <div class="dates">
+    <div class="date">Today<b>Sat, Sep 20, 2026</b></div>
+    <div class="date">Demo Day<b>Oct 1–3</b></div>
+    <div class="date">Stage 2<b>Oct 5 – Nov 10</b></div>
+    <div class="date">Final<b>Nov 10</b></div>
+  </div>
+</header>
+
+<p class="thesis"><strong>The thesis for Stage 2:</strong> stop being a scorer and become the evidence layer of inVision U's own methodology (9 competencies, ATOLA, BARS). One Evidence Ledger, competency × indicator × BARS level × verbatim quote, rendered as a committee card before the interview, a one-page interviewer brief inside it, and a growth map for the candidate after it. Bias exclusion is something a committee member proves by pressing a button. Full reasoning and research: <span class="mono">docs/STAGE2_IMPROVEMENT_PLAN.md</span>; the same board as text: <span class="mono">docs/STAGE2_TASK_BOARD.md</span>. Section numbers on each task point into the plan.</p>
+
+<div class="summary" id="summary"></div>
+<p class="note">Tasks are grouped by <strong>workstream</strong>, not by person: both developers are fullstack and pick from any stream; the designer covers UX/UI and graphic work. Click a tile to filter by that stream. Checked-off tasks are remembered in your own browser only.</p>
+
+<section>
+  <h2>Tasks <span class="sub" id="filter-sub"></span></h2>
+  <div class="controls" id="role-controls" role="group" aria-label="Filter by role"><span class="lbl">Role</span></div>
+  <div class="controls" id="phase-controls" role="group" aria-label="Filter by week"><span class="lbl">Week</span></div>
+  <div class="controls">
+    <span class="lbl">Group by</span>
+    <button class="chip" type="button" id="g-ws">Workstream</button>
+    <button class="chip" type="button" id="g-ph">Week</button>
+    <label class="toggle" style="margin-left:8px"><input type="checkbox" id="hide-done"> Hide completed</label>
+    <label class="toggle"><input type="checkbox" id="only-prio"> Only demo-critical</label>
+    <span class="spacer"></span>
+    <button class="chip" id="reset" type="button">Reset my progress</button>
+  </div>
+  <div id="board"></div>
+</section>
+
+<section>
+  <h2>Priorities <span class="sub">three-voter ranking: hackathon judge · methodology owner · engineering lead (Borda points out of 45)</span></h2>
+  <div class="prio-list" id="prio"></div>
+</section>
+
+<section>
+  <h2>Rules that bind every task</h2>
+  <div class="rules">
+    <div class="rule"><b>No demographics in any score path.</b> School type, region, language label, income proxy, name, fluency and timing features live only in the protected-attributes table for audits.</div>
+    <div class="rule"><b>Every level decomposes into verified quotes.</b> A quote that is not a literal substring of the source is dropped. "No evidence" is a state, never "weak".</div>
+    <div class="rule"><b>One candidate per model call, absolute rubric.</b> Never ask the model to compare or rank two people. Ranking is computed from levels.</div>
+    <div class="rule"><b>Competencies 8 and 9 (purpose-driven, wounded leadership) get flags, never an AI level.</b> The form never asks about trauma.</div>
+    <div class="rule"><b>Weights, cut-offs, bands are the client's.</b> Displayed as "owned by inVision U / Talent Craft", versioned, signed. Overrides append, never overwrite.</div>
+    <div class="rule"><b>Nothing candidate-facing ships without the leak guard and a committee release gate.</b> No level names, no test items, no comparisons, competency 9 suppressed.</div>
+    <div class="rule"><b>Kazakh first.</b> Rubric in English, candidate text native, strongest model for kk/mixed, written presentation is the canonical input, ASR only for quotes. Never Whisper for Kazakh.</div>
+    <div class="rule"><b>Demo from cached results.</b> Anything live on stage has a cached fallback. Scenario Lab is unweighted and labeled "observed in simulation".</div>
+  </div>
+</section>
+
+<section>
+  <h2>Stop doing <span class="sub">delete, don't tune</span></h2>
+  <ol class="stop">
+    <li>English-only keyword banks and role-name matching</li>
+    <li>School-advantage table, adversity decrement, growth delta, GPA dimension, length scores</li>
+    <li>The AI-text "authenticity score" and every "possibly AI-generated" label</li>
+    <li>Character-frequency language detection as a gate</li>
+    <li>Any scoring that depends on a Kazakh ASR transcript; Whisper for Kazakh</li>
+    <li>Filler ratios, word length, hapax, speech rate, pauses as score inputs</li>
+    <li>Haiku-class models for Kazakh or mixed text</li>
+    <li>Fairness audit grouped by recommendation category</li>
+    <li>Recording "weak" when nothing was found; scoring a mock transcript; ranking a failed run as 0</li>
+    <li>Overwriting an AI score on override</li>
+  </ol>
+</section>
+
+<footer>Built from the Stage 2 improvement plan on Sep 20, 2026. Excluded by all reviewers: facial or emotion analysis, voice-stress or fluency scoring, social-media scraping, third-party reference forms for minors, per-language score calibration, a rejection-explaining chatbot, rewriting candidate text before scoring.</footer>
+</div>
+
+<script>
+const DATA = __DATA__;
+const WS = Object.fromEntries(DATA.workstreams.map(w=>[w.id,w]));
+const ROLES = DATA.roles, PHASES = DATA.phases, TASKS = DATA.tasks, PRIO = DATA.priorities;
+const PH = Object.fromEntries(PHASES.map(p=>[p.id,p]));
+const isDark = () => document.documentElement.dataset.theme==="dark" || (document.documentElement.dataset.theme!=="light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+const wsColor = id => isDark()? WS[id].colorDark : WS[id].color;
+
+const LS_DONE="aileader.board.done.v2", LS_FILTER="aileader.board.filter.v2";
+function lsGet(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+const BAKED=new Set(DATA.done||[]);
+let done=lsGet(LS_DONE,{}); let filt=lsGet(LS_FILTER,{role:"all",phase:"all",ws:"all",group:"ws",hideDone:false,onlyPrio:false});
+const $=s=>document.querySelector(s);
+function isDoneId(id){return (id in done)?!!done[id]:BAKED.has(id)}
+function save(){lsSet(LS_FILTER,filt);lsSet(LS_DONE,done)}
+function chip(label,pressed,onclick){const b=document.createElement("button");b.type="button";b.className="chip";b.setAttribute("aria-pressed",String(pressed));b.textContent=label;b.onclick=onclick;return b}
+
+function renderControls(){
+  const rc=$("#role-controls"); [...rc.querySelectorAll("button")].forEach(b=>b.remove());
+  [["all","All"],...Object.entries(ROLES)].forEach(([k,l])=>rc.appendChild(chip(l,filt.role===k,()=>{filt.role=k;save();render()})));
+  const pc=$("#phase-controls"); [...pc.querySelectorAll("button")].forEach(b=>b.remove());
+  [["all","All"],...PHASES.map(p=>[p.id,p.name.split(" · ")[0]])].forEach(([k,l])=>pc.appendChild(chip(l,filt.phase===k,()=>{filt.phase=k;save();render()})));
+  $("#g-ws").setAttribute("aria-pressed",String(filt.group==="ws")); $("#g-ph").setAttribute("aria-pressed",String(filt.group==="ph"));
+  $("#hide-done").checked=!!filt.hideDone; $("#only-prio").checked=!!filt.onlyPrio;
+}
+function visible(t){ return (filt.role==="all"||t[3]===filt.role)&&(filt.phase==="all"||t[2]===filt.phase)&&(filt.ws==="all"||t[1]===filt.ws)&&(!filt.onlyPrio||t[5])&&(!filt.hideDone||!isDoneId(t[0])) }
+function taskCard(t){
+  const [id,ws,ph,role,eff,prio,title,detail,deps,sec]=t; const isDone=isDoneId(id);
+  const el=document.createElement("div"); el.className="task"+(isDone?" done":""); el.style.setProperty("--wsc",wsColor(ws));
+  const cb=document.createElement("input"); cb.type="checkbox"; cb.id="cb-"+id; cb.checked=isDone; cb.setAttribute("aria-label","Mark "+id+" done");
+  cb.onchange=()=>{ done[id]=cb.checked?Date.now():false; save(); render(); };
+  const body=document.createElement("div");
+  const lab=document.createElement("label"); lab.className="t"; lab.htmlFor=cb.id; lab.textContent=title;
+  const d=document.createElement("div"); d.className="d"; d.textContent=detail;
+  const meta=document.createElement("div"); meta.className="meta";
+  const mk=(txt,cls)=>{const s=document.createElement("span");s.className="tag "+(cls||"");s.textContent=txt;return s};
+  meta.appendChild(mk(id,"mono")); meta.appendChild(mk(WS[ws].name.split(" and ")[0],"ws")); meta.appendChild(mk(ROLES[role].split(" (")[0]));
+  meta.appendChild(mk(PH[ph].name.split(" · ")[0])); meta.appendChild(mk("Effort "+eff,"eff-"+eff));
+  if(prio) meta.appendChild(mk("Demo-critical","prio")); if(sec) meta.appendChild(mk(sec));
+  body.appendChild(lab); if(detail) body.appendChild(d); body.appendChild(meta);
+  if(deps&&deps.length){const dp=document.createElement("div");dp.className="deps";dp.textContent="Depends on "+deps.join(", ");body.appendChild(dp)}
+  el.appendChild(cb); el.appendChild(body); return el;
+}
+function groupBlock(title,when,color,blurb,allTasks,shownTasks,byPhase){
+  const sec=document.createElement("div"); sec.className="group"; if(color) sec.style.setProperty("--gc",color);
+  const h=document.createElement("div"); h.className="group-h";
+  const h3=document.createElement("h3"); h3.textContent=title; h.appendChild(h3);
+  if(when){const w=document.createElement("span");w.className="when";w.textContent=when;h.appendChild(w)}
+  const c=document.createElement("span"); c.className="cnt"; c.textContent=allTasks.filter(t=>isDoneId(t[0])).length+" / "+allTasks.length+" done"; h.appendChild(c);
+  sec.appendChild(h);
+  if(blurb){const b=document.createElement("p");b.className="blurb";b.textContent=blurb;sec.appendChild(b)}
+  if(!shownTasks.length){const e=document.createElement("div");e.className="empty";e.textContent="Nothing to show with the current filters.";sec.appendChild(e);return sec}
+  if(byPhase){
+    PHASES.forEach(p=>{ const ts=shownTasks.filter(t=>t[2]===p.id); if(!ts.length) return;
+      const sh=document.createElement("div"); sh.className="subh"; sh.textContent=p.name+" · "+p.when; sec.appendChild(sh);
+      const g=document.createElement("div"); g.className="grid"; ts.forEach(t=>g.appendChild(taskCard(t))); sec.appendChild(g); });
+  } else { const g=document.createElement("div"); g.className="grid"; shownTasks.forEach(t=>g.appendChild(taskCard(t))); sec.appendChild(g); }
+  return sec;
+}
+function render(){
+  renderControls();
+  const board=$("#board"); board.innerHTML=""; let shown=0;
+  if(filt.group==="ws"){
+    DATA.workstreams.forEach(w=>{ if(filt.ws!=="all"&&filt.ws!==w.id) return;
+      const all=TASKS.filter(t=>t[1]===w.id), ts=all.filter(visible); shown+=ts.length;
+      if(!ts.length&&filt.ws==="all"&&(filt.role!=="all"||filt.phase!=="all"||filt.onlyPrio||filt.hideDone)) return;
+      board.appendChild(groupBlock(w.id+" · "+w.name,"",wsColor(w.id),w.blurb,all,ts,true)); });
+  } else {
+    PHASES.forEach(p=>{ if(filt.phase!=="all"&&filt.phase!==p.id) return;
+      const all=TASKS.filter(t=>t[2]===p.id), ts=all.filter(visible); shown+=ts.length;
+      if(!ts.length&&filt.phase==="all") return;
+      board.appendChild(groupBlock(p.name,p.when,null,"",all,ts,false)); });
+  }
+  $("#filter-sub").textContent=shown+" of "+TASKS.length+" tasks shown";
+  renderSummary();
+}
+function renderSummary(){
+  const s=$("#summary"); s.innerHTML="";
+  DATA.workstreams.forEach(w=>{
+    const ts=TASKS.filter(t=>t[1]===w.id); const dn=ts.filter(t=>isDoneId(t[0])).length; const demo=ts.filter(t=>t[5]).length;
+    const tile=document.createElement("button"); tile.type="button"; tile.className="tile"; tile.style.setProperty("--wsc",wsColor(w.id)); tile.setAttribute("aria-pressed",String(filt.ws===w.id));
+    tile.onclick=()=>{filt.ws=(filt.ws===w.id?"all":w.id);filt.group="ws";save();render()};
+    const k=document.createElement("div"); k.className="k"; k.textContent=w.id;
+    const n=document.createElement("div"); n.className="n"; n.textContent=w.name;
+    const v=document.createElement("div"); v.className="v"; v.textContent=dn+" / "+ts.length; const sm=document.createElement("small"); sm.textContent=" done · "+demo+" demo-critical"; v.appendChild(sm);
+    const bar=document.createElement("div"); bar.className="bar"; const i=document.createElement("i"); i.style.width=(ts.length?Math.round(dn/ts.length*100):0)+"%"; bar.appendChild(i);
+    tile.appendChild(k); tile.appendChild(n); tile.appendChild(v); tile.appendChild(bar); s.appendChild(tile);
+  });
+}
+function renderPrio(){
+  const p=$("#prio"); p.innerHTML="";
+  PRIO.forEach((r,i)=>{
+    const el=document.createElement("div"); el.className="prio";
+    const n=document.createElement("div"); n.className="n"; n.textContent=String(i+1).padStart(2,"0");
+    const b=document.createElement("div"); const t=document.createElement("div"); t.className="t"; t.textContent=r[0];
+    const w=document.createElement("div"); w.className="w"; w.textContent=r[1]; const pts=document.createElement("div"); pts.className="pts"; pts.textContent=r[2]+" pts · ranked by "+r[3];
+    b.appendChild(t); b.appendChild(w); b.appendChild(pts); el.appendChild(n); el.appendChild(b); p.appendChild(el);
+  });
+}
+$("#g-ws").addEventListener("click",()=>{filt.group="ws";save();render()});
+$("#g-ph").addEventListener("click",()=>{filt.group="ph";filt.ws="all";save();render()});
+$("#hide-done").addEventListener("change",e=>{filt.hideDone=e.target.checked;save();render()});
+$("#only-prio").addEventListener("change",e=>{filt.onlyPrio=e.target.checked;save();render()});
+$("#reset").addEventListener("click",()=>{ if(confirm("Clear all checked tasks in this browser?")){done={};save();render()} });
+try{ window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",render) }catch(e){}
+render(); renderPrio();
+</script>

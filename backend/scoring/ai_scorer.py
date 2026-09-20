@@ -1,28 +1,21 @@
 """Claude-powered AI scorer — multi-stage pipeline.
 
-BEFORE (old approach):
-    Raw candidate JSON → single Claude call → scores + explanations
-    Problem: Claude sees everything at once, does signal extraction + scoring +
-    explanation in one shot. No way to verify what it based its score on.
+Stage 1: signal_extractor.py extracts structured facts (no AI, pure code)
+Stage 2: Claude receives pre-extracted signals + raw essay/interview text and
+         scores the subjective dimensions
+Stage 3: Scores are combined deterministically under committee weights
 
-AFTER (new approach):
-    Stage 1: signal_extractor.py extracts structured facts (no AI, pure code)
-    Stage 2: Claude receives pre-extracted signals + raw essay/interview text
-             and scores ONLY the subjective dimensions
-    Stage 3: Scores are computed as weighted combination of rule-based signals
-             and AI judgments, with explanations tied to specific extracted facts
+This means the committee can inspect extracted signals independently of scores,
+AI scoring is grounded in verifiable facts, and each score traces to evidence.
 
-This means:
-    - The committee can inspect extracted signals independently of scores
-    - AI scoring is grounded in verifiable facts, not vibes
-    - Each score can be traced back to specific evidence
+Note on scope: these five dimensions are the Stage-1 construct space. Task LED-04
+replaces them with the client's nine competencies on three BARS levels. What
+changed here (FND-01..03, FND-06) is how the call is made, not yet what is asked.
 """
 
 from __future__ import annotations
 
-import json
-
-from backend.ai_client import MODEL, get_client, text_of
+from backend import llm, settings
 from backend.models import (
     Candidate,
     CandidateScore,
@@ -31,7 +24,57 @@ from backend.models import (
     ScoringWeights,
 )
 from backend.privacy import anonymize_candidate
+from backend.scoring.aggregator import recompute_overall
 from backend.scoring.signal_extractor import extract_signals, signals_to_context
+
+DIMENSION_NAMES = [
+    "academic_strength",
+    "leadership_potential",
+    "motivation_values",
+    "growth_trajectory",
+    "communication",
+]
+
+# The recommendation vocabulary the baseline scorer and the dashboard already
+# use. The old prompt asked for this set in prose and a different set
+# ("shortlist / review / decline") in its JSON template, so AI-scored candidates
+# came back with a label the UI could not read. The enum settles it.
+RECOMMENDATIONS = ["recommend", "consider", "needs attention"]
+
+SCORING_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["dimensions", "recommendation", "summary"],
+    "properties": {
+        "dimensions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": [
+                    "dimension",
+                    "score",
+                    "confidence",
+                    "explanation",
+                    "evidence_quotes",
+                    "positive_factors",
+                    "concerns",
+                ],
+                "properties": {
+                    "dimension": {"type": "string", "enum": DIMENSION_NAMES},
+                    "score": {"type": "number"},
+                    "confidence": {"type": "string", "enum": ["low", "medium", "high"]},
+                    "explanation": {"type": "string"},
+                    "evidence_quotes": {"type": "array", "items": {"type": "string"}},
+                    "positive_factors": {"type": "array", "items": {"type": "string"}},
+                    "concerns": {"type": "array", "items": {"type": "string"}},
+                },
+            },
+        },
+        "recommendation": {"type": "string", "enum": RECOMMENDATIONS},
+        "summary": {"type": "string"},
+    },
+}
 
 
 SYSTEM_PROMPT = """\
@@ -59,6 +102,7 @@ Do NOT penalize candidates for:
 - Attending a public/village school
 - Having fewer formal achievements
 - Working part-time or having family responsibilities
+- Writing in Kazakh or Russian, or mixing languages within one answer
 
 DO reward candidates for:
 - Initiative and self-direction (starting projects, solving real problems)
@@ -66,11 +110,15 @@ DO reward candidates for:
 - Evidence of growth and overcoming obstacles
 - Impact on others, even at small scale
 - Honest self-awareness about weaknesses
+
+If the material does not support a judgment on a dimension, say so plainly in the \
+explanation and set confidence to "low". An honest low-confidence score is more \
+useful to the committee than a confident guess.
 """
 
 
 SCORING_PROMPT = """\
-Using the pre-extracted signals AND the raw text below, evaluate this candidate across 5 dimensions.
+Using the pre-extracted signals AND the raw text above, evaluate this candidate across 5 dimensions.
 
 For each dimension, your score should reflect BOTH the quantitative signals AND your qualitative \
 reading of the essay/interview. Reference specific extracted signals in your explanation.
@@ -84,109 +132,74 @@ For growth_trajectory specifically:
 - But an elite school candidate who ALSO started something independently beyond their school = real growth too
 
 DIMENSIONS:
-1. academic_strength (15%): Use extracted GPA, achievements, skills, languages
-2. leadership_potential (25%): Initiative, ownership, impact on others, mobilization evidence
-3. motivation_values (25%): Depth of purpose, authenticity, mission alignment (read the essay deeply)
-4. growth_trajectory (20%): The DELTA — how far they've come, not just where they are
-5. communication (15%): Essay quality, specificity, voice authenticity, interview articulation
+1. academic_strength: Use extracted GPA, achievements, skills, languages
+2. leadership_potential: Initiative, ownership, impact on others, mobilization evidence
+3. motivation_values: Depth of purpose, authenticity, mission alignment (read the essay deeply)
+4. growth_trajectory: The DELTA — how far they've come, not just where they are
+5. communication: Essay quality, specificity, voice authenticity, interview articulation
 
-For each dimension provide:
-- score (0-100)
-- confidence (low/medium/high)
-- explanation (2-3 sentences referencing specific signals)
-- evidence_quotes (1-3 direct quotes from essay/interview)
-- positive_factors (1-3 bullet points)
-- concerns (0-3 bullet points)
+Score each dimension from 0 to 100. Provide all five dimensions, an overall \
+recommendation, and a 2-3 sentence summary.
 
-Also provide:
-- overall_recommendation: "recommend" / "consider" / "needs attention"
-- summary: 2-3 sentence overall assessment
-
-Respond in this exact JSON format:
-{
-  "dimensions": [
-    {
-      "dimension": "academic_strength",
-      "score": <0-100>,
-      "confidence": "<low|medium|high>",
-      "explanation": "<string>",
-      "evidence_quotes": ["<quote1>", ...],
-      "positive_factors": ["<factor1>", ...],
-      "concerns": ["<concern1>", ...]
-    },
-    ... (all 5 dimensions)
-  ],
-  "recommendation": "<shortlist|review|decline>",
-  "summary": "<string>"
-}
-
-Return ONLY valid JSON, no markdown fences or extra text.
+Quote only text that appears verbatim in the documents. An empty list of quotes is \
+better than a paraphrase presented as a quote.
 """
 
 
 def _build_candidate_context(candidate: Candidate) -> str:
-    """Format raw text from candidate for qualitative AI assessment."""
-    return f"""
-RAW ESSAY (prompt: "{candidate.essay.prompt}"):
-\"\"\"
-{candidate.essay.text}
-\"\"\"
+    """Format raw applicant text as tagged documents for qualitative assessment."""
+    return "\n\n".join([
+        llm.wrap_document(
+            candidate.essay.text,
+            "essay",
+            candidate.id,
+        ),
+        llm.wrap_document(
+            candidate.interview_transcript,
+            "interview_transcript",
+            candidate.id,
+        ),
+        llm.wrap_document(
+            candidate.recommendation_summary,
+            "recommendation_letter",
+            candidate.id,
+        ),
+    ])
 
-RAW INTERVIEW TRANSCRIPT:
-\"\"\"
-{candidate.interview_transcript or 'Not available'}
-\"\"\"
 
-RECOMMENDATION SUMMARY:
-\"\"\"
-{candidate.recommendation_summary or 'Not available'}
-\"\"\"
-"""
+def _dimension_from(payload: dict) -> DimensionScore:
+    """Build one dimension score, clamping the model's number into range.
 
-
-def _parse_ai_response(raw: str, candidate_id: str) -> CandidateScore:
-    """Parse the AI response JSON into a CandidateScore."""
-    cleaned = raw.strip()
-    if cleaned.startswith("```"):
-        cleaned = cleaned.split("\n", 1)[1]
-    if cleaned.endswith("```"):
-        cleaned = cleaned.rsplit("```", 1)[0]
-    cleaned = cleaned.strip()
-
-    data = json.loads(cleaned)
-
-    dimensions = []
-    for d in data["dimensions"]:
-        dimensions.append(DimensionScore(
-            dimension=d["dimension"],
-            score=float(d["score"]),
-            confidence=Confidence(d["confidence"]),
-            explanation=d.get("explanation", ""),
-            evidence_quotes=d.get("evidence_quotes", []),
-            positive_factors=d.get("positive_factors", []),
-            concerns=d.get("concerns", []),
-        ))
-
-    weight_map = {
-        "academic_strength": 0.15,
-        "leadership_potential": 0.25,
-        "motivation_values": 0.25,
-        "growth_trajectory": 0.20,
-        "communication": 0.15,
-    }
-    overall = sum(
-        d.score * weight_map.get(d.dimension, 0.2)
-        for d in dimensions
+    The structured-outputs schema guarantees the shape and the enum values but
+    cannot express a numeric range, so the clamp happens here.
+    """
+    return DimensionScore(
+        dimension=payload["dimension"],
+        score=max(0.0, min(float(payload["score"]), 100.0)),
+        confidence=Confidence(payload["confidence"]),
+        explanation=payload["explanation"],
+        evidence_quotes=payload["evidence_quotes"],
+        positive_factors=payload["positive_factors"],
+        concerns=payload["concerns"],
     )
 
-    return CandidateScore(
+
+def _score_from_payload(
+    payload: dict,
+    candidate_id: str,
+    weights: ScoringWeights,
+) -> CandidateScore:
+    """Turn the validated model payload into a CandidateScore."""
+    score = CandidateScore(
         candidate_id=candidate_id,
-        dimensions=dimensions,
-        overall_score=round(overall, 1),
-        recommendation=data.get("recommendation", "review"),
-        summary=data.get("summary", ""),
+        dimensions=[_dimension_from(d) for d in payload["dimensions"]],
+        overall_score=0.0,
+        recommendation=payload["recommendation"],
+        summary=payload["summary"],
         scorer_type="ai",
     )
+    score.overall_score = recompute_overall(score, weights)
+    return score
 
 
 async def compute_ai_score(
@@ -196,46 +209,22 @@ async def compute_ai_score(
     """Score a candidate using the multi-stage pipeline.
 
     Stage 1: Extract structured signals (no AI)
-    Stage 2: Send signals + raw text to Claude for subjective scoring
-    Stage 3: Apply weights and return
+    Stage 2: Send signals + tagged raw text to Claude for subjective scoring
+    Stage 3: Combine under committee weights, deterministically
     """
-    client = get_client()
-
-    # Stage 1: Extract signals (pure code, auditable)
     safe_candidate = anonymize_candidate(candidate)
     signals = extract_signals(safe_candidate)
-    signal_context = signals_to_context(signals)
 
-    # Stage 2: Claude scores using structured signals + raw text
-    raw_text_context = _build_candidate_context(safe_candidate)
-    full_context = f"{signal_context}\n\n{raw_text_context}"
+    prompt = "\n\n".join([
+        signals_to_context(signals),
+        _build_candidate_context(safe_candidate),
+        SCORING_PROMPT,
+    ])
 
-    # max_tokens covers adaptive thinking + the JSON answer on this model
-    message = client.messages.create(
-        model=MODEL,
-        max_tokens=4000,
+    payload = await llm.complete_json(
+        prompt=prompt,
+        schema=SCORING_SCHEMA,
         system=SYSTEM_PROMPT,
-        messages=[
-            {"role": "user", "content": f"{full_context}\n\n{SCORING_PROMPT}"}
-        ],
+        model=settings.MODEL_JUDGE,
     )
-
-    raw_response = text_of(message)
-    score = _parse_ai_response(raw_response, candidate.id)
-
-    # Stage 3: Apply custom weights if provided
-    if weights:
-        weight_map = {
-            "academic_strength": weights.academic_strength,
-            "leadership_potential": weights.leadership_potential,
-            "motivation_values": weights.motivation_values,
-            "growth_trajectory": weights.growth_trajectory,
-            "communication": weights.communication,
-        }
-        overall = sum(
-            d.score * weight_map.get(d.dimension, 0.2)
-            for d in score.dimensions
-        )
-        score.overall_score = round(overall, 1)
-
-    return score
+    return _score_from_payload(payload, candidate.id, weights or ScoringWeights())
