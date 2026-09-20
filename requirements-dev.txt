@@ -1,0 +1,6 @@
+# Test and tooling dependencies. Install alongside the backend ones:
+#   pip install -r backend/requirements.txt -r requirements-dev.txt
+# Kept at the repo root because pytest.ini and tests/ live here, not under backend/.
+pytest==9.1.1
+pytest-asyncio==1.4.0
+httpx==0.28.1

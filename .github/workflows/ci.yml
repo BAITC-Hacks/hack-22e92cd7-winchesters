@@ -1,0 +1,70 @@
+name: CI
+
+# Phase B2. Runs on every push and PR so the 17 offline tests in tests/ actually
+# protect the repo instead of only running when someone remembers to.
+#
+# Nothing here touches the Anthropic API: settings.py reads env with defaults and
+# llm.py constructs its client lazily enough that importing without a key is
+# safe, and every test stubs llm.complete_json / llm.complete_chat. A green run
+# therefore costs zero tokens, and a job that starts spending them is a bug.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  # A new push to the same branch cancels the previous run.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: backend · pytest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt -r requirements-dev.txt
+
+      - name: Run tests
+        run: python -m pytest -q
+
+  frontend:
+    name: frontend · build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # `next build` type-checks the whole app, so this is the TypeScript gate too.
+      - name: Build
+        run: npm run build
+
+      # Not blocking yet, deliberately: lint currently reports 1 error and 27
+      # warnings (react-hooks/set-state-in-effect in src/lib/useAuth.ts). Making
+      # it blocking today would mean every PR lands red for a reason unrelated to
+      # the PR. Fix that error, then delete this line so lint gates like the rest.
+      - name: Lint
+        run: npm run lint
+        continue-on-error: true

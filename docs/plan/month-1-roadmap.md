@@ -20,11 +20,13 @@ those weeks**. So feature scope must be planned against two weeks, not four. The
   as `backend/settings.py` + `backend/llm.py` from `main`, which also took the async fix and
   parallel batch scoring listed under Week 2 with it. See
   [phase-a-foundations.md § A3](phase-a-foundations.md#a3--the-single-claude-call-path--done).
-- `.gitattributes`, `.dockerignore`, notebook deps split out of `requirements.txt`, `/healthz` + `/readyz`.
+- ~~`.gitattributes`~~ **done**; `.dockerignore`, notebook deps split out of `requirements.txt`,
+  `/healthz` + `/readyz` — all still open, and all cheap.
 - Typed settings object (Phase A2) + CORS fix — prerequisite for compose env handling.
 - `docker compose` up to and including the `backend` service.
-- GitHub Actions: lint / test-with-mocked-Claude / docker build. **The 17 tests now in `tests/`
-  make this cheap and it is still not done — highest-value item left in Week 1.**
+- ~~GitHub Actions: lint / test-with-mocked-Claude / docker build.~~ **Done 2026-09-20** for
+  tests + frontend build; the docker-build job waits on Phase C, and the Python linter is still
+  unconfigured. See [phase-b-testing-ci.md § B2](phase-b-testing-ci.md#b2--github-actions-ci--done).
 - **Compute the pitch number** (see risk 1). Before any feature work.
 - Persistence PR 1: schema + candidates off the JSON file.
 

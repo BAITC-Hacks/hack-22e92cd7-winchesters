@@ -4,10 +4,11 @@
 > auth, async, prompt changes) ships with tests. Total effort: ~1–2 days.
 > Prerequisites: A2 (config), A3 (the single call path — the thing we mock; **done**).
 >
-> **Status 2026-09-20: B1 is partly done, B2 (CI) is not started.** `tests/` holds 17 offline
-> tests and a `pytest.ini`, merged from `main`. They came from the FND-01/03 work and cover the
-> call contract and the AI scorer — not the routers. The gap list is under "What already
-> exists" below; **CI is the more valuable half and nobody has touched it.**
+> **Status 2026-09-20: B1 is partly done, B2 (CI) is done.** `tests/` holds 17 offline tests and
+> a `pytest.ini`, merged from `main`. They came from the FND-01/03 work and cover the call
+> contract and the AI scorer — not the routers. `.github/workflows/ci.yml` now runs them plus the
+> frontend build on every push and PR. What is left of this phase is router coverage: the gap
+> list is under "What already exists" below.
 
 ---
 
@@ -85,31 +86,45 @@ permanently mutate `backend/data/candidates.json`.
 
 ---
 
-## B2 — GitHub Actions CI · S
+## B2 — GitHub Actions CI · **done**
 
-> Do after C1 exists so the workflow can include a Postgres service container.
+> Landed 2026-09-20, ahead of C1 rather than after it — there is no Postgres yet, so there was
+> nothing to wait for.
 
 **Why:** every PR gets an automatic green/red; nobody merges a broken parser the
 night before the demo.
 
-**File:** new `.github/workflows/ci.yml`.
+**Shipped as `.github/workflows/ci.yml`**, two jobs on every push to `main` and every PR, with
+`concurrency` cancelling superseded runs:
 
-**Spec — jobs:**
+1. **backend** — Python 3.14 (matching local), pip cached on both requirement files,
+   `pip install -r backend/requirements.txt -r requirements-dev.txt`, `python -m pytest -q`.
+2. **frontend** — Node 24, `npm ci`, `npm run build` (which type-checks the whole app, so it is
+   the TypeScript gate as well), then `npm run lint`.
 
-1. **backend** (ubuntu-latest):
-   - checkout; setup Python 3.12; cache pip.
-   - `pip install -r backend/requirements.txt -r requirements-dev.txt`.
-   - env: `ANTHROPIC_API_KEY=test-dummy`, `AUTH_SECRET=test-secret` (imports need
-     them; tests never call out).
-   - `ruff check backend/` (add `ruff` to dev deps — fast linter, gofmt-like).
-   - `pytest`.
-   - After D: add `services: postgres:16` with health check; set `DATABASE_URL`;
-     run alembic migrations before pytest.
-2. **frontend** (optional, cheap): `npm ci && npm run build` in `frontend/` —
-   catches TS errors.
+Plus `requirements-dev.txt` at the repo root — the test deps were installed by hand and pinned
+nowhere until now.
 
-**Done when:** a PR shows checks; deliberately breaking a test turns it red;
-total runtime < 3 minutes.
+**Three decisions worth knowing before you change it:**
 
-**Gotchas:** Windows-developed, Linux-CI — watch path separators and any
-`PowerShell`-isms in scripts; keep scripts cross-platform (Python, not shell).
+- **No `ANTHROPIC_API_KEY` in the job env.** The spec above called for a dummy key; it turned out
+  not to be needed, and leaving it out is better: if someone ever writes a test that really calls
+  the API, it fails in CI instead of quietly spending tokens on every push.
+- **Lint is `continue-on-error: true`.** `npm run lint` currently exits 1 — one error
+  (`react-hooks/set-state-in-effect` in `src/lib/useAuth.ts:26`) and 27 warnings. Gating on it
+  today would make every PR red for a reason unrelated to the PR. **Fix that error, then delete
+  the line**; the comment in the workflow says the same.
+- **No `ruff` yet.** The spec wanted it, but there is no lint config in the repo at all
+  (`pyproject.toml` does not exist), so adding a linter means first agreeing a config and fixing
+  whatever it finds across ~3,300 LOC. That is its own PR, not a rider on CI.
+
+**Still to add, when the thing it depends on exists:** after Phase D, a `services: postgres:16`
+block with a health check, `DATABASE_URL`, and alembic migrations before pytest.
+
+**Done when:** a PR shows checks; deliberately breaking a test turns it red; total runtime
+< 3 minutes. **Verify the red case on the first PR** — a workflow that has never failed has not
+been tested.
+
+**Gotchas:** Windows-developed, Linux-CI — watch path separators and any `PowerShell`-isms in
+scripts; keep scripts cross-platform (Python, not shell). `.gitattributes` (added alongside this)
+normalizes line endings so a CRLF script never reaches a Linux runner or container.

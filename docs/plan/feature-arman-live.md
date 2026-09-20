@@ -157,7 +157,9 @@ screen is the screenshot that goes in the deck and the article.
 
 ---
 
-## AL6 — Streaming replies (stretch, prod-quality voice) · M
+## AL6 — Streaming replies
+
+_Stretch, prod-quality voice · effort M._
 
 **Why:** waiting 3–5s for a full reply feels slow in voice mode. Streaming cuts
 time-to-first-word to <1s and lets TTS start on the first sentence.
