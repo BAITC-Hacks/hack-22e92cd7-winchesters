@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
+
 from fastapi import APIRouter, HTTPException
 
 from backend.models import CandidateScore, CommitteeOverride, RankedCandidate, ScoringWeights
@@ -9,6 +12,8 @@ from backend.routers.candidates import _get_candidate, _load_candidates
 from backend.scoring.aggregator import compare_scores, rank_candidates, recompute_overall
 from backend.scoring.ai_scorer import compute_ai_score
 from backend.scoring.baseline import compute_baseline_score
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/scoring", tags=["scoring"])
 
@@ -52,23 +57,27 @@ async def score_ai(candidate_id: str, weights: ScoringWeights | None = None):
 
 @router.post("/ai/all", response_model=list[CandidateScore])
 async def score_all_ai(weights: ScoringWeights | None = None):
-    """Compute AI scores for all candidates (uses Claude API, may take a while)."""
+    """Compute AI scores for all candidates.
+
+    Candidates are scored concurrently; the shared semaphore in `backend.llm`
+    caps how many calls are open at once. A candidate whose run fails is left
+    out of the result and out of the cache rather than returned with a zero: a
+    zero sorts to the bottom of the ranking, so an API timeout used to look
+    exactly like a weak application.
+    """
     candidates = _load_candidates()
+    results = await asyncio.gather(
+        *(compute_ai_score(c, weights) for c in candidates),
+        return_exceptions=True,
+    )
+
     scores = []
-    for c in candidates:
-        try:
-            score = await compute_ai_score(c, weights)
-            _score_cache[c.id] = score
-            scores.append(score)
-        except Exception as e:
-            scores.append(CandidateScore(
-                candidate_id=c.id,
-                dimensions=[],
-                overall_score=0,
-                recommendation="consider",
-                summary=f"Scoring failed: {str(e)}",
-                scorer_type="ai",
-            ))
+    for candidate, result in zip(candidates, results):
+        if isinstance(result, BaseException):
+            logger.error("AI scoring failed for %s: %s", candidate.id, result)
+            continue
+        _score_cache[candidate.id] = result
+        scores.append(result)
     return scores
 
 

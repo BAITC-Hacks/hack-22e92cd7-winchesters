@@ -26,29 +26,13 @@ AFTER (new approach):
 
 from __future__ import annotations
 
-import json
-import math
-import os
 import re
 import statistics
 from collections import Counter
 
-import anthropic
-from dotenv import load_dotenv
-
+from backend import llm, settings
 from backend.models import AIDetectionResult, Candidate, StylometryMetrics
 from backend.privacy import anonymize_candidate
-
-load_dotenv()
-
-_client: anthropic.Anthropic | None = None
-
-
-def _get_client() -> anthropic.Anthropic:
-    global _client
-    if _client is None:
-        _client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-    return _client
 
 
 # ── Language detection ──────────────────────────────────────────────
@@ -310,15 +294,9 @@ what statistics CANNOT catch: meaning, voice, emotional authenticity, personal s
 STATISTICAL METRICS:
 {metrics_summary}
 
-CANDIDATE ESSAY:
-\"\"\"
-{essay_text}
-\"\"\"
+{essay_document}
 
-CANDIDATE INTERVIEW TRANSCRIPT:
-\"\"\"
-{interview_text}
-\"\"\"
+{interview_document}
 
 Focus your analysis on:
 1. **Personal specificity**: Does the essay mention concrete names, places, dates, events?
@@ -330,15 +308,26 @@ Focus your analysis on:
 IMPORTANT: Good writing is NOT evidence of AI use. Some students genuinely write well.
 Only flag AI concerns when MULTIPLE signals converge.
 
-Return your analysis as JSON:
-{{
-  "authenticity_score": <0-100, where 100 = definitely human-written>,
-  "flags": ["<specific qualitative concern>", ...],
-  "explanation": "<2-4 sentence analysis>"
-}}
+Writing in a second language is NOT evidence of AI use either. Simple vocabulary,
+short sentences and grammatical slips are what a strong applicant writing in
+Kazakh, Russian or English as an additional language produces. Never treat them
+as signals.
 
-Return ONLY valid JSON, no markdown fences or extra text.
+Score authenticity from 0 to 100, where 100 means definitely human-written.
+Raise a flag only for a concern you can point to in the text; an empty list of
+flags is the right answer for most essays.
 """
+
+DETECTION_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["authenticity_score", "flags", "explanation"],
+    "properties": {
+        "authenticity_score": {"type": "number"},
+        "flags": {"type": "array", "items": {"type": "string"}},
+        "explanation": {"type": "string"},
+    },
+}
 
 
 def _format_metrics_for_prompt(metrics: StylometryMetrics, stat_flags: list[str], lang: str = "english") -> str:
@@ -362,21 +351,13 @@ def _format_metrics_for_prompt(metrics: StylometryMetrics, stat_flags: list[str]
     return "\n".join(lines)
 
 
-def _parse_detection_response(raw: str) -> tuple[float, list[str], str]:
-    """Parse Claude's response. Returns (score, flags, explanation)."""
-    cleaned = raw.strip()
-    if cleaned.startswith("```"):
-        cleaned = cleaned.split("\n", 1)[1]
-    if cleaned.endswith("```"):
-        cleaned = cleaned.rsplit("```", 1)[0]
-    cleaned = cleaned.strip()
+def _clamp_score(value: float) -> float:
+    """Keep the model's number inside the declared range.
 
-    data = json.loads(cleaned)
-    return (
-        float(data["authenticity_score"]),
-        data.get("flags", []),
-        data.get("explanation", ""),
-    )
+    The schema fixes the shape but cannot express a numeric bound, so the clamp
+    lives in code where it is auditable.
+    """
+    return max(0.0, min(float(value), 100.0))
 
 
 # ── Stage 3: Combined detection ──────────────────────────────────
@@ -405,25 +386,29 @@ async def detect_ai_content(candidate: Candidate) -> AIDetectionResult:
         lang=lang,
     )
 
-    # Stage 2: Claude qualitative analysis
-    client = _get_client()
+    # Stage 2: Claude qualitative analysis.
+    # Kazakh and mixed-language text goes to the strongest model: low-resource
+    # languages degrade disproportionately on smaller ones, and a noisy reading
+    # here lands on exactly the applicants this product exists to serve.
     metrics_summary = _format_metrics_for_prompt(metrics, stat_flags, lang)
 
     prompt = DETECTION_PROMPT.format(
         metrics_summary=metrics_summary,
-        essay_text=safe.essay.text,
-        interview_text=safe.interview_transcript or "Not available",
+        essay_document=llm.wrap_document(safe.essay.text, "essay", safe.id),
+        interview_document=llm.wrap_document(
+            safe.interview_transcript, "interview_transcript", safe.id
+        ),
     )
 
-    message = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=1000,
-        messages=[{"role": "user", "content": prompt}],
+    model = settings.MODEL_FOR_LOW_RESOURCE if lang != "english" else settings.MODEL_EXTRACT
+    payload = await llm.complete_json(
+        prompt=prompt,
+        schema=DETECTION_SCHEMA,
+        model=model,
     )
-
-    ai_score, ai_flags, ai_explanation = _parse_detection_response(
-        message.content[0].text
-    )
+    ai_score = _clamp_score(payload["authenticity_score"])
+    ai_flags = payload["flags"]
+    ai_explanation = payload["explanation"]
 
     # Stage 3: Weighted combination
     combined_score = stat_score * 0.4 + ai_score * 0.6
