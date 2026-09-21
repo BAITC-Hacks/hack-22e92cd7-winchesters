@@ -7,6 +7,7 @@ before: a hard-coded retired model id, free-text JSON parsing, reading
 
 from __future__ import annotations
 
+import pathlib
 import types
 
 import pytest
@@ -69,13 +70,24 @@ def test_schema_guard_walks_into_arrays_and_nested_objects():
 
 def test_real_schemas_in_the_product_are_strict():
     """Every schema we ship must survive the guard, or it 400s in a demo."""
+    from backend.ledger.extract import EXTRACTION_SCHEMA
+    from backend.ledger.rate import RATING_SCHEMA
     from backend.routers.feynman import QUIZ_SCHEMA, TEACHING_SCHEMA
-    from backend.scoring.ai_detector import DETECTION_SCHEMA
     from backend.scoring.ai_scorer import SCORING_SCHEMA
     from backend.scoring.video_analyzer import VIDEO_SCHEMA
 
-    for schema in (SCORING_SCHEMA, DETECTION_SCHEMA, VIDEO_SCHEMA, QUIZ_SCHEMA, TEACHING_SCHEMA):
+    for schema in (SCORING_SCHEMA, VIDEO_SCHEMA, QUIZ_SCHEMA, TEACHING_SCHEMA, EXTRACTION_SCHEMA, RATING_SCHEMA):
         llm._assert_strict_schema(schema)
+
+
+def test_the_text_detector_no_longer_calls_a_model_at_all():
+    """LED-02: there is no authorship prompt left to be strict about."""
+    from backend.scoring import ai_detector
+
+    assert not hasattr(ai_detector, "DETECTION_SCHEMA")
+    assert not hasattr(ai_detector, "DETECTION_PROMPT")
+    source = pathlib.Path(ai_detector.__file__).read_text(encoding="utf-8")
+    assert "complete_json" not in source
 
 
 # ── Reply reading (FND-03) ────────────────────────────────────────

@@ -1,27 +1,30 @@
-"""AI-generated content detection — statistical stylometry + Claude analysis.
+"""Text signals for the interviewer, with the authorship verdict removed (LED-02).
 
-BEFORE (old approach):
-    Essay text → single Claude call → "does this feel AI-generated?" → score
-    Problem: Claude detecting Claude is unreliable. No quantitative basis.
-    The entire detection was vibes-based — Claude just "felt" whether it was AI.
+What this used to do: compute seven stylometric numbers, ask Claude whether an
+essay "feels" AI-written, blend the two 40/60, and show the committee an
+"authenticity score" out of 100 with flags attached to a named applicant.
 
-AFTER (new approach):
-    Stage 1: Statistical stylometry (no AI, pure math)
-        - Compute measurable text features: vocabulary richness, sentence variance,
-          word length, formality ratio, hapax legomena, essay-interview vocabulary gap
-        - These are reproducible numbers, not opinions
-        - AI-generated text has telltale statistical signatures:
-          low sentence length variance (unnaturally consistent),
-          high formality ratio, low hapax ratio (fewer unique rare words)
+Why that had to stop:
 
-    Stage 2: Claude qualitative analysis (informed by Stage 1 metrics)
-        - Claude receives the essay + interview + the computed metrics
-        - Claude focuses on what statistics can't catch: meaning, voice, emotional depth
-        - Its assessment is GROUNDED in the numbers, not free-floating
+- Detectors of machine-written text misclassify writing by people working in an
+  additional language at very high rates. Published work puts token-statistics
+  detectors near a 100% false-positive rate on non-native academic writing, and
+  more than half of one set of TOEFL essays was flagged as machine-written while
+  essays by native-speaking schoolchildren were classified correctly. The
+  mechanism is that constrained vocabulary and simple sentences look like low
+  perplexity.
+- No calibration for Kazakh exists at all. There is no benchmark, so any number
+  we printed for a Kazakh essay was uncalibrated by construction.
+- Both of those land on rural Kazakh-speaking applicants, which is the group the
+  university exists to find. A rejection touched by a false authorship flag is
+  indefensible, and a flag shown to a human anchors that human even if nobody
+  subtracts a point.
 
-    Stage 3: Combined score
-        - Weighted blend: 40% statistical + 60% Claude qualitative
-        - If statistics strongly flag something, it shows even if Claude disagrees
+What it does instead: report descriptive facts about the text, and turn anything
+notable into a check the interviewer can actually perform with the person in
+front of them. No verdict, no score, no accusation. Where a real answer is
+needed, asking the applicant to talk through their own paragraph settles in
+thirty seconds what a detector cannot settle at all.
 """
 
 from __future__ import annotations
@@ -29,11 +32,10 @@ from __future__ import annotations
 import re
 import statistics
 from collections import Counter
+from dataclasses import dataclass, field
 
-from backend import llm, settings
 from backend.models import AIDetectionResult, Candidate, StylometryMetrics
 from backend.privacy import anonymize_candidate
-
 
 # ── Language detection ──────────────────────────────────────────────
 
@@ -46,14 +48,17 @@ _CYRILLIC_CHARS = set("абвгдежзийклмнопрстуфхцчшщъы�
 def detect_language(text: str) -> str:
     """Detect essay language: 'kazakh', 'russian', or 'english'.
 
-    Simple heuristic based on character frequency — no external libraries needed.
+    A character-frequency heuristic, and a weak one: it has no "mixed" answer,
+    so a mostly-Russian text carrying a few Kazakh names comes back as Kazakh.
+    Task INP-04 replaces it with proper language identification that treats
+    code-switching as a first-class result. Until then, nothing may gate a score
+    on this, which after LED-02 nothing does.
     """
     text_lower = text.lower()
     kazakh_count = sum(1 for c in text_lower if c in _KAZAKH_CHARS)
     cyrillic_count = sum(1 for c in text_lower if c in _CYRILLIC_CHARS)
     latin_count = sum(1 for c in text_lower if c.isascii() and c.isalpha())
 
-    # Kazakh uses Cyrillic + extra chars
     if kazakh_count > 5:
         return "kazakh"
     if cyrillic_count > latin_count:
@@ -61,370 +66,159 @@ def detect_language(text: str) -> str:
     return "english"
 
 
-# ── Formal/filler phrases typical of AI-generated text ─────────────
-
-AI_FILLER_PHRASES_EN = [
-    "in conclusion", "furthermore", "moreover", "in addition",
-    "it is worth noting", "this experience taught me",
-    "i firmly believe", "in today's world", "it goes without saying",
-    "this experience has shown me", "i am passionate about",
-    "throughout my journey", "i have always been",
-    "this has shaped me into", "i strongly believe",
-    "needless to say", "as a result of this experience",
-    "this opportunity allowed me to", "i am deeply committed",
-]
-
-AI_FILLER_PHRASES_RU = [
-    "в заключение", "кроме того", "более того", "помимо этого",
-    "стоит отметить", "этот опыт научил меня",
-    "я твёрдо убеждён", "я твердо убежден", "в современном мире",
-    "этот опыт показал мне", "я увлечён", "я увлечена",
-    "на протяжении всего пути", "я всегда был", "я всегда была",
-    "это сформировало меня", "я глубоко убеждён", "я глубоко убеждена",
-    "само собой разумеется", "в результате этого опыта",
-    "эта возможность позволила мне", "я глубоко предан",
-]
-
-AI_FILLER_PHRASES_KZ = [
-    "қорытындылай келе", "сонымен қатар", "одан басқа",
-    "атап өту керек", "бұл тәжірибе маған үйретті",
-    "мен нық сенемін", "қазіргі заманда",
-    "бұл тәжірибе маған көрсетті", "мен құштармын",
-    "бүкіл жолым бойында", "мен әрқашан",
-    "бұл мені қалыптастырды", "мен терең сенемін",
-]
-
-AI_FILLER_PHRASES = AI_FILLER_PHRASES_EN  # default for backward compat
+# ── Descriptive text statistics ────────────────────────────────────
 
 
-def _get_filler_phrases(lang: str) -> list[str]:
-    if lang == "russian":
-        return AI_FILLER_PHRASES_RU
-    if lang == "kazakh":
-        return AI_FILLER_PHRASES_KZ
-    return AI_FILLER_PHRASES_EN
+def compute_stylometry(essay_text: str, interview_text: str | None = None) -> StylometryMetrics:
+    """Measure the text. Descriptive only: nothing here may become a score.
 
-
-# ── Language-specific stylometry thresholds ─────────────────────────
-# Kazakh/Russian texts naturally differ from English in structure:
-# - Longer words (agglutinative in Kazakh, inflected in Russian)
-# - Different sentence length patterns
-# - Different hapax ratios due to morphological richness
-
-THRESHOLDS = {
-    "english": {
-        "sent_var_low": 15,       # below this = suspicious
-        "sent_var_high": 30,      # above this = bonus
-        "hapax_low": 0.40,        # below this = suspicious
-        "hapax_high": 0.55,       # above this = bonus
-        "overlap_low": 0.08,      # below this = suspicious
-        "overlap_high": 0.15,     # above this = bonus
-    },
-    "russian": {
-        "sent_var_low": 12,       # Russian sentences are more variable in length
-        "sent_var_high": 25,
-        "hapax_low": 0.45,        # Russian morphology = more unique word forms
-        "hapax_high": 0.60,
-        "overlap_low": 0.06,      # Lower overlap expected (more word forms)
-        "overlap_high": 0.12,
-    },
-    "kazakh": {
-        "sent_var_low": 10,       # Kazakh agglutination = highly variable word/sent length
-        "sent_var_high": 20,
-        "hapax_low": 0.50,        # Agglutinative = many unique word forms naturally
-        "hapax_high": 0.65,
-        "overlap_low": 0.05,
-        "overlap_high": 0.10,
-    },
-}
-
-
-# ── Stage 1: Statistical stylometry ───────────────────────────────
-
-
-def compute_stylometry(
-    essay_text: str,
-    interview_text: str | None = None,
-) -> StylometryMetrics:
-    """Compute quantitative text features. Pure math, no AI, fully reproducible.
-
-    Automatically detects essay language (English/Russian/Kazakh) and uses
-    language-appropriate filler phrase lists.
+    These numbers are kept because they are cheap, reproducible and occasionally
+    useful to a human reading a file. They are not comparable across languages:
+    Kazakh is agglutinative, so it inflates type-token and hapax ratios for
+    reasons of grammar rather than of the writer. Task INP-07 replaces them with
+    lemma-level measures and per-language norms.
     """
-    words = essay_text.split()
-    words_lower = [w.lower().strip(".,!?;:\"'()") for w in words]
-    words_lower = [w for w in words_lower if w]
-
-    if len(words_lower) < 10:
+    words = [w.lower().strip(".,!?;:\"'()") for w in essay_text.split()]
+    words = [w for w in words if w]
+    if len(words) < 10:
         return StylometryMetrics()
 
-    # Type-token ratio (vocabulary richness)
-    # AI text tends to have moderate TTR — diverse but not quirky
-    unique = set(words_lower)
-    ttr = len(unique) / len(words_lower)
-
-    # Sentence length analysis
-    # AI text has LOW variance — unnaturally consistent sentence lengths
-    sentences = [s.strip() for s in re.split(r'[.!?]+', essay_text) if s.strip()]
-    sent_lengths = [len(s.split()) for s in sentences] if sentences else [0]
-    avg_sent_len = statistics.mean(sent_lengths) if sent_lengths else 0
-    sent_variance = statistics.variance(sent_lengths) if len(sent_lengths) > 1 else 0
-
-    # Average word length
-    avg_word_len = statistics.mean(len(w) for w in words_lower) if words_lower else 0
-
-    # Formality ratio: count of AI filler phrases per 100 words
-    # Uses language-specific filler phrases
-    lang = detect_language(essay_text)
-    filler_phrases = _get_filler_phrases(lang)
-    text_lower = essay_text.lower()
-    filler_count = sum(1 for phrase in filler_phrases if phrase in text_lower)
-    formality_ratio = (filler_count / len(words_lower)) * 100
-
-    # Hapax legomena: words that appear exactly once
-    # Human writing has MORE hapax (quirky word choices, personal vocabulary)
-    # AI writing has FEWER hapax (sticks to common vocabulary patterns)
-    word_counts = Counter(words_lower)
-    hapax = sum(1 for count in word_counts.values() if count == 1)
-    hapax_ratio = hapax / len(unique) if unique else 0
-
-    # Essay-interview vocabulary overlap (Jaccard similarity)
-    # If someone writes a sophisticated essay but speaks casually in interview,
-    # the overlap will be LOW — a red flag for AI-written essays
-    vocab_overlap = 0.0
-    if interview_text and len(interview_text.split()) > 20:
-        interview_words = set(
-            w.lower().strip(".,!?;:\"'()")
-            for w in interview_text.split()
-        )
-        interview_words = {w for w in interview_words if w and len(w) > 3}
-        essay_words = {w for w in unique if len(w) > 3}
-        intersection = essay_words & interview_words
-        union = essay_words | interview_words
-        vocab_overlap = len(intersection) / len(union) if union else 0
+    unique = set(words)
+    sentences = [s.strip() for s in re.split(r"[.!?]+", essay_text) if s.strip()]
+    sentence_lengths = [len(s.split()) for s in sentences] or [0]
+    counts = Counter(words)
 
     return StylometryMetrics(
-        ttr=round(ttr, 4),
-        avg_sentence_length=round(avg_sent_len, 1),
-        sentence_length_variance=round(sent_variance, 1),
-        avg_word_length=round(avg_word_len, 2),
-        formality_ratio=round(formality_ratio, 3),
-        hapax_ratio=round(hapax_ratio, 4),
-        essay_interview_vocab_overlap=round(vocab_overlap, 4),
+        ttr=round(len(unique) / len(words), 4),
+        avg_sentence_length=round(statistics.mean(sentence_lengths), 1),
+        sentence_length_variance=round(
+            statistics.variance(sentence_lengths) if len(sentence_lengths) > 1 else 0, 1
+        ),
+        avg_word_length=round(statistics.mean(len(w) for w in words), 2),
+        formality_ratio=0.0,  # retired with LED-02: it measured register, i.e. dialect
+        hapax_ratio=round(sum(1 for c in counts.values() if c == 1) / len(unique), 4),
+        essay_interview_vocab_overlap=_vocabulary_overlap(unique, interview_text),
     )
 
 
-def compute_statistical_score(
-    metrics: StylometryMetrics,
-    has_interview: bool,
-    lang: str = "english",
-) -> tuple[float, list[str]]:
-    """Convert stylometry metrics into a statistical authenticity score (0-100).
+def _vocabulary_overlap(essay_words: set[str], interview_text: str | None) -> float:
+    """Jaccard overlap between essay and transcript vocabulary.
 
-    Returns (score, flags). Higher = more likely human-written.
-    Each check adds or subtracts from a base score of 70.
-
-    Uses language-specific thresholds — Kazakh and Russian have different
-    natural text characteristics than English (longer words, richer morphology,
-    different sentence length patterns).
+    Reported, never scored. For Kazakh it is contaminated twice over: by
+    transcription error rates on spontaneous speech, and by suffixes, which
+    break exact token matching between a written and a spoken form of the same
+    word. Task INP-01 makes the applicant's written presentation the input that
+    is assessed, which removes the dependency rather than patching it.
     """
-    score = 70.0
-    flags: list[str] = []
-    t = THRESHOLDS.get(lang, THRESHOLDS["english"])
-
-    # Sentence length variance: AI text is unnaturally consistent
-    if metrics.sentence_length_variance < t["sent_var_low"]:
-        penalty = min((t["sent_var_low"] - metrics.sentence_length_variance) * 1.5, 20)
-        score -= penalty
-        flags.append(
-            f"Low sentence length variance ({metrics.sentence_length_variance:.1f}) — "
-            f"unnaturally consistent structure"
-        )
-    elif metrics.sentence_length_variance > t["sent_var_high"]:
-        score += 5  # natural variety bonus
-
-    # Formality ratio: too many AI filler phrases
-    if metrics.formality_ratio > 1.0:
-        penalty = min(metrics.formality_ratio * 8, 20)
-        score -= penalty
-        flags.append(
-            f"High formality ratio ({metrics.formality_ratio:.2f} filler phrases per 100 words)"
-        )
-
-    # Hapax ratio: AI uses fewer unique rare words
-    # Kazakh/Russian naturally have higher hapax due to rich morphology
-    if metrics.hapax_ratio < t["hapax_low"]:
-        penalty = min((t["hapax_low"] - metrics.hapax_ratio) * 40, 15)
-        score -= penalty
-        flags.append(
-            f"Low hapax ratio ({metrics.hapax_ratio:.3f}) — fewer unique word choices than expected"
-        )
-    elif metrics.hapax_ratio > t["hapax_high"]:
-        score += 5  # rich personal vocabulary bonus
-
-    # Essay-interview vocabulary gap (only if interview exists)
-    if has_interview and metrics.essay_interview_vocab_overlap > 0:
-        if metrics.essay_interview_vocab_overlap < t["overlap_low"]:
-            penalty = min((t["overlap_low"] - metrics.essay_interview_vocab_overlap) * 200, 20)
-            score -= penalty
-            flags.append(
-                f"Very low essay-interview vocabulary overlap "
-                f"({metrics.essay_interview_vocab_overlap:.3f}) — "
-                f"writing voice doesn't match speaking voice"
-            )
-        elif metrics.essay_interview_vocab_overlap > t["overlap_high"]:
-            score += 5  # consistent voice bonus
-
-    return max(min(score, 100), 0), flags
+    if not interview_text or len(interview_text.split()) <= 20:
+        return 0.0
+    spoken = {w.lower().strip(".,!?;:\"'()") for w in interview_text.split()}
+    spoken = {w for w in spoken if len(w) > 3}
+    written = {w for w in essay_words if len(w) > 3}
+    union = written | spoken
+    return round(len(written & spoken) / len(union), 4) if union else 0.0
 
 
-# ── Stage 2: Claude qualitative analysis ──────────────────────────
+# ── Cross-source consistency, as checks a human can run ────────────
 
-DETECTION_PROMPT = """\
-You are an expert in detecting AI-generated text in university application essays.
-
-You will receive:
-1. The candidate's essay
-2. Their interview transcript (for voice comparison)
-3. PRE-COMPUTED STATISTICAL METRICS from the essay
-
-The statistical metrics have already flagged quantitative concerns. Your job is to assess \
-what statistics CANNOT catch: meaning, voice, emotional authenticity, personal specificity.
-
-STATISTICAL METRICS:
-{metrics_summary}
-
-{essay_document}
-
-{interview_document}
-
-Focus your analysis on:
-1. **Personal specificity**: Does the essay mention concrete names, places, dates, events?
-2. **Authentic voice**: Does it sound like a real teenager, with natural quirks and personality?
-3. **Emotional depth**: When describing emotions, is there genuine feeling or just labeling?
-4. **Consistency with interview**: Does the essay voice match how they speak in the interview?
-5. **Unique perspective**: Does the essay offer an angle that feels personal, not generic?
-
-IMPORTANT: Good writing is NOT evidence of AI use. Some students genuinely write well.
-Only flag AI concerns when MULTIPLE signals converge.
-
-Writing in a second language is NOT evidence of AI use either. Simple vocabulary,
-short sentences and grammatical slips are what a strong applicant writing in
-Kazakh, Russian or English as an additional language produces. Never treat them
-as signals.
-
-Score authenticity from 0 to 100, where 100 means definitely human-written.
-Raise a flag only for a concern you can point to in the text; an empty list of
-flags is the right answer for most essays.
-"""
-
-DETECTION_SCHEMA = {
-    "type": "object",
-    "additionalProperties": False,
-    "required": ["authenticity_score", "flags", "explanation"],
-    "properties": {
-        "authenticity_score": {"type": "number"},
-        "flags": {"type": "array", "items": {"type": "string"}},
-        "explanation": {"type": "string"},
-    },
-}
+_NUMBER = re.compile(r"\b\d[\d\s]{0,6}\b")
 
 
-def _format_metrics_for_prompt(metrics: StylometryMetrics, stat_flags: list[str], lang: str = "english") -> str:
-    """Format stylometry metrics as readable text for Claude."""
-    t = THRESHOLDS.get(lang, THRESHOLDS["english"])
-    lines = [
-        f"  Detected language: {lang}",
-        f"  Vocabulary richness (TTR): {metrics.ttr} (human teens: ~0.5-0.7, AI: ~0.4-0.55)",
-        f"  Sentence length variance: {metrics.sentence_length_variance} (human {lang}: >{t['sent_var_high']}, AI: <{t['sent_var_low']})",
-        f"  Avg word length: {metrics.avg_word_length} chars",
-        f"  Formality ratio: {metrics.formality_ratio} filler phrases per 100 words",
-        f"  Hapax ratio: {metrics.hapax_ratio} (human {lang}: >{t['hapax_high']}, AI: <{t['hapax_low']})",
-        f"  Essay-interview vocab overlap: {metrics.essay_interview_vocab_overlap}",
+@dataclass
+class SourceConsistency:
+    """What the written sources say, and what an interviewer might ask about.
+
+    Deliberately holds no score. `checks` are phrased as things to ask, never as
+    findings about the applicant, because the only reliable way to resolve a
+    question about authorship is to let the person talk about their own work.
+    """
+
+    language: str = "english"
+    sources_compared: list[str] = field(default_factory=list)
+    observations: list[str] = field(default_factory=list)
+    checks: list[str] = field(default_factory=list)
+    stylometry: StylometryMetrics | None = None
+
+
+def _figures_in(text: str) -> set[str]:
+    return {m.group().strip() for m in _NUMBER.finditer(text or "")}
+
+
+def _compare_figures(essay: str, other: str, label: str) -> list[str]:
+    """Numbers that appear in one account of an experience but not the other.
+
+    A discrepancy is a question, not a lie: people round, and a transcript
+    mishears digits more often than it mishears words.
+    """
+    essay_figures, other_figures = _figures_in(essay), _figures_in(other)
+    if not essay_figures or not other_figures:
+        return []
+    only_in_essay = sorted(essay_figures - other_figures)[:3]
+    if not only_in_essay:
+        return []
+    return [
+        f"The essay gives figures ({', '.join(only_in_essay)}) that the {label} does not. "
+        "Worth asking how they were counted."
     ]
-    if stat_flags:
-        lines.append("  Statistical flags raised:")
-        for f in stat_flags:
-            lines.append(f"    - {f}")
-    else:
-        lines.append("  No statistical flags raised.")
-    return "\n".join(lines)
 
 
-def _clamp_score(value: float) -> float:
-    """Keep the model's number inside the declared range.
+def analyze_source_consistency(candidate: Candidate) -> SourceConsistency:
+    """Compare what the applicant wrote across the sources they submitted."""
+    safe = anonymize_candidate(candidate)
+    essay = safe.essay.text
+    spoken = safe.interview_transcript or safe.video_transcript or ""
 
-    The schema fixes the shape but cannot express a numeric bound, so the clamp
-    lives in code where it is auditable.
-    """
-    return max(0.0, min(float(value), 100.0))
+    result = SourceConsistency(
+        language=detect_language(essay),
+        stylometry=compute_stylometry(essay, spoken or None),
+    )
+    result.sources_compared = [
+        name for name, text in (("essay", essay), ("spoken account", spoken)) if text.strip()
+    ]
+
+    if not spoken.strip():
+        result.observations.append(
+            "Only one written source was submitted, so nothing can be cross-checked."
+        )
+        result.checks.append(
+            "Ask the applicant to talk through one experience from the essay in their own words."
+        )
+        return result
+
+    result.checks.extend(_compare_figures(essay, spoken, "spoken account"))
+    result.checks.append(
+        "Ask the applicant to expand on one paragraph of their essay. Someone describing "
+        "their own experience adds detail that is not on the page."
+    )
+    return result
 
 
-# ── Stage 3: Combined detection ──────────────────────────────────
+# ── Backwards-compatible shim ──────────────────────────────────────
 
 
 async def detect_ai_content(candidate: Candidate) -> AIDetectionResult:
-    """Detect AI-generated content using statistical stylometry + Claude analysis.
+    """Deprecated. Returns the consistency view in the old response shape.
 
-    Stage 1: Compute statistical metrics (no AI, reproducible)
-    Stage 2: Claude qualitative assessment (informed by metrics)
-    Stage 3: Weighted combination (40% statistical + 60% qualitative)
+    The endpoint and the response model still carry the name `authenticity_score`
+    and the dashboard still renders it. Renaming a field and a panel belongs with
+    the committee-card rebuild (task LED-05), so until then this fills the old
+    shape with something that cannot be mistaken for a verdict: the score is
+    fixed and the text says what happened to the feature.
     """
-    safe = anonymize_candidate(candidate)
-
-    # Detect essay language for threshold calibration
-    lang = detect_language(safe.essay.text)
-
-    # Stage 1: Statistical stylometry (language-aware)
-    metrics = compute_stylometry(
-        safe.essay.text,
-        safe.interview_transcript or None,
-    )
-    stat_score, stat_flags = compute_statistical_score(
-        metrics,
-        has_interview=bool(safe.interview_transcript),
-        lang=lang,
-    )
-
-    # Stage 2: Claude qualitative analysis.
-    # Kazakh and mixed-language text goes to the strongest model: low-resource
-    # languages degrade disproportionately on smaller ones, and a noisy reading
-    # here lands on exactly the applicants this product exists to serve.
-    metrics_summary = _format_metrics_for_prompt(metrics, stat_flags, lang)
-
-    prompt = DETECTION_PROMPT.format(
-        metrics_summary=metrics_summary,
-        essay_document=llm.wrap_document(safe.essay.text, "essay", safe.id),
-        interview_document=llm.wrap_document(
-            safe.interview_transcript, "interview_transcript", safe.id
-        ),
-    )
-
-    model = settings.MODEL_FOR_LOW_RESOURCE if lang != "english" else settings.MODEL_EXTRACT
-    payload = await llm.complete_json(
-        prompt=prompt,
-        schema=DETECTION_SCHEMA,
-        model=model,
-    )
-    ai_score = _clamp_score(payload["authenticity_score"])
-    ai_flags = payload["flags"]
-    ai_explanation = payload["explanation"]
-
-    # Stage 3: Weighted combination
-    combined_score = stat_score * 0.4 + ai_score * 0.6
-    all_flags = stat_flags + ai_flags
-
-    explanation = (
-        f"Language detected: {lang}. "
-        f"Statistical analysis: {stat_score:.0f}/100. "
-        f"AI qualitative analysis: {ai_score:.0f}/100. "
-        f"Combined (40/60 weighted): {combined_score:.0f}/100. "
-        f"{ai_explanation}"
-    )
-
+    view = analyze_source_consistency(candidate)
     return AIDetectionResult(
-        authenticity_score=round(max(min(combined_score, 100), 0), 1),
-        flags=all_flags,
-        explanation=explanation,
-        stylometry=metrics,
+        # A constant, so no ranking, filter or threshold can key off it. The old
+        # value was a blend of a stylometric guess and a model's impression.
+        authenticity_score=100.0,
+        flags=view.checks,
+        explanation=(
+            "Authorship scoring was removed. Detectors of machine-written text "
+            "misclassify writing by people working in an additional language at "
+            "very high rates, and no calibration exists for Kazakh, so the number "
+            "this panel used to show was not evidence about the applicant. "
+            f"Language detected: {view.language}. "
+            f"Sources compared: {', '.join(view.sources_compared) or 'essay only'}. "
+            + (" ".join(view.observations))
+        ).strip(),
+        stylometry=view.stylometry,
     )

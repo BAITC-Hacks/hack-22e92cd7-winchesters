@@ -1,0 +1,151 @@
+{
+  "applicant_ref": "a-7f3c2e91",
+  "schema_version": "led-03.1",
+  "rubric_version": "provisional-0.1",
+  "model_judge": "claude-opus-5",
+  "model_extract": "claude-sonnet-5",
+  "prompt_version": "led-04.0",
+  "competencies": [
+    {
+      "competency": "leadership_abilities",
+      "indicators": [
+        {
+          "indicator_id": "lead.concrete_examples",
+          "observed_level": "high",
+          "evidence": [
+            {
+              "quote": "I organised thirty volunteers from three villages with no budget",
+              "source": "essay",
+              "source_ref": "art-0001",
+              "char_start": 0,
+              "char_end": 64,
+              "atola": "action",
+              "status": "present",
+              "verified": true,
+              "indicator_hint": ""
+            }
+          ],
+          "note": "Names the scale, the places and their own role."
+        },
+        {
+          "indicator_id": "lead.initiative",
+          "observed_level": "high",
+          "evidence": [
+            {
+              "quote": "Ешкім бастамаған соң, мен өзім бастадым",
+              "source": "written_presentation",
+              "source_ref": "art-0001",
+              "char_start": 0,
+              "char_end": 39,
+              "atola": "action",
+              "status": "present",
+              "verified": true,
+              "indicator_hint": ""
+            }
+          ],
+          "note": "Started it because nobody else had; quote kept in the applicant's language."
+        },
+        {
+          "indicator_id": "lead.result_and_contribution",
+          "observed_level": "normal",
+          "evidence": [
+            {
+              "quote": "We helped a lot of families that year",
+              "source": "essay",
+              "source_ref": "art-0001",
+              "char_start": 0,
+              "char_end": 37,
+              "atola": "outcome",
+              "status": "claimed_only",
+              "verified": true,
+              "indicator_hint": ""
+            }
+          ],
+          "note": "Outcome asserted without a measure, so it stays at normal."
+        }
+      ],
+      "level": "high",
+      "rule_applied": "R1",
+      "reserved_for_humans": false,
+      "contrastive": "Already at high. To keep it there under interview, an example of distributing tasks or resolving a conflict would confirm lead.organizing_others.",
+      "probe_question": "Как вы измеряли результат?",
+      "flags": []
+    },
+    {
+      "competency": "teamwork",
+      "indicators": [
+        {
+          "indicator_id": "team.disagreement",
+          "observed_level": "weak",
+          "evidence": [
+            {
+              "quote": "When people argued I just waited for it to pass",
+              "source": "essay",
+              "source_ref": "art-0001",
+              "char_start": 0,
+              "char_end": 47,
+              "atola": "action",
+              "status": "present",
+              "verified": true,
+              "indicator_hint": ""
+            }
+          ],
+          "note": "Describes withdrawing rather than helping the group decide."
+        }
+      ],
+      "level": "weak",
+      "rule_applied": "R2",
+      "reserved_for_humans": false,
+      "contrastive": "Weak to normal would need one instance of bringing a group back to the task during a disagreement.",
+      "probe_question": "Расскажите про случай, когда в группе начался спор. Что сделали именно вы?",
+      "flags": []
+    },
+    {
+      "competency": "motivation_major",
+      "indicators": [
+        {
+          "indicator_id": "motm.understanding",
+          "observed_level": "no_evidence",
+          "evidence": [],
+          "note": ""
+        },
+        {
+          "indicator_id": "motm.evidence_of_interest",
+          "observed_level": "no_evidence",
+          "evidence": [],
+          "note": ""
+        }
+      ],
+      "level": "no_evidence",
+      "rule_applied": "R0",
+      "reserved_for_humans": false,
+      "contrastive": "Nothing in the written materials speaks to the choice of major.",
+      "probe_question": "Что именно люди в этой специальности делают каждый день?",
+      "flags": []
+    },
+    {
+      "competency": "wounded_leadership",
+      "indicators": [
+        {
+          "indicator_id": "wound.awareness_of_influence",
+          "observed_level": "no_evidence",
+          "evidence": [],
+          "note": "Not raised in the written materials; the interviewer asks this live."
+        }
+      ],
+      "level": null,
+      "rule_applied": "",
+      "reserved_for_humans": true,
+      "contrastive": "",
+      "probe_question": "Что конкретно изменилось в вашем поведении?",
+      "flags": [
+        {
+          "code": "verify_live",
+          "quote": "",
+          "source": null,
+          "explanation": "No remote evidence. The methodology owner rates this block from the live interview; the AI never assigns it a level."
+        }
+      ]
+    }
+  ]
+}
