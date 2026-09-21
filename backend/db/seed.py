@@ -18,6 +18,7 @@ from backend.db.candidates import import_candidate
 from backend.db.engine import get_engine
 from backend.db.tables import User
 from backend.models import Candidate
+from backend.security import Role, hash_password
 
 SEED_FILE = Path(__file__).resolve().parents[1] / "data" / "candidates.json"
 
@@ -33,11 +34,6 @@ class SeedResult:
 
 
 def seed() -> SeedResult:
-    # The hashing scheme belongs to the auth router until FND-05 replaces it;
-    # imported here, not at module level, so the db package does not depend on
-    # routers at import time.
-    from backend.routers.auth import hash_password
-
     records = [Candidate(**raw) for raw in json.loads(SEED_FILE.read_text(encoding="utf-8"))]
 
     with Session(get_engine()) as session:
@@ -52,7 +48,7 @@ def seed() -> SeedResult:
                         email=DEMO_COMMITTEE_EMAIL,
                         full_name="Admissions Committee",
                         password_hash=hash_password(DEMO_COMMITTEE_PASSWORD),
-                        role="committee",
+                        role=Role.COMMITTEE.value,
                     )
                 )
                 demo_user_added = True

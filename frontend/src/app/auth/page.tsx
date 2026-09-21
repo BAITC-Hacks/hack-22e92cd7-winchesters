@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { homeFor, saveSession } from "@/lib/session";
 
 export default function AuthPage() {
   const router = useRouter();
@@ -33,6 +34,16 @@ export default function AuthPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (mode === "register") {
+      if (password.length < 8) {
+        setError("Password must be at least 8 characters");
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError("Passwords do not match");
+        return;
+      }
+    }
     setLoading(true);
 
     try {
@@ -43,18 +54,12 @@ export default function AuthPage() {
         res = await api.auth.login(email, password);
       }
 
-      localStorage.setItem("invisionu_token", res.token);
-      localStorage.setItem("invisionu_user", JSON.stringify(res.user));
-      localStorage.setItem("invisionu_candidate_name", res.user.full_name);
-      if (res.user.candidate_id) {
-        localStorage.setItem("invisionu_candidate_id", res.user.candidate_id);
-      }
+      saveSession(res.token, res.user);
 
-      if (res.user.role === "committee") {
-        router.push("/dashboard");
-      } else {
-        router.push("/");
-      }
+      // Back to the page that sent the user here, if it is theirs to see;
+      // useAuth on that page sends anyone else to their own home.
+      const next = new URLSearchParams(window.location.search).get("next");
+      router.push(next && next.startsWith("/") && !next.startsWith("//") ? next : homeFor(res.user.role));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed");
     } finally {

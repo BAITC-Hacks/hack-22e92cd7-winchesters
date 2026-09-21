@@ -10,15 +10,20 @@ from __future__ import annotations
 import re
 from collections import defaultdict
 
+from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, col, or_, select
 
 from backend.db.engine import get_engine
-from backend.db.tables import Applicant, Artifact, ArtifactKind
+from backend.db.tables import Applicant, Artifact, ArtifactKind, User
 from backend.models import Application, Candidate, Essay
 
 _LEGACY_REF = re.compile(r"^c-(\d+)$")
 _ALLOCATION_ATTEMPTS = 5
+
+
+class AlreadyApplied(Exception):
+    """The user submitting an application already has one."""
 
 
 # ── Conversion ─────────────────────────────────────────────────────
@@ -135,17 +140,36 @@ def _next_legacy_ref(session: Session) -> str:
     return f"c-{max(numbers, default=0) + 1:03d}"
 
 
-def create_candidate(candidate: Candidate) -> Candidate:
+def _claim(session: Session, owner_user_id: str, applicant_id: str) -> bool:
+    """Link the application to its owner, only if they have none yet.
+
+    One conditional UPDATE, so two submissions racing from the same account
+    cannot both succeed and leave an orphaned application behind.
+    """
+    result = session.execute(
+        update(User)
+        .where(col(User.id) == owner_user_id, col(User.applicant_id).is_(None))
+        .values(applicant_id=applicant_id)
+    )
+    return result.rowcount == 1
+
+
+def create_candidate(candidate: Candidate, owner_user_id: str | None = None) -> Candidate:
     """Store a new application and return it with its assigned id.
 
     `candidate.id` is ignored; the next free `c-###` ref is allocated. The
     unique constraint on `legacy_ref` turns a race between two submissions into
-    a retry instead of two applicants sharing an id.
+    a retry instead of two applicants sharing an id. With `owner_user_id` the
+    application is linked to that user in the same transaction; raises
+    `AlreadyApplied` if they already have one.
     """
     for _ in range(_ALLOCATION_ATTEMPTS):
         with Session(get_engine()) as session:
             try:
                 applicant = _insert(session, candidate, _next_legacy_ref(session))
+                if owner_user_id is not None and not _claim(session, owner_user_id, applicant.id):
+                    session.rollback()
+                    raise AlreadyApplied(owner_user_id)
                 session.commit()
             except IntegrityError:
                 session.rollback()

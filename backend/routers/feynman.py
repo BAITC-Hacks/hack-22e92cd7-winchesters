@@ -9,10 +9,13 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 
 from backend import llm, settings
+from backend.routers.guards import ensure_candidate_access, require_role
+from backend.security import ALL_ROLES, Role
 
 router = APIRouter(prefix="/api/feynman", tags=["feynman"])
 
@@ -277,15 +280,25 @@ _score_cache: dict[str, FeynmanScore] = {}
 # ── Endpoints ──────────────────────────────────────────────────────
 
 
+def _own_session(session_id: str, user: dict) -> dict:
+    """The session, if the caller started it. Someone else's is reported as
+    missing, so session ids cannot be probed."""
+    session = _sessions.get(session_id)
+    if not session or session["user_id"] != user["id"]:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return session
+
+
 @router.get("/topics")
-def list_topics():
+def list_topics(_user: dict = Depends(require_role(*ALL_ROLES))):
     """List available teaching topics."""
     return TOPICS
 
 
 @router.post("/start", response_model=StartSessionResponse)
-async def start_session(req: StartSessionRequest):
+async def start_session(req: StartSessionRequest, user: dict = Depends(require_role(Role.APPLICANT))):
     """Start a new teaching session. Returns the AI student's first message."""
+    await run_in_threadpool(ensure_candidate_access, user, req.candidate_id)
     topic = next((t for t in TOPICS if t["id"] == req.topic_id), None)
     if not topic:
         raise HTTPException(status_code=400, detail=f"Unknown topic: {req.topic_id}")
@@ -301,6 +314,7 @@ async def start_session(req: StartSessionRequest):
 
     _sessions[session_id] = {
         "candidate_id": req.candidate_id,
+        "user_id": user["id"],
         "topic_id": req.topic_id,
         "topic": topic,
         "system": system,
@@ -319,13 +333,11 @@ async def start_session(req: StartSessionRequest):
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(req: ChatRequest):
+async def chat(req: ChatRequest, user: dict = Depends(require_role(Role.APPLICANT))):
     """Send a message in the teaching session. Returns the AI student's reply."""
     MAX_EXCHANGES = 8
 
-    session = _sessions.get(req.session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+    session = _own_session(req.session_id, user)
 
     if session["exchange_count"] >= MAX_EXCHANGES:
         raise HTTPException(status_code=400, detail="Session has reached the maximum number of exchanges. Please finish the session.")
@@ -351,7 +363,6 @@ async def chat(req: ChatRequest):
     )
 
 
-@router.post("/finish", response_model=FeynmanScore)
 def _lesson_text(messages: list[dict]) -> str:
     """Collect only what the candidate said, as the lesson the student heard.
 
@@ -387,11 +398,10 @@ def _quiz_answers(payload: dict, questions: list[str]) -> list[QuizAnswer]:
     return answers
 
 
-async def finish_session(session_id: str):
+@router.post("/finish", response_model=FeynmanScore)
+async def finish_session(session_id: str, user: dict = Depends(require_role(Role.APPLICANT))):
     """End the session, run the quiz, and score the teaching performance."""
-    session = _sessions.get(session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+    session = _own_session(session_id, user)
 
     topic = session["topic"]
     topic_id = session["topic_id"]
@@ -455,6 +465,7 @@ async def finish_session(session_id: str):
 
 
 @router.get("/score/{candidate_id}", response_model=FeynmanScore | None)
-def get_score(candidate_id: str):
-    """Get the Feynman teaching score for a candidate."""
+def get_score(candidate_id: str, user: dict = Depends(require_role(*ALL_ROLES))):
+    """Get the Feynman teaching score for a candidate. Applicants: only their own."""
+    ensure_candidate_access(user, candidate_id)
     return _score_cache.get(candidate_id)

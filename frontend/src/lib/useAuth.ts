@@ -1,61 +1,79 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
+import { api } from "./api";
+import {
+  clearSession,
+  getStoredUserJSON,
+  getToken,
+  homeFor,
+  parseUser,
+  redirectToLogin,
+  saveUser,
+  subscribeToSession,
+  type Role,
+  type User,
+} from "./session";
 
-export interface User {
-  id: string;
-  email: string;
-  full_name: string;
-  candidate_id: string | null;
-  role: string;
+export type { Role, User } from "./session";
+
+interface Options {
+  /** Send anonymous visitors to /auth. */
+  requireAuth?: boolean;
+  /** Roles allowed on this page; anyone else is sent to their own home page. */
+  roles?: Role[];
 }
 
-export function useAuth(requireAuth = true) {
+const noSubscription = () => () => {};
+
+/**
+ * The logged-in user, read from localStorage and then confirmed with
+ * /api/auth/me. An expired token fails that call, and the API client sends
+ * the user to log in again. `ready` turns true only once access is settled,
+ * so a page can wait for it before loading data it may not be allowed to see.
+ */
+export function useAuth({ requireAuth = false, roles }: Options = {}) {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  // The server has no localStorage: it renders "not loaded", and the client
+  // fills the session in right after hydration.
+  const hydrated = useSyncExternalStore(noSubscription, () => true, () => false);
+  const token = useSyncExternalStore(subscribeToSession, getToken, () => null);
+  const userJSON = useSyncExternalStore(subscribeToSession, getStoredUserJSON, () => null);
+  const user = useMemo(() => (token ? parseUser(userJSON) : null), [token, userJSON]);
+
+  const rolesKey = roles?.join(",") ?? "";
+  const allowed = !user || !rolesKey || rolesKey.split(",").includes(user.role);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem("invisionu_token");
-    const storedUser = localStorage.getItem("invisionu_user");
-
-    if (storedToken && storedUser) {
-      try {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-      } catch {
-        // Invalid stored data
-        localStorage.removeItem("invisionu_token");
-        localStorage.removeItem("invisionu_user");
-      }
+    if (!hydrated) return;
+    if (!user) {
+      if (requireAuth) redirectToLogin();
+      return;
     }
+    if (!allowed) router.replace(homeFor(user.role));
+  }, [hydrated, user, allowed, requireAuth, router]);
 
-    // Auth redirect disabled for development — enable when ready
-    // if (requireAuth && !storedToken) {
-    //   router.push("/auth");
-    // }
+  // Refresh from the server once per token: picks up a newly linked
+  // application, and a 401 (expired token) logs the user out via the client.
+  useEffect(() => {
+    if (!token) return;
+    api.auth.me().then(saveUser).catch(() => {});
+  }, [token]);
 
-    setLoading(false);
-  }, [requireAuth, router]);
-
-  function logout() {
-    localStorage.removeItem("invisionu_token");
-    localStorage.removeItem("invisionu_user");
-    localStorage.removeItem("invisionu_candidate_id");
-    localStorage.removeItem("invisionu_candidate_name");
-    setUser(null);
-    setToken(null);
+  const logout = useCallback(() => {
+    clearSession();
     router.push("/auth");
-  }
+  }, [router]);
 
-  function updateUser(updates: Partial<User>) {
-    if (!user) return;
-    const updated = { ...user, ...updates };
-    setUser(updated);
-    localStorage.setItem("invisionu_user", JSON.stringify(updated));
-  }
+  const updateUser = useCallback(
+    (updates: Partial<User>) => {
+      if (user) saveUser({ ...user, ...updates });
+    },
+    [user],
+  );
 
-  return { user, token, loading, logout, updateUser };
+  const loading = !hydrated;
+  const ready = hydrated && allowed && (!requireAuth || user !== null);
+  return { user, token, loading, ready, logout, updateUser };
 }

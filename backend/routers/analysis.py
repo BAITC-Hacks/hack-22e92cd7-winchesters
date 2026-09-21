@@ -1,16 +1,25 @@
-"""AI detection and deep analysis endpoints."""
+"""AI detection and deep analysis endpoints.
+
+Committee and admin only (FND-05): the whole router carries the guard.
+"""
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.concurrency import run_in_threadpool
 
 from backend.models import AIDetectionResult, VideoAnalysisResult
 from backend.routers.candidates import get_candidate_or_404
+from backend.routers.guards import require_role
 from backend.scoring.ai_detector import detect_ai_content
 from backend.scoring.video_analyzer import analyze_video, whisper_available
+from backend.security import Role
 
-router = APIRouter(prefix="/api/analysis", tags=["analysis"])
+router = APIRouter(
+    prefix="/api/analysis",
+    tags=["analysis"],
+    dependencies=[Depends(require_role(Role.COMMITTEE, Role.ADMIN))],
+)
 
 _detection_cache: dict[str, AIDetectionResult] = {}
 _video_cache: dict[str, VideoAnalysisResult] = {}

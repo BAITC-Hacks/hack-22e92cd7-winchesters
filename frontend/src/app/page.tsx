@@ -74,7 +74,7 @@ const PROGRAMS = [
 /* ── Main page ─────────────────────────────────────────────────────── */
 
 export default function LandingPage() {
-  const { user, token, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -214,6 +214,16 @@ export default function LandingPage() {
         word_count: essayText.split(/\s+/).filter(Boolean).length,
       };
 
+      if (!user) {
+        setError("Please sign in or create an account to submit your application.");
+        return;
+      }
+      if (user.role !== "applicant") {
+        setError("Applications are submitted from an applicant account.");
+        return;
+      }
+
+      // The server links the application to this account.
       const created = await api.candidates.create({
         name,
         age,
@@ -225,15 +235,7 @@ export default function LandingPage() {
         video_transcript: videoTranscript,
       });
 
-      // Store the new candidate ID and link to user account
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem("invisionu_candidate_id", created.id);
-        window.localStorage.setItem("invisionu_candidate_name", name);
-        // Link candidate to authenticated user
-        if (token) {
-          api.auth.linkCandidate(token, created.id).catch(() => {});
-        }
-      }
+      updateUser({ candidate_id: created.id });
 
       setSuccess(true);
     } catch (err: unknown) {
@@ -420,6 +422,17 @@ export default function LandingPage() {
                   Logout
                 </button>
               </div>
+            </>
+          )}
+          {!user && (
+            <>
+              <div style={{ width: "1px", height: "40px", backgroundColor: "#141414" }} />
+              <a
+                href="/auth?next=%2F%23apply"
+                style={{ padding: "0 16px", fontSize: "14px", fontWeight: 600, color: "#141414", textDecoration: "underline" }}
+              >
+                Sign in
+              </a>
             </>
           )}
         </div>
