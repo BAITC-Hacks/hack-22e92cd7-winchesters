@@ -19,11 +19,12 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
 from backend import settings
+from backend.db import feynman as feynman_store
 from backend.db import users as user_store
+from backend.db.candidates import applicant_id_for
 from backend.db.seed import DEMO_COMMITTEE_EMAIL, DEMO_COMMITTEE_PASSWORD, seed
-from backend.db.tables import User
+from backend.db.tables import FeynmanSession, User
 from backend.main import app
-from backend.routers import feynman
 from backend.security import AuthConfigError, check_auth_config, create_access_token
 
 PUBLIC_ROUTES = {("POST", "/api/auth/register"), ("POST", "/api/auth/login"), ("GET", "/")}
@@ -188,19 +189,19 @@ def test_applicant_cannot_teach_as_someone_else(client, auth_headers):
     assert response.status_code == 403
 
 
-def test_teaching_session_belongs_to_whoever_started_it(client, auth_headers, monkeypatch):
+def test_teaching_session_belongs_to_whoever_started_it(client, db, auth_headers):
     owner = client.get("/api/auth/me", headers=(owner_headers := auth_headers("applicant", owns="c-003"))).json()
-    monkeypatch.setitem(
-        feynman._sessions,
-        "s-1",
-        {"candidate_id": "c-003", "user_id": owner["id"], "exchange_count": 8, "messages": [], "system": ""},
-    )
+    session_id = feynman_store.create_session(applicant_id_for("c-003"), owner["id"], "seasons", [], max_attempts=1)["id"]
+    with Session(db) as session:
+        session.get(FeynmanSession, session_id).exchange_count = 8
+        session.commit()
     other = auth_headers("applicant", owns="c-004")
 
-    assert client.post("/api/feynman/chat", json={"session_id": "s-1", "message": "hi"}, headers=other).status_code == 404
-    assert client.post("/api/feynman/finish?session_id=s-1", headers=other).status_code == 404
+    chat = {"session_id": session_id, "message": "hi"}
+    assert client.post("/api/feynman/chat", json=chat, headers=other).status_code == 404
+    assert client.post(f"/api/feynman/finish?session_id={session_id}", headers=other).status_code == 404
     # The owner reaches the session (and hits its exchange limit, not a 404).
-    assert client.post("/api/feynman/chat", json={"session_id": "s-1", "message": "hi"}, headers=owner_headers).status_code == 400
+    assert client.post("/api/feynman/chat", json=chat, headers=owner_headers).status_code == 400
 
 
 def test_one_application_per_account(client):
