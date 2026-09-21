@@ -91,7 +91,12 @@ cd invision-u-winchesters
 # Backend
 pip install -r backend/requirements.txt
 cp backend/.env.example backend/.env   # add ANTHROPIC_API_KEY (required), OPENAI_API_KEY (optional)
+python3 -m backend.db init             # create/upgrade the SQLite database and load the demo data
 python3 -m uvicorn backend.main:app --port 8000
+
+# After pulling changes that touch backend/migrations/, run `python3 -m backend.db init` again.
+# The API refuses to start on an outdated database and prints this command.
+# `python3 -m backend.db reset` deletes the local database and rebuilds it from the seed.
 
 # Frontend (requires Node 20+)
 cd frontend && npm install && npx next dev --port 3000
@@ -133,7 +138,7 @@ Dual scoring proves AI value: rule-based baseline (instant, free) vs Claude AI (
 - Stylometry may false-positive on strong writers → only 40% weight (60% Claude qualitative)
 - Kazakh stylometry baselines are less established than English/Russian
 - Video analysis uses mock transcript by default — add OPENAI_API_KEY for real Whisper transcription
-- In-memory storage — scores and auth reset on restart
+- Candidates and accounts are stored in SQLite; scores, detection results and Feynman sessions are still in memory and reset on restart (moving in FND-04 PR 3/4)
 
 ---
 
@@ -144,8 +149,10 @@ Dual scoring proves AI value: rule-based baseline (instant, free) vs Claude AI (
 │   ├── main.py                # FastAPI entry point
 │   ├── routers/               # API endpoints (auth, candidates, scoring, analysis, feynman)
 │   ├── scoring/               # Signal extraction, baseline, AI scorer, detector, aggregator, video analyzer
+│   ├── db/                    # SQLite via SQLModel: tables, repositories, seed (`python -m backend.db init`)
+│   ├── migrations/            # Alembic migrations
 │   ├── privacy.py             # PII anonymization
-│   └── data/                  # Synthetic dataset (15 candidates, 3 languages)
+│   └── data/                  # Seed dataset (16 candidates, 3 languages); the local .db lives here, gitignored
 ├── frontend/src/app/
 │   ├── page.tsx               # Landing + Application Form (5 steps)
 │   ├── auth/page.tsx          # Sign In / Sign Up

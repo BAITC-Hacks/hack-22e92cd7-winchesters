@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
+from fastapi.concurrency import run_in_threadpool
 
 from backend.models import AIDetectionResult, VideoAnalysisResult
-from backend.routers.candidates import _get_candidate
+from backend.routers.candidates import get_candidate_or_404
 from backend.scoring.ai_detector import detect_ai_content
 from backend.scoring.video_analyzer import analyze_video, whisper_available
 
@@ -21,7 +22,7 @@ async def detect_ai(candidate_id: str):
     if candidate_id in _detection_cache:
         return _detection_cache[candidate_id]
 
-    candidate = _get_candidate(candidate_id)
+    candidate = await run_in_threadpool(get_candidate_or_404, candidate_id)
     try:
         result = await detect_ai_content(candidate)
         _detection_cache[candidate_id] = result
@@ -47,7 +48,7 @@ async def analyze_video_endpoint(candidate_id: str):
     if candidate_id in _video_cache:
         return _video_cache[candidate_id]
 
-    candidate = _get_candidate(candidate_id)
+    candidate = await run_in_threadpool(get_candidate_or_404, candidate_id)
     try:
         result = await analyze_video(candidate)
         _video_cache[candidate_id] = result

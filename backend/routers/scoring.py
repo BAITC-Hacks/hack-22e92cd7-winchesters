@@ -6,9 +6,10 @@ import asyncio
 import logging
 
 from fastapi import APIRouter, HTTPException
+from fastapi.concurrency import run_in_threadpool
 
 from backend.models import CandidateScore, CommitteeOverride, RankedCandidate, ScoringWeights
-from backend.routers.candidates import _get_candidate, _load_candidates
+from backend.routers.candidates import get_candidate_or_404, load_candidates
 from backend.scoring.aggregator import compare_scores, rank_candidates, recompute_overall
 from backend.scoring.ai_scorer import compute_ai_score
 from backend.scoring.baseline import compute_baseline_score
@@ -25,7 +26,7 @@ _baseline_cache: dict[str, CandidateScore] = {}
 @router.post("/baseline/{candidate_id}", response_model=CandidateScore)
 def score_baseline(candidate_id: str, weights: ScoringWeights | None = None):
     """Compute baseline (rule-based) score for a candidate."""
-    candidate = _get_candidate(candidate_id)
+    candidate = get_candidate_or_404(candidate_id)
     score = compute_baseline_score(candidate, weights)
     _baseline_cache[candidate_id] = score
     return score
@@ -34,7 +35,7 @@ def score_baseline(candidate_id: str, weights: ScoringWeights | None = None):
 @router.post("/baseline/all", response_model=list[CandidateScore])
 def score_all_baseline(weights: ScoringWeights | None = None):
     """Compute baseline scores for all candidates."""
-    candidates = _load_candidates()
+    candidates = load_candidates()
     scores = []
     for c in candidates:
         score = compute_baseline_score(c, weights)
@@ -46,7 +47,7 @@ def score_all_baseline(weights: ScoringWeights | None = None):
 @router.post("/ai/{candidate_id}", response_model=CandidateScore)
 async def score_ai(candidate_id: str, weights: ScoringWeights | None = None):
     """Compute AI-powered score for a candidate (uses Claude API)."""
-    candidate = _get_candidate(candidate_id)
+    candidate = await run_in_threadpool(get_candidate_or_404, candidate_id)
     try:
         score = await compute_ai_score(candidate, weights)
         _score_cache[candidate_id] = score
@@ -65,7 +66,7 @@ async def score_all_ai(weights: ScoringWeights | None = None):
     zero sorts to the bottom of the ranking, so an API timeout used to look
     exactly like a weak application.
     """
-    candidates = _load_candidates()
+    candidates = await run_in_threadpool(load_candidates)
     results = await asyncio.gather(
         *(compute_ai_score(c, weights) for c in candidates),
         return_exceptions=True,
@@ -84,7 +85,7 @@ async def score_all_ai(weights: ScoringWeights | None = None):
 @router.post("/rank", response_model=list[RankedCandidate])
 def rank_all(weights: ScoringWeights | None = None, scorer: str = "baseline"):
     """Rank all candidates. Use scorer='baseline' or 'ai'."""
-    candidates = _load_candidates()
+    candidates = load_candidates()
     cache = _score_cache if scorer == "ai" else _baseline_cache
 
     # Auto-compute baseline if cache empty
@@ -102,7 +103,7 @@ def compare(candidate_id: str):
     baseline = _baseline_cache.get(candidate_id)
     ai = _score_cache.get(candidate_id)
     if not baseline:
-        candidate = _get_candidate(candidate_id)
+        candidate = get_candidate_or_404(candidate_id)
         baseline = compute_baseline_score(candidate)
         _baseline_cache[candidate_id] = baseline
     if not ai:
@@ -121,7 +122,7 @@ def override_score(override: CommitteeOverride):
     score = _score_cache.get(cid) or _baseline_cache.get(cid)
     if not score:
         # Auto-compute baseline
-        candidate = _get_candidate(cid)
+        candidate = get_candidate_or_404(cid)
         score = compute_baseline_score(candidate)
         _baseline_cache[cid] = score
 
@@ -154,7 +155,7 @@ def override_score(override: CommitteeOverride):
 @router.post("/reweight", response_model=list[RankedCandidate])
 def reweight(weights: ScoringWeights, scorer: str = "baseline"):
     """Re-rank with new weights without re-scoring."""
-    candidates = _load_candidates()
+    candidates = load_candidates()
     cache = _score_cache if scorer == "ai" else _baseline_cache
     if not cache:
         for c in candidates:

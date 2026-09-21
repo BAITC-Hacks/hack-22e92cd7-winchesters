@@ -1,5 +1,22 @@
 # Phase D — Persistence (Postgres + SQLAlchemy 2.0 + Alembic)
 
+> **Superseded 2026-09-21 by FND-04 on the [Stage 2 task board](../STAGE2_TASK_BOARD.md).**
+> This plan predates the Stage 2 pivot and stores the product being removed (five dimensions,
+> JSONB score snapshots). What is being built instead, split per [../OWNERSHIP.md](../OWNERSHIP.md):
+>
+> | This doc said | What is built | Why |
+> |---|---|---|
+> | Postgres | **SQLite** (`DATABASE_URL`; Postgres later, FND-10) | Demo Day is Oct 1–3 and there is no compose yet |
+> | SQLAlchemy 2.0 mapped classes | **SQLModel** (same engine, Pydantic-typed rows) | Board spec; the codebase is already Pydantic |
+> | `candidates` with `c-###` PK | **`applicants` with UUID PK**, `c-###` kept as `legacy_ref` | FND-07 exposes UUIDs; nothing should be guessable from an id |
+> | `scores` / `detections` / `video_analyses` tables | **`model_runs`** (generic output + `status`, `failed` never 0) | The ledger replaces these outputs; storing them per-shape is throwaway |
+> | — | `evidence_items`, `ratings`, `competency_scores`, `rubric_versions`, `prompt_versions`, `committee_overrides`, `audit_log`, `protected_attributes`, `consents` | §5.1 evidence ledger and §5.5 of the improvement plan; columns from LED-03 |
+>
+> **Status:** PR 1 (engine, Alembic, `applicants` / `artifacts` / `users`, 16-record import) is
+> built — see `backend/db/`. **Still valid below and worth reading:** the sync-SQLAlchemy
+> decision and its reasoning, D1 (learn the ORM on a throwaway script), and the ID-strategy and
+> `run_in_threadpool` notes. The table list in D2 and the PR sequencing are not.
+
 > The big structural change. Replaces the racy `candidates.json` writes and
 > **every** module-level cache dict: `_score_cache`/`_baseline_cache`
 > (scoring.py), `_detection_cache`/`_video_cache` (analysis.py),

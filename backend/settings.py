@@ -10,6 +10,7 @@ from the environment with a working default.
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -41,6 +42,12 @@ MAX_TOKENS_CHAT = int(os.getenv("MAX_TOKENS_CHAT", "400"))
 MAX_CONCURRENT_LLM_CALLS = int(os.getenv("MAX_CONCURRENT_LLM_CALLS", "4"))
 LLM_TIMEOUT_SECONDS = float(os.getenv("LLM_TIMEOUT_SECONDS", "120"))
 LLM_MAX_RETRIES = int(os.getenv("LLM_MAX_RETRIES", "2"))
+
+# ── Database ───────────────────────────────────────────────────────
+# SQLite file next to the seed data by default. The path is absolute so the
+# app finds the same database whatever directory uvicorn is started from.
+_DEFAULT_DB = Path(__file__).resolve().parent / "data" / "invision.db"
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{_DEFAULT_DB.as_posix()}")
 
 # ── Demo and debug ─────────────────────────────────────────────────
 DEMO_MODE = os.getenv("DEMO_MODE", "1") == "1"
