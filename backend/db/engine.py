@@ -13,11 +13,12 @@ from pathlib import Path
 from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
-from sqlalchemy import event
-from sqlalchemy.engine import Engine
+from sqlalchemy import event, text
+from sqlalchemy.engine import Connection, Engine
 from sqlmodel import create_engine
 
 from backend import settings
+from backend.db.tables import APPEND_ONLY_TABLES, append_only_trigger_names
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ALEMBIC_INI = REPO_ROOT / "alembic.ini"
@@ -69,6 +70,31 @@ def alembic_config(url: str | None = None) -> Config:
 
 class SchemaNotCurrent(RuntimeError):
     pass
+
+
+def missing_append_only_triggers(connection: Connection) -> list[str]:
+    """Trigger names an existing append-only table should have and does not.
+
+    A batch-mode rebuild copies a table, drops the old one and renames the
+    copy; the triggers go with the dropped table and nothing recreates them.
+    Tables that do not exist (a downgrade below the revision that created
+    them) are skipped. SQLite only: elsewhere append-only is a different
+    mechanism, and this returns nothing.
+    """
+    if connection.dialect.name != "sqlite":
+        return []
+    rows = connection.execute(
+        text("SELECT type, name FROM sqlite_master WHERE type IN ('table', 'trigger')")
+    ).all()
+    tables = {name for kind, name in rows if kind == "table"}
+    triggers = {name for kind, name in rows if kind == "trigger"}
+    return [
+        name
+        for table in APPEND_ONLY_TABLES
+        if table in tables
+        for name in append_only_trigger_names(table)
+        if name not in triggers
+    ]
 
 
 def assert_schema_current(engine: Engine | None = None) -> None:
