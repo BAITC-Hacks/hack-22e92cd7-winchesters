@@ -107,8 +107,8 @@ class User(SQLModel, table=True):
     email: str = Field(sa_column=Column(String(320), unique=True, nullable=False))
     password_hash: str = Field(sa_column=Column(Text, nullable=False))
     full_name: str = Field(sa_column=Column(Text, nullable=False))
-    # applicant | committee today; FND-05 adds interviewer and admin and the
-    # guards that read this.
+    # applicant | interviewer | committee | admin (backend.security.Role). The
+    # guards in backend/routers/guards.py read it from here on every request.
     role: str = Field(default="applicant", sa_column=Column(String(16), nullable=False))
     applicant_id: str | None = Field(
         default=None,

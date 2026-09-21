@@ -51,3 +51,17 @@ DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{_DEFAULT_DB.as_posix()}")
 
 # ── Demo and debug ─────────────────────────────────────────────────
 DEMO_MODE = os.getenv("DEMO_MODE", "1") == "1"
+
+# ── Auth (FND-05) ──────────────────────────────────────────────────
+# Signs access tokens. No default on purpose: the app refuses to start without
+# it (backend/security.py). backend/.env.example ships a `dev-only-` secret
+# that is accepted only with DEMO_MODE=1.
+AUTH_SECRET = os.getenv("AUTH_SECRET", "")
+AUTH_TOKEN_TTL_MINUTES = int(os.getenv("AUTH_TOKEN_TTL_MINUTES", "480"))
+
+# Browser origins allowed to call the API, comma-separated.
+CORS_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
+    if origin.strip()
+]

@@ -1,22 +1,31 @@
-"""Scoring and ranking endpoints."""
+"""Scoring and ranking endpoints.
+
+Committee and admin only (FND-05): the whole router carries the guard.
+"""
 
 from __future__ import annotations
 
 import asyncio
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.concurrency import run_in_threadpool
 
 from backend.models import CandidateScore, CommitteeOverride, RankedCandidate, ScoringWeights
 from backend.routers.candidates import get_candidate_or_404, load_candidates
+from backend.routers.guards import require_role
 from backend.scoring.aggregator import compare_scores, rank_candidates, recompute_overall
 from backend.scoring.ai_scorer import compute_ai_score
 from backend.scoring.baseline import compute_baseline_score
+from backend.security import Role
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/scoring", tags=["scoring"])
+router = APIRouter(
+    prefix="/api/scoring",
+    tags=["scoring"],
+    dependencies=[Depends(require_role(Role.COMMITTEE, Role.ADMIN))],
+)
 
 # In-memory score cache (per session)
 _score_cache: dict[str, CandidateScore] = {}

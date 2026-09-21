@@ -106,20 +106,20 @@ def test_empty_texts_are_not_stored_as_artifacts(db):
 # ── Candidates API ─────────────────────────────────────────────────
 
 
-def test_list_candidates_endpoint(client):
-    response = client.get("/api/candidates/")
+def test_list_candidates_endpoint(client, auth_headers):
+    response = client.get("/api/candidates/", headers=auth_headers("committee"))
     assert response.status_code == 200
     body = response.json()
     assert len(body) == 16
     assert body[0]["id"] == "c-001"
 
 
-def test_unknown_candidate_is_404(client):
-    assert client.get("/api/candidates/c-999").status_code == 404
+def test_unknown_candidate_is_404(client, auth_headers):
+    assert client.get("/api/candidates/c-999", headers=auth_headers("committee")).status_code == 404
 
 
-def test_created_candidate_gets_next_id_and_survives_restart(client, db):
-    response = client.post("/api/candidates/", json=_new_application())
+def test_created_candidate_gets_next_id_and_survives_restart(client, db, auth_headers):
+    response = client.post("/api/candidates/", json=_new_application(), headers=auth_headers("applicant"))
     assert response.status_code == 201
     created = response.json()
     assert created["id"] == "c-017"
@@ -157,13 +157,13 @@ def test_foreign_keys_are_enforced(db):
 
 def test_register_login_me_and_survive_restart(client, db):
     registered = client.post(
-        "/api/auth/register", json={"email": "a@example.kz", "password": "secret1", "full_name": "Aigerim"}
+        "/api/auth/register", json={"email": "a@example.kz", "password": "secret12", "full_name": "Aigerim"}
     )
     assert registered.status_code == 200
     assert uuid.UUID(registered.json()["user"]["id"])
 
     _restart(db)
-    login = client.post("/api/auth/login", json={"email": "a@example.kz", "password": "secret1"})
+    login = client.post("/api/auth/login", json={"email": "a@example.kz", "password": "secret12"})
     assert login.status_code == 200
     token = login.json()["token"]
     me = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
@@ -172,22 +172,27 @@ def test_register_login_me_and_survive_restart(client, db):
 
 
 def test_wrong_password_and_duplicate_email(client):
-    payload = {"email": "b@example.kz", "password": "secret1", "full_name": "B"}
+    payload = {"email": "b@example.kz", "password": "secret12", "full_name": "B"}
     assert client.post("/api/auth/register", json=payload).status_code == 200
     assert client.post("/api/auth/register", json=payload).status_code == 400
     wrong = client.post("/api/auth/login", json={"email": "b@example.kz", "password": "nope"})
     assert wrong.status_code == 401
 
 
-def test_link_candidate_persists_and_rejects_unknown_ids(client):
+def test_submitted_application_is_linked_and_survives_restart(client, db):
+    """FND-05: submitting links the application to its author; link-candidate
+    can only confirm that link, never claim someone else's record."""
     token = client.post(
-        "/api/auth/register", json={"email": "c@example.kz", "password": "secret1", "full_name": "C"}
+        "/api/auth/register", json={"email": "c@example.kz", "password": "secret12", "full_name": "C"}
     ).json()["token"]
     headers = {"Authorization": f"Bearer {token}"}
 
-    assert client.post("/api/auth/link-candidate?candidate_id=c-999", headers=headers).status_code == 404
-    assert client.post("/api/auth/link-candidate?candidate_id=c-005", headers=headers).status_code == 200
-    assert client.get("/api/auth/me", headers=headers).json()["candidate_id"] == "c-005"
+    created = client.post("/api/candidates/", json=_new_application(), headers=headers).json()["id"]
+    _restart(db)
+    assert client.get("/api/auth/me", headers=headers).json()["candidate_id"] == created
+    assert client.post(f"/api/auth/link-candidate?candidate_id={created}", headers=headers).status_code == 200
+    assert client.post("/api/auth/link-candidate?candidate_id=c-005", headers=headers).status_code == 403
+    assert client.post("/api/auth/link-candidate?candidate_id=c-999", headers=headers).status_code == 403
 
 
 def test_demo_committee_account_is_seeded(client):

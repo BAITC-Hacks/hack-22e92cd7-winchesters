@@ -47,11 +47,12 @@ function ScoreDimension({ label, score }: { label: string; score: number }) {
 }
 
 export default function TeachPage() {
-  const { user } = useAuth();
+  // The challenge is part of an application: applicants only, for their own.
+  const { user, ready } = useAuth({ requireAuth: true, roles: ["applicant"] });
+  const candidateId = user?.candidate_id ?? "";
   const [phase, setPhase] = useState<Phase>("setup");
   const [topics, setTopics] = useState<Topic[]>([]);
   const [selectedTopic, setSelectedTopic] = useState<string>("");
-  const [candidateId, setCandidateId] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -65,16 +66,9 @@ export default function TeachPage() {
   const [scrollProgress, setScrollProgress] = useState(0);
 
   useEffect(() => {
+    if (!ready) return;
     api.feynman.topics().then(setTopics).catch(() => {});
-    // Auto-fill candidate ID from application form, or generate one
-    if (typeof window !== "undefined") {
-      const savedId = window.localStorage.getItem("invisionu_candidate_id");
-      const savedName = window.localStorage.getItem("invisionu_candidate_name");
-      if (savedId) setCandidateId(savedId);
-      else if (savedName) setCandidateId(savedName);
-      else setCandidateId(`guest-${Date.now()}`);
-    }
-  }, []);
+  }, [ready]);
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -99,10 +93,14 @@ export default function TeachPage() {
 
   async function handleStart() {
     if (!selectedTopic) return;
+    if (!candidateId) {
+      setError("Submit your application first: the Teaching Challenge is its final step.");
+      return;
+    }
     setError(null);
     setSending(true);
     try {
-      const res = await api.feynman.start(candidateId.trim(), selectedTopic);
+      const res = await api.feynman.start(candidateId, selectedTopic);
       setSessionId(res.session_id);
       setMessages([{ role: "assistant", content: res.first_message }]);
       setMessageCount(1);

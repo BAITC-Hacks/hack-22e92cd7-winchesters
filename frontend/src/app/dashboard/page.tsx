@@ -933,7 +933,9 @@ function FairnessAudit({ ranked }: { ranked: RankedCandidate[] }) {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  // Scoring and analysis are committee/admin endpoints; interviewers get their
+  // own pre-brief view later (COM-03).
+  const { user, ready } = useAuth({ requireAuth: true, roles: ["committee", "admin"] });
   const [rawRanked, setRawRanked] = useState<RankedCandidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -965,8 +967,8 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    loadRanking();
-  }, [loadRanking]);
+    if (ready) loadRanking();
+  }, [ready, loadRanking]);
 
   // Scroll progress bar
   useEffect(() => {
@@ -1032,8 +1034,8 @@ export default function Dashboard() {
   // Fetch Feynman score when candidate is selected
   useEffect(() => {
     if (!selectedId || feynmanScores[selectedId]) return;
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/feynman/score/${selectedId}`)
-      .then((r) => r.ok ? r.json() : null)
+    api.feynman
+      .score<FeynmanScore>(selectedId)
       .then((data) => {
         if (data) setFeynmanScores((prev) => ({ ...prev, [selectedId]: data }));
       })
