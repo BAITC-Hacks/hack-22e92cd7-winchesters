@@ -9,6 +9,11 @@ venv/
 # Environment
 .env
 
+# Local database (created by `python -m backend.db init`)
+*.db
+*.db-wal
+*.db-shm
+
 # Node
 node_modules/
 .next/

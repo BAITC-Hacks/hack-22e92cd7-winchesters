@@ -1,19 +1,24 @@
 """Authentication endpoints — register, login, profile.
 
-Simple JWT-based auth for hackathon. Users stored in memory.
+Users are stored in the database (`backend/db/users.py`). The hashing and token
+scheme below is still the hackathon one — unsalted SHA-256, tokens that never
+expire — and is replaced wholesale by FND-05 (argon2, JWT, role guards).
 Each registered user gets linked to a candidate ID when they submit an application.
 """
 
 from __future__ import annotations
 
 import hashlib
+import hmac
 import os
-import secrets
 import time
 
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.concurrency import run_in_threadpool
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
+
+from backend.db import users as store
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -23,7 +28,7 @@ _SECRET = os.environ.get("AUTH_SECRET", "invisionu-hackathon-secret-2026")
 _security = HTTPBearer(auto_error=False)
 
 
-def _hash_password(password: str) -> str:
+def hash_password(password: str) -> str:
     return hashlib.sha256(f"{_SECRET}:{password}".encode()).hexdigest()
 
 
@@ -54,14 +59,9 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials | None = De
     if not credentials:
         return None
     user_id = _verify_token(credentials.credentials)
-    if not user_id or user_id not in _users:
+    if not user_id:
         return None
-    return _users[user_id]
-
-
-# ── In-memory user store ────────────────────────────────────────────
-
-_users: dict[str, dict] = {}
+    return await run_in_threadpool(store.get_user, user_id)
 
 
 # ── Request/Response models ─────────────────────────────────────────
@@ -95,33 +95,19 @@ class UserProfile(BaseModel):
 @router.post("/register", response_model=AuthResponse)
 def register(req: RegisterRequest):
     """Register a new user."""
-    # Check if email already taken
-    for u in _users.values():
-        if u["email"] == req.email:
-            raise HTTPException(status_code=400, detail="Email already registered")
+    try:
+        user = store.create_user(req.email, hash_password(req.password), req.full_name)
+    except store.EmailTaken:
+        raise HTTPException(status_code=400, detail="Email already registered")
 
-    user_id = f"u-{secrets.token_hex(4)}"
-    hashed = _hash_password(req.password)
-
-    user = {
-        "id": user_id,
-        "email": req.email,
-        "full_name": req.full_name,
-        "password_hash": hashed,
-        "candidate_id": None,
-        "role": "applicant",
-    }
-    _users[user_id] = user
-
-    token = _create_token(user_id)
     return AuthResponse(
-        token=token,
+        token=_create_token(user["id"]),
         user={
-            "id": user_id,
-            "email": req.email,
-            "full_name": req.full_name,
+            "id": user["id"],
+            "email": user["email"],
+            "full_name": user["full_name"],
             "candidate_id": None,
-            "role": "applicant",
+            "role": user["role"],
         },
     )
 
@@ -129,23 +115,20 @@ def register(req: RegisterRequest):
 @router.post("/login", response_model=AuthResponse)
 def login(req: LoginRequest):
     """Login with email and password."""
-    hashed = _hash_password(req.password)
+    u = store.get_user_by_email(req.email)
+    if u is None or not hmac.compare_digest(u["password_hash"], hash_password(req.password)):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    for u in _users.values():
-        if u["email"] == req.email and u["password_hash"] == hashed:
-            token = _create_token(u["id"])
-            return AuthResponse(
-                token=token,
-                user={
-                    "id": u["id"],
-                    "email": u["email"],
-                    "full_name": u["full_name"],
-                    "candidate_id": u.get("candidate_id"),
-                    "role": u.get("role", "applicant"),
-                },
-            )
-
-    raise HTTPException(status_code=401, detail="Invalid email or password")
+    return AuthResponse(
+        token=_create_token(u["id"]),
+        user={
+            "id": u["id"],
+            "email": u["email"],
+            "full_name": u["full_name"],
+            "candidate_id": u["candidate_id"],
+            "role": u["role"],
+        },
+    )
 
 
 @router.get("/me", response_model=UserProfile)
@@ -167,23 +150,11 @@ async def link_candidate(candidate_id: str, user: dict | None = Depends(get_curr
     """Link a candidate ID to the authenticated user."""
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    user["candidate_id"] = candidate_id
-    return {"status": "ok", "candidate_id": candidate_id}
+    linked = await run_in_threadpool(store.link_candidate, user["id"], candidate_id)
+    if linked is None:
+        raise HTTPException(status_code=404, detail=f"Candidate {candidate_id} not found")
+    return {"status": "ok", "candidate_id": linked}
 
 
-# ── Pre-seed a committee account for demo ───────────────────────────
-
-def _seed_demo_users():
-    """Create demo accounts for the hackathon presentation."""
-    committee_id = "u-committee"
-    if committee_id not in _users:
-        _users[committee_id] = {
-            "id": committee_id,
-            "email": "committee@invisionu.edu",
-            "full_name": "Admissions Committee",
-            "password_hash": _hash_password("demo2026"),
-            "candidate_id": None,
-            "role": "committee",
-        }
-
-_seed_demo_users()
+# The demo committee account is created by `python -m backend.db init` under
+# DEMO_MODE (backend/db/seed.py), not at import time.

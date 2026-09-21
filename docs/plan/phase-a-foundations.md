@@ -20,6 +20,7 @@ python -m venv .venv
 pip install -r backend/requirements.txt
 Copy-Item backend/.env.example backend/.env
 # edit backend/.env → put the real ANTHROPIC_API_KEY
+python -m backend.db init             # SQLite schema + 16 demo records; rerun after pulling migrations
 python -m uvicorn backend.main:app --reload --port 8000
 ```
 
