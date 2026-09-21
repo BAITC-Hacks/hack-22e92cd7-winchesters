@@ -65,3 +65,7 @@ CORS_ORIGINS = [
     for origin in os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
     if origin.strip()
 ]
+
+# ── Teaching challenge (INP-03) ────────────────────────────────────
+# Sessions an applicant may start, counted across their whole application.
+FEYNMAN_MAX_ATTEMPTS = int(os.getenv("FEYNMAN_MAX_ATTEMPTS", "3"))

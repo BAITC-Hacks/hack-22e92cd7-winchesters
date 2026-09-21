@@ -7,17 +7,31 @@ After the session, a separate AI scorer evaluates teaching quality and the
 
 from __future__ import annotations
 
-import uuid
+import logging
+from collections.abc import Awaitable
+from typing import TypeVar
 
-from fastapi import APIRouter, Depends, HTTPException
+import anthropic
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.concurrency import run_in_threadpool
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from backend import llm, settings
+from backend.db import candidates as candidate_store
+from backend.db import feynman as store
+from backend.db.tables import FeynmanStatus
 from backend.routers.guards import ensure_candidate_access, require_role
 from backend.security import ALL_ROLES, Role
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/feynman", tags=["feynman"])
+
+T = TypeVar("T")
+
+# Exchanges per session, the opening one included.
+MAX_EXCHANGES = 8
+MIN_EXCHANGES_TO_FINISH = 4
 
 
 # ── Topics (generic, school-level) ─────────────────────────────────
@@ -64,10 +78,6 @@ TOPICS = [
         "description": "Explain why it's important to recycle things instead of throwing them away.",
     },
 ]
-
-# ── In-memory session store ────────────────────────────────────────
-
-_sessions: dict[str, dict] = {}
 
 STUDENT_SYSTEM_PROMPT = """You are a curious, slightly confused 10-year-old child named Arman. You are eager to learn but you don't know any big words or complex concepts.
 
@@ -272,21 +282,86 @@ class FeynmanScore(BaseModel):
     quiz_answers: list[QuizAnswer] = []
 
 
-# ── Score cache ────────────────────────────────────────────────────
-
-_score_cache: dict[str, FeynmanScore] = {}
+# ── Helpers ────────────────────────────────────────────────────────
 
 
-# ── Endpoints ──────────────────────────────────────────────────────
+def _topic(topic_id: str) -> dict:
+    topic = next((t for t in TOPICS if t["id"] == topic_id), None)
+    if topic is None:
+        raise HTTPException(status_code=400, detail=f"Unknown topic: {topic_id}")
+    return topic
+
+
+def _student_system(topic: dict) -> str:
+    return STUDENT_SYSTEM_PROMPT.format(topic_description=topic["description"])
 
 
 def _own_session(session_id: str, user: dict) -> dict:
     """The session, if the caller started it. Someone else's is reported as
-    missing, so session ids cannot be probed."""
-    session = _sessions.get(session_id)
+    missing, so session ids cannot be probed. Sync: reads the database."""
+    session = store.get_session(session_id)
     if not session or session["user_id"] != user["id"]:
         raise HTTPException(status_code=404, detail="Session not found")
     return session
+
+
+def _ensure_active(session: dict) -> None:
+    if session["status"] != FeynmanStatus.ACTIVE.value:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This session is closed. Start a new one to teach again.",
+        )
+
+
+def _no_attempts_left() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        detail=f"You have used all {settings.FEYNMAN_MAX_ATTEMPTS} attempts at the Teaching Challenge.",
+    )
+
+
+async def _ask_model(call: Awaitable[T], action: str) -> T:
+    """Await a model call; turn any failure into an HTTP error.
+
+    Uncaught, the exception became a bare 500 raised outside the CORS
+    middleware, so the browser dropped the response and the teach page showed
+    "Failed to fetch" instead of a message. The underlying error is logged, not
+    returned: it can carry request ids and account details.
+    """
+    try:
+        return await call
+    except anthropic.RateLimitError:
+        logger.warning("feynman %s: model rate limited", action)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="The AI student is busy right now. Please wait a minute and try again.",
+        )
+    except Exception:
+        logger.exception("feynman %s: model call failed", action)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="The AI student could not answer right now. Please try again.",
+        )
+
+
+def _score_response(score: dict, candidate_id: str, topic_id: str, message_count: int) -> FeynmanScore:
+    return FeynmanScore(
+        session_id=score["session_id"],
+        candidate_id=candidate_id,
+        topic_id=topic_id,
+        clarity=score["clarity"],
+        patience=score["patience"],
+        empathy=score["empathy"],
+        adaptability=score["adaptability"],
+        quiz_transfer_score=score["quiz_transfer_score"],
+        overall_score=score["overall_score"],
+        summary=score["summary"],
+        message_count=message_count,
+        quiz_answers=[QuizAnswer(**a) for a in score["quiz_answers"]],
+    )
+
+
+# ── Endpoints ──────────────────────────────────────────────────────
 
 
 @router.get("/topics")
@@ -297,36 +372,34 @@ def list_topics(_user: dict = Depends(require_role(*ALL_ROLES))):
 
 @router.post("/start", response_model=StartSessionResponse)
 async def start_session(req: StartSessionRequest, user: dict = Depends(require_role(Role.APPLICANT))):
-    """Start a new teaching session. Returns the AI student's first message."""
-    await run_in_threadpool(ensure_candidate_access, user, req.candidate_id)
-    topic = next((t for t in TOPICS if t["id"] == req.topic_id), None)
-    if not topic:
-        raise HTTPException(status_code=400, detail=f"Unknown topic: {req.topic_id}")
+    """Start a new teaching session. Returns the AI student's first message.
 
-    session_id = str(uuid.uuid4())[:8]
-    system = STUDENT_SYSTEM_PROMPT.format(topic_description=topic["description"])
+    Each start uses one of `settings.FEYNMAN_MAX_ATTEMPTS`; starting again
+    closes any attempt still open."""
+    await run_in_threadpool(ensure_candidate_access, user, req.candidate_id)
+    topic = _topic(req.topic_id)
+    # Only an applicant gets here, and ensure_candidate_access has just checked
+    # that candidate_id is theirs.
+    applicant_id = user["applicant_id"]
+
+    # Checked before the model call so a spent applicant costs nothing;
+    # create_session checks again atomically.
+    if await run_in_threadpool(store.attempts_used, applicant_id) >= settings.FEYNMAN_MAX_ATTEMPTS:
+        raise _no_attempts_left()
 
     opening = f"Hi Arman! Today I'm going to teach you about {topic['title']}."
-    first_msg = await llm.complete_chat(
-        messages=[{"role": "user", "content": opening}],
-        system=system,
-    )
+    messages = [{"role": "user", "content": opening}]
+    first_msg = await _ask_model(llm.complete_chat(messages=messages, system=_student_system(topic)), "start")
+    messages.append({"role": "assistant", "content": first_msg})
 
-    _sessions[session_id] = {
-        "candidate_id": req.candidate_id,
-        "user_id": user["id"],
-        "topic_id": req.topic_id,
-        "topic": topic,
-        "system": system,
-        "messages": [
-            {"role": "user", "content": opening},
-            {"role": "assistant", "content": first_msg},
-        ],
-        "exchange_count": 1,
-    }
+    session = await run_in_threadpool(
+        store.create_session, applicant_id, user["id"], topic["id"], messages, settings.FEYNMAN_MAX_ATTEMPTS
+    )
+    if session is None:
+        raise _no_attempts_left()
 
     return StartSessionResponse(
-        session_id=session_id,
+        session_id=session["id"],
         topic=topic,
         first_message=first_msg,
     )
@@ -335,31 +408,33 @@ async def start_session(req: StartSessionRequest, user: dict = Depends(require_r
 @router.post("/chat", response_model=ChatResponse)
 async def chat(req: ChatRequest, user: dict = Depends(require_role(Role.APPLICANT))):
     """Send a message in the teaching session. Returns the AI student's reply."""
-    MAX_EXCHANGES = 8
-
-    session = _own_session(req.session_id, user)
+    session = await run_in_threadpool(_own_session, req.session_id, user)
+    _ensure_active(session)
 
     if session["exchange_count"] >= MAX_EXCHANGES:
         raise HTTPException(status_code=400, detail="Session has reached the maximum number of exchanges. Please finish the session.")
 
-    session["messages"].append({"role": "user", "content": req.message})
-
-    reply = await llm.complete_chat(
-        messages=session["messages"],
-        system=session["system"],
+    messages = session["messages"] + [{"role": "user", "content": req.message}]
+    reply = await _ask_model(
+        llm.complete_chat(messages=messages, system=_student_system(_topic(session["topic_id"]))), "chat"
     )
-    session["messages"].append({"role": "assistant", "content": reply})
-    session["exchange_count"] += 1
+    messages.append({"role": "assistant", "content": reply})
 
-    count = session["exchange_count"]
-    remaining = MAX_EXCHANGES - count
+    # Nothing is stored until the reply is in, so a failed call leaves the
+    # session as it was and the applicant can resend the same message.
+    if not await run_in_threadpool(store.record_exchange, session["id"], session["exchange_count"], messages):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Another message was sent at the same time. Reload the session and try again.",
+        )
 
+    count = session["exchange_count"] + 1
     return ChatResponse(
         reply=reply,
         message_count=count,
-        can_finish=count >= 4,
+        can_finish=count >= MIN_EXCHANGES_TO_FINISH,
         must_finish=count >= MAX_EXCHANGES,
-        remaining=remaining,
+        remaining=MAX_EXCHANGES - count,
     )
 
 
@@ -401,14 +476,29 @@ def _quiz_answers(payload: dict, questions: list[str]) -> list[QuizAnswer]:
 @router.post("/finish", response_model=FeynmanScore)
 async def finish_session(session_id: str, user: dict = Depends(require_role(Role.APPLICANT))):
     """End the session, run the quiz, and score the teaching performance."""
-    session = _own_session(session_id, user)
+    session = await run_in_threadpool(_own_session, session_id, user)
+    _ensure_active(session)
+    if not await run_in_threadpool(store.claim_for_scoring, session_id):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This session is already being scored.")
 
-    topic = session["topic"]
+    try:
+        score = await _score_session(session)
+    except BaseException:
+        # Model failure or a dropped request: reopen it so Finish can be retried.
+        await run_in_threadpool(store.release_scoring, session_id)
+        raise
+    return _score_response(score, user["candidate_id"], session["topic_id"], session["exchange_count"])
+
+
+async def _score_session(session: dict) -> dict:
+    """Quiz the student, score the lesson, store the verdict."""
+    session_id = session["id"]
     topic_id = session["topic_id"]
+    topic = _topic(topic_id)
 
     # ── Step 1: Quiz the AI student on the lesson, as a document ───
     questions = QUIZ_QUESTIONS.get(topic_id, QUIZ_QUESTIONS["gravity"])
-    quiz_payload = await llm.complete_json(
+    quiz_payload = await _ask_model(llm.complete_json(
         prompt=QUIZ_PROMPT.format(
             lesson_document=llm.wrap_document(
                 _lesson_text(session["messages"]), "lesson", session_id
@@ -420,7 +510,7 @@ async def finish_session(session_id: str, user: dict = Depends(require_role(Role
         schema=QUIZ_SCHEMA,
         system=QUIZ_SYSTEM_PROMPT.format(topic_description=topic["description"]),
         model=settings.MODEL_CHAT,
-    )
+    ), "quiz")
     parsed_quiz = _quiz_answers(quiz_payload, questions)
 
     # ── Step 2: Score the conversation ─────────────────────────────
@@ -428,7 +518,7 @@ async def finish_session(session_id: str, user: dict = Depends(require_role(Role
         f"Q: {a.question}\nA: {a.answer} (confident: {a.confident})"
         for a in parsed_quiz
     )
-    data = await llm.complete_json(
+    data = await _ask_model(llm.complete_json(
         prompt=SCORER_PROMPT.format(
             topic_title=topic["title"],
             topic_description=topic["description"],
@@ -439,33 +529,30 @@ async def finish_session(session_id: str, user: dict = Depends(require_role(Role
         ),
         schema=TEACHING_SCHEMA,
         model=settings.MODEL_JUDGE,
-    )
+    ), "score")
 
-    result = FeynmanScore(
-        session_id=session_id,
-        candidate_id=session["candidate_id"],
-        topic_id=topic_id,
-        clarity=data["clarity"],
-        patience=data["patience"],
-        empathy=data["empathy"],
-        adaptability=data["adaptability"],
-        quiz_transfer_score=data["quiz_transfer_score"],
-        overall_score=data["overall_score"],
-        summary=data["summary"],
-        message_count=session["exchange_count"],
-        quiz_answers=parsed_quiz,
-    )
-
-    _score_cache[session["candidate_id"]] = result
-
-    # Clean up session
-    del _sessions[session_id]
-
-    return result
+    score = {
+        "clarity": data["clarity"],
+        "patience": data["patience"],
+        "empathy": data["empathy"],
+        "adaptability": data["adaptability"],
+        "quiz_transfer_score": data["quiz_transfer_score"],
+        "overall_score": data["overall_score"],
+        "summary": data["summary"],
+        "quiz_answers": [a.model_dump() for a in parsed_quiz],
+        "model": settings.MODEL_JUDGE,
+    }
+    await run_in_threadpool(store.save_score, session_id, score)
+    return {"session_id": session_id, **score}
 
 
 @router.get("/score/{candidate_id}", response_model=FeynmanScore | None)
 def get_score(candidate_id: str, user: dict = Depends(require_role(*ALL_ROLES))):
-    """Get the Feynman teaching score for a candidate. Applicants: only their own."""
+    """The latest Feynman teaching score for a candidate. Applicants: only their own."""
     ensure_candidate_access(user, candidate_id)
-    return _score_cache.get(candidate_id)
+    applicant_id = candidate_store.applicant_id_for(candidate_id)
+    score = store.latest_score(applicant_id) if applicant_id else None
+    if score is None:
+        return None
+    session = store.get_session(score["session_id"])
+    return _score_response(score, candidate_id, session["topic_id"], session["exchange_count"])

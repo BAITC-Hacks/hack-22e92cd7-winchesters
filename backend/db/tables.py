@@ -115,3 +115,68 @@ class User(SQLModel, table=True):
         sa_column=Column(String(36), ForeignKey("applicants.id", ondelete="SET NULL")),
     )
     created_at: datetime = _created_at()
+
+
+# ── Teaching challenge (INP-03, storage half) ──────────────────────
+
+
+class FeynmanStatus(str, Enum):
+    ACTIVE = "active"
+    # Quiz and scorer calls are in flight. Claimed with a conditional UPDATE so
+    # a double-clicked Finish scores the session once.
+    SCORING = "scoring"
+    FINISHED = "finished"
+    # Left open when the applicant started another attempt.
+    ABANDONED = "abandoned"
+
+
+class FeynmanSession(SQLModel, table=True):
+    """One attempt at the teaching challenge. Every row counts against
+    `settings.FEYNMAN_MAX_ATTEMPTS`, whatever its status: each start costs a
+    model call, and finishing is not the only way to learn the questions."""
+
+    __tablename__ = "feynman_sessions"
+    __table_args__ = (Index("ix_feynman_sessions_applicant_id", "applicant_id"),)
+
+    id: str = Field(default_factory=_uuid, sa_column=Column(String(36), primary_key=True))
+    applicant_id: str = Field(
+        sa_column=Column(String(36), ForeignKey("applicants.id", ondelete="CASCADE"), nullable=False)
+    )
+    # Who started it; only they may continue or finish it.
+    user_id: str = Field(sa_column=Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False))
+    topic_id: str = Field(sa_column=Column(String(32), nullable=False))
+    # The conversation as sent to the model: [{"role", "content"}, ...].
+    messages: list[dict[str, str]] = Field(sa_column=Column(JSON, nullable=False))
+    exchange_count: int = Field(default=0, nullable=False)
+    status: str = Field(default=FeynmanStatus.ACTIVE.value, sa_column=Column(String(16), nullable=False))
+    created_at: datetime = _created_at()
+    finished_at: datetime | None = Field(default=None, sa_column=Column(DateTime(timezone=True)))
+
+
+class FeynmanScoreRecord(SQLModel, table=True):
+    """The scorer's verdict on one finished session. Written once, never edited."""
+
+    __tablename__ = "feynman_scores"
+    __table_args__ = (Index("ix_feynman_scores_applicant_id", "applicant_id"),)
+
+    id: str = Field(default_factory=_uuid, sa_column=Column(String(36), primary_key=True))
+    session_id: str = Field(
+        sa_column=Column(
+            String(36), ForeignKey("feynman_sessions.id", ondelete="CASCADE"), unique=True, nullable=False
+        )
+    )
+    applicant_id: str = Field(
+        sa_column=Column(String(36), ForeignKey("applicants.id", ondelete="CASCADE"), nullable=False)
+    )
+    clarity: float = Field(nullable=False)
+    patience: float = Field(nullable=False)
+    empathy: float = Field(nullable=False)
+    adaptability: float = Field(nullable=False)
+    quiz_transfer_score: float = Field(nullable=False)
+    overall_score: float = Field(nullable=False)
+    summary: str = Field(sa_column=Column(Text, nullable=False))
+    # [{"question", "answer", "confident"}, ...] as shown to the committee.
+    quiz_answers: list[dict[str, Any]] = Field(sa_column=Column(JSON, nullable=False))
+    # Which model judged, so a score can be traced after MODEL_JUDGE changes.
+    model: str = Field(sa_column=Column(String(64), nullable=False))
+    created_at: datetime = _created_at()
