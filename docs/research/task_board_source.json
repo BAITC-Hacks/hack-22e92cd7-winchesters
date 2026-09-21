@@ -1236,7 +1236,11 @@
   "FND-01",
   "FND-02",
   "FND-03",
-  "FND-06"
+  "FND-06",
+  "LED-01",
+  "LED-02",
+  "LED-03",
+  "LED-04"
  ],
- "done_note": "Completed Sep 20, 2026: verified by tests/ (17 passing) and a live boot of the API."
+ "done_note": "FND-01/02/03/06 done Sep 20. LED-01/02/03/04 done Sep 21. Verified by tests/ (77 passing, no API key needed) and by notebooks/validation_analysis.py, whose invariance table reads 0.0 for school type, GPA, hardship wording and language. LED-04 entry point for the platform side: `await backend.ledger.pipeline.build_ledger(candidate)` returns a CandidateLedger and touches no database. Platform follow-ups: rename AIDetectionResult.authenticity_score and its dashboard panel during LED-05, and drop the unused pandas/numpy/scikit-learn pins."
 }

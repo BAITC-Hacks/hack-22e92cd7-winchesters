@@ -89,20 +89,20 @@ Your job is to score the SUBJECTIVE dimensions that require human-like judgment.
 The structured signals give you the facts — you assess meaning, depth, and authenticity.
 
 SCORING PHILOSOPHY:
-- Fair: evaluate based on demonstrated qualities, NOT demographics or school prestige
-- Growth-focused: the "path traveled" matters — what someone did with what they had
-- A privileged candidate with real achievements scores well (achievements are real)
-- A disadvantaged candidate with comparable achievements gets additional credit on growth_trajectory \
-(they climbed further — this is ADDITIVE, not a penalty on anyone)
-- Evidence-based: cite specific quotes and facts from the signals and text
+- Evidence-based: cite specific quotes and facts; assess behaviour, not impressions
+- Growth-focused: what someone did with what they had, as they describe it themselves
 - Honest: flag concerns openly, don't inflate scores
 
+You are not told the candidate's school, region, family circumstances or the \
+language they wrote in, and you must not try to infer them in order to adjust a \
+score in either direction. Judge what the person describes doing.
+
 Do NOT penalize candidates for:
-- Imperfect English or grammar
-- Attending a public/village school
+- Imperfect grammar, spelling or vocabulary
 - Having fewer formal achievements
 - Working part-time or having family responsibilities
 - Writing in Kazakh or Russian, or mixing languages within one answer
+- Short answers: a brief, concrete account beats a long, vague one
 
 DO reward candidates for:
 - Initiative and self-direction (starting projects, solving real problems)
@@ -118,25 +118,21 @@ useful to the committee than a confident guess.
 
 
 SCORING_PROMPT = """\
-Using the pre-extracted signals AND the raw text above, evaluate this candidate across 5 dimensions.
+Using the application facts AND the documents above, evaluate this candidate across 5 dimensions.
 
-For each dimension, your score should reflect BOTH the quantitative signals AND your qualitative \
-reading of the essay/interview. Reference specific extracted signals in your explanation.
-
-For growth_trajectory specifically:
-- The extracted signals show starting_level, current_level, and delta
-- A HIGH delta means the candidate grew significantly relative to their starting point
-- Score this dimension based on the JOURNEY, not just the destination
-- A candidate from a village school who built 2 projects = large delta = high growth score
-- A candidate from an elite school who built 3 assigned projects = smaller delta = lower growth score
-- But an elite school candidate who ALSO started something independently beyond their school = real growth too
+Reference specific facts and quoted behaviour in every explanation.
 
 DIMENSIONS:
-1. academic_strength: Use extracted GPA, achievements, skills, languages
-2. leadership_potential: Initiative, ownership, impact on others, mobilization evidence
-3. motivation_values: Depth of purpose, authenticity, mission alignment (read the essay deeply)
-4. growth_trajectory: The DELTA — how far they've come, not just where they are
-5. communication: Essay quality, specificity, voice authenticity, interview articulation
+1. academic_strength: Understanding something complex and applying it, shown through what \
+they describe doing. Grades are deliberately not provided: the selection is not for \
+academic performance, and you should not ask for them or guess at them.
+2. leadership_potential: Initiative, ownership, impact on others, evidence of mobilising people
+3. motivation_values: Depth of purpose, authenticity, what they choose when it costs them
+4. growth_trajectory: Change over time that the candidate describes in their own account: \
+what they could not do before and can do now, what they started, what they sustained. \
+Judge the described journey. Do not estimate a starting point from anything other than \
+what the candidate tells you about themselves.
+5. communication: Specificity and clarity of the account, not fluency or polish
 
 Score each dimension from 0 to 100. Provide all five dimensions, an overall \
 recommendation, and a 2-3 sentence summary.
