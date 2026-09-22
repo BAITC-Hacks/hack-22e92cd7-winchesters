@@ -1240,7 +1240,10 @@
   "LED-01",
   "LED-02",
   "LED-03",
-  "LED-04"
+  "LED-04",
+  "LED-08",
+  "LED-09",
+  "LED-10"
  ],
- "done_note": "FND-01/02/03/06 done Sep 20. LED-01/02/03/04 done Sep 21. Verified by tests/ (77 passing, no API key needed) and by notebooks/validation_analysis.py, whose invariance table reads 0.0 for school type, GPA, hardship wording and language. LED-04 entry point for the platform side: `await backend.ledger.pipeline.build_ledger(candidate)` returns a CandidateLedger and touches no database. Platform follow-ups: rename AIDetectionResult.authenticity_score and its dashboard panel during LED-05, and drop the unused pandas/numpy/scikit-learn pins."
+ "done_note": "FND/LED tasks as listed. LED-09 (contrastive field) and LED-10 (competencies 8 and 9 as flags only) shipped inside LED-04 and are ticked here. LED-08 adds ATOLA coverage, the water checklist and the claimed-only cap. Verified by tests/ (198 passing, no API key needed). Note for the platform side: atola_present and capped_reason are derived, not stored; a loader calls backend.ledger.atola.hydrate once per competency."
 }

@@ -263,3 +263,44 @@ async def test_kazakh_documents_route_to_the_strongest_model(monkeypatch):
 
     sources = pipeline.collect_sources(candidate)
     assert pipeline.choose_model(sources) == settings.MODEL_FOR_LOW_RESOURCE
+
+
+# ── The water checklist reaches the card (task LED-08) ────────────
+
+
+@pytest.mark.asyncio
+async def test_missing_atola_components_reach_the_card_as_flags(recorder):
+    """The stub only ever yields Action evidence, so four components are absent."""
+    ledger = await pipeline.build_ledger(_candidate())
+    leadership = ledger.by_competency()[Competency.LEADERSHIP_ABILITIES]
+
+    codes = {f.code for f in leadership.flags}
+    assert "no_outcome_described" in codes
+    assert "no_learning" in codes
+    assert "no_situated_episode" not in codes, "Action evidence was present"
+
+
+@pytest.mark.asyncio
+async def test_coverage_is_recorded_on_the_rating(recorder):
+    from backend.ledger.schema import AtolaComponent
+
+    ledger = await pipeline.build_ledger(_candidate())
+    leadership = ledger.by_competency()[Competency.LEADERSHIP_ABILITIES]
+    assert leadership.atola_present == [AtolaComponent.ACTION]
+
+
+@pytest.mark.asyncio
+async def test_an_assertion_rated_high_is_capped_and_says_why(monkeypatch):
+    """The rater may call it high; without an occasion behind it, it is not."""
+    claimed = {**_proposal(ESSAY_QUOTE, "lead.initiative"), "status": "claimed_only", "atola": "none"}
+    second = {**_proposal(SECOND_QUOTE, "lead.organizing_others"), "status": "claimed_only", "atola": "none"}
+    stub = Recorder(proposals=[claimed, second], level="high")
+    monkeypatch.setattr(llm, "complete_json", stub)
+
+    ledger = await pipeline.build_ledger(_candidate())
+    leadership = ledger.by_competency()[Competency.LEADERSHIP_ABILITIES]
+
+    assert leadership.level is Level.NORMAL, "two asserted highs must not make a high block"
+    capped = [i for i in leadership.indicators if i.capped_reason]
+    assert capped, "the cap must be explained on the indicator, not applied silently"
+    assert "claimed" in capped[0].capped_reason

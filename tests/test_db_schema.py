@@ -216,6 +216,13 @@ def test_downgrade_removes_the_new_tables_and_upgrade_restores_them(tmp_path):
 # Storage-only columns: keys, links and timestamps the contract has no field for.
 STORAGE = {"id", "applicant_id", "created_at"}
 
+# Contract fields that are computed from the stored rows rather than persisted
+# (task LED-08). A derived value in a column can drift away from the rule that
+# produced it, and a card showing a cap the rule no longer agrees with is worse
+# than one showing nothing. `backend.ledger.atola.hydrate` fills them on read,
+# and `tests/test_ledger_atola.py` pins that the result is identical.
+DERIVED = {"atola_present", "capped_reason"}
+
 
 def test_evidence_items_mirror_the_contract():
     assert _columns(EvidenceItemRecord) == set(EvidenceItem.model_fields) | STORAGE | {"rating_id"}
@@ -223,9 +230,8 @@ def test_evidence_items_mirror_the_contract():
 
 def test_ratings_mirror_the_contract():
     # `evidence` is the evidence_items rows pointing here.
-    assert _columns(Rating) == (set(IndicatorRating.model_fields) - {"evidence"}) | STORAGE | {
-        "competency_score_id"
-    }
+    expected = set(IndicatorRating.model_fields) - {"evidence"} - DERIVED
+    assert _columns(Rating) == expected | STORAGE | {"competency_score_id"}
 
 
 def test_competency_scores_mirror_the_contract_and_the_ledger_header():
@@ -233,7 +239,8 @@ def test_competency_scores_mirror_the_contract_and_the_ledger_header():
     # row, its versions as keys into the version tables.
     header = {"schema_version", "model_judge", "model_extract", "rubric_version_id", "prompt_version_id"}
     runs = {"extract_run_id", "rate_run_id"}
-    assert _columns(CompetencyScore) == (set(CompetencyRating.model_fields) - {"indicators"}) | header | runs | STORAGE
+    expected = set(CompetencyRating.model_fields) - {"indicators"} - DERIVED
+    assert _columns(CompetencyScore) == expected | header | runs | STORAGE
     assert set(CandidateLedger.model_fields) == {
         "applicant_ref",  # applicant_id
         "competencies",  # the rows themselves
