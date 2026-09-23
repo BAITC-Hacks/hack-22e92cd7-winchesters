@@ -116,6 +116,13 @@ def applicant_id_for(ref: str) -> str | None:
         return applicant.id if applicant else None
 
 
+def applicant_ids() -> dict[str, str]:
+    """Every applicant's public id (`Candidate.id`) -> UUID, in one query."""
+    with Session(get_engine()) as session:
+        rows = session.exec(select(Applicant.id, Applicant.legacy_ref)).all()
+        return {legacy_ref or applicant_id: applicant_id for applicant_id, legacy_ref in rows}
+
+
 # ── Writes ─────────────────────────────────────────────────────────
 
 
