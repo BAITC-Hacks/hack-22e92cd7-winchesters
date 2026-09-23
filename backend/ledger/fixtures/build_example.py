@@ -10,7 +10,8 @@ committee card has to render:
 - a competency at WEAK
 - a competency at NO_EVIDENCE, which must not look like WEAK
 - a competency reserved for humans, carrying flags but no level
-- an indicator whose evidence is `claimed_only`, so it cannot reach HIGH
+- an indicator the rater called HIGH on an assertion alone, capped to NORMAL
+- a competency whose ATOLA coverage has gaps, with the probe that closes the first
 - a Kazakh quote, so nobody assumes the ledger is ASCII
 """
 
@@ -23,6 +24,7 @@ import sys
 # Run as a plain script from anywhere, the way notebooks/validation_analysis.py does.
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3]))
 
+from backend.ledger import atola  # noqa: E402
 from backend.ledger.rubric import RUBRIC_VERSION  # noqa: E402
 from backend.ledger.schema import (  # noqa: E402
     AtolaComponent,
@@ -55,15 +57,18 @@ def _evidence(quote: str, source: Source, atola: AtolaComponent, status: Evidenc
 
 
 def _rated(competency: Competency, indicators: list[IndicatorRating], **extra) -> CompetencyRating:
-    """Build a rating with its level derived, never hand-set."""
+    """Build a rating with its level derived and its computed fields filled."""
     level, rule = derive_level(indicators)
-    return CompetencyRating(
+    evidence = [item for indicator in indicators for item in indicator.evidence]
+    rating = CompetencyRating(
         competency=competency,
         indicators=indicators,
         level=level,
         rule_applied=rule,
+        flags=atola.water_flags(evidence),
         **extra,
     )
+    return atola.hydrate(rating)
 
 
 def build() -> CandidateLedger:
@@ -97,8 +102,10 @@ def build() -> CandidateLedger:
                 note="Started it because nobody else had; quote kept in the applicant's language.",
             ),
             IndicatorRating(
+                # The rater read this as high. It is an assertion with no occasion
+                # behind it, so the roll-up counts it as normal and says so.
                 indicator_id="lead.result_and_contribution",
-                observed_level=Level.NORMAL,
+                observed_level=Level.HIGH,
                 evidence=[
                     _evidence(
                         "We helped a lot of families that year",
@@ -107,7 +114,7 @@ def build() -> CandidateLedger:
                         EvidenceStatus.CLAIMED_ONLY,
                     )
                 ],
-                note="Outcome asserted without a measure, so it stays at normal.",
+                note="Outcome asserted without a measure.",
             ),
         ],
         contrastive=(

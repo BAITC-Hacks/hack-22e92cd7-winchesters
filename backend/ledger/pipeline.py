@@ -26,7 +26,7 @@ import asyncio
 import logging
 
 from backend import llm, settings
-from backend.ledger import extract, rate
+from backend.ledger import atola, extract, rate
 from backend.ledger.rubric import COMPETENCY_ORDER, RUBRIC, RUBRIC_VERSION, CompetencyRubric
 from backend.ledger.schema import (
     AtolaComponent,
@@ -40,6 +40,7 @@ from backend.ledger.schema import (
     Level,
     Source,
     derive_level,
+    effective_level,
     locate_quote,
     verify_quote,
 )
@@ -145,19 +146,24 @@ def _evidence_for_indicator(indicator_id: str, evidence: list[EvidenceItem]) -> 
 
 
 def _indicator_ratings(payload: dict, rubric: CompetencyRubric, evidence: list[EvidenceItem]) -> list[IndicatorRating]:
-    """Attach verified quotes to the indicator the rater ruled on."""
+    """Attach verified quotes to the indicator the rater ruled on.
+
+    Each rating also records whether the level that counts toward the competency
+    was capped below the observed one, so the card can say why rather than
+    silently showing a different number than the rater gave.
+    """
     rated = {item["indicator_id"]: item for item in payload["indicators"]}
     ratings = []
     for indicator in rubric.indicators:
         entry = rated.get(indicator.id, {})
-        ratings.append(
-            IndicatorRating(
-                indicator_id=indicator.id,
-                observed_level=_enum_or_default(Level, entry.get("observed_level", ""), Level.NO_EVIDENCE),
-                evidence=_evidence_for_indicator(indicator.id, evidence),
-                note=entry.get("note", ""),
-            )
+        rating = IndicatorRating(
+            indicator_id=indicator.id,
+            observed_level=_enum_or_default(Level, entry.get("observed_level", ""), Level.NO_EVIDENCE),
+            evidence=_evidence_for_indicator(indicator.id, evidence),
+            note=entry.get("note", ""),
         )
+        rating.capped_reason = effective_level(rating)[1]
+        ratings.append(rating)
     return ratings
 
 
@@ -186,8 +192,15 @@ def assemble(payload: dict, rubric: CompetencyRubric, evidence: list[EvidenceIte
         rule_applied=rule,
         reserved_for_humans=reserved,
         contrastive=payload["contrastive"],
-        probe_question=payload["probe_question"] or (rubric.probes[0] if rubric.probes else ""),
-        flags=_flags(payload),
+        # The rater's suggested probe, then the client's own pre-approved one,
+        # then the question that closes the earliest gap in the account.
+        probe_question=(
+            payload["probe_question"]
+            or (rubric.probes[0] if rubric.probes else "")
+            or atola.next_probe(evidence)
+        ),
+        flags=_flags(payload) + atola.water_flags(evidence),
+        atola_present=atola.components_present(evidence),
     )
 
 

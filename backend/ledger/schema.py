@@ -125,12 +125,32 @@ class IndicatorRating(BaseModel):
     """One behavioural indicator, the level observed for it, and why."""
 
     indicator_id: str
-    observed_level: Level = Level.NO_EVIDENCE
+    observed_level: Level = Field(
+        Level.NO_EVIDENCE,
+        description="What the rater judged from the evidence it was shown",
+    )
     evidence: list[EvidenceItem] = Field(default_factory=list)
     note: str = Field("", description="One line, referencing the evidence, not vibes")
+    capped_reason: str = Field(
+        "",
+        description=(
+            "Set when the level that counts toward the competency is lower than "
+            "the observed one, with the reason. Empty when they agree."
+        ),
+    )
 
     def has_verified_evidence(self) -> bool:
         return any(item.verified for item in self.evidence)
+
+    def has_demonstrated_evidence(self) -> bool:
+        """True when at least one verified quote shows the behaviour happening.
+
+        Distinct from `has_verified_evidence`, which is also true when the only
+        thing found was the applicant asserting the quality about themselves.
+        """
+        return any(
+            item.verified and item.status is EvidenceStatus.PRESENT for item in self.evidence
+        )
 
 
 class AttentionFlag(BaseModel):
@@ -164,6 +184,13 @@ class CompetencyRating(BaseModel):
     )
     probe_question: str = Field("", description="Pre-approved ATOLA probe for the interviewer")
     flags: list[AttentionFlag] = Field(default_factory=list)
+    atola_present: list[AtolaComponent] = Field(
+        default_factory=list,
+        description=(
+            "Which parts of a behavioural account the demonstrated evidence covers. "
+            "The gaps are what the interviewer's probes are for (task LED-08)."
+        ),
+    )
 
 
 class CandidateLedger(BaseModel):
@@ -226,14 +253,32 @@ def locate_quote(quote: str, source_text: str) -> tuple[int, int]:
 
 # ── Deterministic level derivation ─────────────────────────────────
 
+CLAIMED_ONLY_CAP = "claimed but not demonstrated: no situated episode behind the assertion"
+
 # Read top to bottom; the first rule that matches decides, and its id is stored
 # on the rating so the committee can see exactly why a level came out.
 DERIVATION_RULES = [
     ("R0", "No indicator carries verified evidence."),
-    ("R1", "Two or more indicators observed high, and none observed weak."),
-    ("R2", "At least one indicator observed weak, and none observed high."),
+    ("R1", "Two or more indicators effectively high, and none effectively weak."),
+    ("R2", "At least one indicator effectively weak, and none effectively high."),
     ("R3", "Mixed or moderate evidence across indicators."),
 ]
+
+
+def effective_level(indicator: IndicatorRating) -> tuple[Level, str]:
+    """The level that counts toward the competency, and why it was lowered.
+
+    An indicator whose only support is the applicant asserting the quality about
+    themselves cannot reach high, however convincing the assertion reads. The
+    client's own principle is that observable behaviour is assessed rather than
+    self-description, so "I am a natural leader" is capped at normal until an
+    occasion appears behind it. Task LED-08.
+    """
+    if not indicator.has_verified_evidence():
+        return (Level.NO_EVIDENCE, "")
+    if indicator.observed_level is Level.HIGH and not indicator.has_demonstrated_evidence():
+        return (Level.NORMAL, CLAIMED_ONLY_CAP)
+    return (indicator.observed_level, "")
 
 
 def derive_level(indicators: list[IndicatorRating]) -> tuple[Level, str]:
@@ -244,12 +289,14 @@ def derive_level(indicators: list[IndicatorRating]) -> tuple[Level, str]:
     returns the same answer, which is what makes a score reproducible months
     later from stored evidence.
     """
-    rated = [i for i in indicators if i.has_verified_evidence()]
-    if not rated:
+    levels = [
+        effective_level(i)[0] for i in indicators if i.has_verified_evidence()
+    ]
+    if not levels:
         return (Level.NO_EVIDENCE, "R0")
 
-    highs = sum(1 for i in rated if i.observed_level is Level.HIGH)
-    weaks = sum(1 for i in rated if i.observed_level is Level.WEAK)
+    highs = levels.count(Level.HIGH)
+    weaks = levels.count(Level.WEAK)
 
     if highs >= 2 and weaks == 0:
         return (Level.HIGH, "R1")
