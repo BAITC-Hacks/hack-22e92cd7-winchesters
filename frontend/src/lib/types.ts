@@ -206,3 +206,38 @@ export interface CandidateLedger {
   prompt_version: string;
   competencies: CompetencyRating[];
 }
+
+// ── Committee overrides (backend/routers/overrides.py, COM-01) ──────
+
+export interface ReasonCodeOption {
+  code: string;
+  label: string;
+  note_required: boolean;
+}
+
+/** One committee change to a competency level. Append-only: a later override
+ * is a new entry, and the AI level it was made against is kept alongside. */
+export interface OverrideEntry {
+  id: string;
+  competency: Competency;
+  /** What the committee saw when overriding: the previous override, else the
+   * AI level. null for a competency with no AI level. */
+  from_level: Level | null;
+  to_level: Level;
+  /** null only for a row written without a code (none via the API). */
+  reason_code: string | null;
+  note: string;
+  ai_level: Level | null;
+  /** "ledger": stored AI row; "client": what the card showed (fixture until LED-11). */
+  ai_level_source: "ledger" | "client" | "none";
+  author: { id: string; full_name: string; role: string };
+  created_at: string;
+}
+
+export interface OverrideInput {
+  competency: Competency;
+  to_level: Level;
+  reason_code: string;
+  note: string;
+  ai_level: Level | null;
+}

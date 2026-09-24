@@ -120,17 +120,6 @@ export default function Dashboard() {
     }
   };
 
-  const handleOverride = async (dimension: string, value: number, note: string): Promise<string | null> => {
-    if (!selectedId) return null;
-    try {
-      await api.scoring.override(selectedId, dimension, value, note);
-      await loadRanking(scorer);
-      return null;
-    } catch (e) {
-      return message(e, "Override failed");
-    }
-  };
-
   // Filters, search, pagination
   const filteredByCategory =
     filter === "all"
@@ -234,7 +223,6 @@ export default function Dashboard() {
           onClose={() => setSelectedId(null)}
           onDetectAI={handleDetectAI}
           onAnalyzeVideo={handleAnalyzeVideo}
-          onOverride={handleOverride}
         />
       )}
 

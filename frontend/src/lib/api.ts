@@ -2,7 +2,10 @@ import type {
   Candidate,
   CandidateLedger,
   CandidateScore,
+  OverrideEntry,
+  OverrideInput,
   RankedCandidate,
+  ReasonCodeOption,
   AIDetectionResult,
   VideoAnalysis,
 } from "./types";
@@ -105,15 +108,19 @@ export const api = {
         `/api/scoring/rank?scorer=${scorer}`,
         { method: "POST" }
       ),
-    override: (candidateId: string, dimension: string, score: number, note: string) =>
-      fetchJSON<CandidateScore>("/api/scoring/override", {
+  },
+  // Committee overrides of a competency level (COM-01). Append-only: there is
+  // no edit or delete, only a new override on top.
+  overrides: {
+    reasonCodes: () => fetchJSON<ReasonCodeOption[]>("/api/overrides/reason-codes"),
+    list: (candidateId: string) =>
+      fetchJSON<{ candidate_id: string; overrides: OverrideEntry[] }>(
+        `/api/overrides/${encodeURIComponent(candidateId)}`,
+      ),
+    create: (candidateId: string, input: OverrideInput) =>
+      fetchJSON<OverrideEntry>(`/api/overrides/${encodeURIComponent(candidateId)}`, {
         method: "POST",
-        body: JSON.stringify({
-          candidate_id: candidateId,
-          dimension,
-          override_score: score,
-          note,
-        }),
+        body: JSON.stringify(input),
       }),
   },
   analysis: {

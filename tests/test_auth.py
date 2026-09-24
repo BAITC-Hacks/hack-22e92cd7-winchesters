@@ -134,7 +134,9 @@ def test_role_is_read_from_the_database_not_the_token(client, db):
         # scoring and analysis: committee and admin only
         ("applicant", "POST", "/api/scoring/rank"),
         ("interviewer", "POST", "/api/scoring/rank"),
-        ("applicant", "POST", "/api/scoring/override"),
+        # overrides: committee and admin only (COM-01)
+        ("applicant", "POST", "/api/overrides/c-001"),
+        ("interviewer", "GET", "/api/overrides/c-001"),
         ("applicant", "GET", "/api/analysis/video-analysis/status"),
         ("interviewer", "POST", "/api/analysis/ai-detection/c-001"),
         # feynman: the teaching challenge is the applicant's
