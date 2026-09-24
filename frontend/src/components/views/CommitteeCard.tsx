@@ -3,13 +3,17 @@
 import { useState } from "react";
 import { competencyState, nineRows } from "@/lib/ledger";
 import type { CandidateLedger, Competency, CompetencyRating, IndicatorRating } from "@/lib/types";
+import { committeeLevel, type OverridesState } from "@/lib/useOverrides";
 import { ContrastiveHint } from "../ledger/ContrastiveHint";
 import { EvidenceQuote, IndicatorId } from "../ledger/EvidenceQuote";
 import { LevelChip } from "../ledger/LevelChip";
+import { OverrideForm, OverrideHistory } from "../ledger/Override";
 import { COMPETENCY_LABELS } from "../ledger/labels";
 
 export interface CommitteeCardProps {
   ledger: CandidateLedger;
+  /** The committee's override ledger (COM-01). Without it the card is read-only. */
+  overrides?: OverridesState;
 }
 
 /**
@@ -17,16 +21,20 @@ export interface CommitteeCardProps {
  * that decomposes into indicators and verbatim quotes. Levels come from the
  * ledger as stored; this view never derives or averages one.
  */
-export function CommitteeCard({ ledger }: CommitteeCardProps) {
+export function CommitteeCard({ ledger, overrides }: CommitteeCardProps) {
   return (
     <div className="space-y-4">
       <Provenance ledger={ledger} />
+      {overrides?.error && (
+        <p className="p-3 bg-red-500/10 text-red-600 rounded-2xl text-sm border border-red-500/20">
+          Overrides unavailable: {overrides.error}
+        </p>
+      )}
       <div className="rounded-2xl border-2 border-[#d7d7d7] divide-y divide-[#d7d7d7]">
         {nineRows(ledger).map(({ competency, rating }) => (
-          <CompetencyRow key={competency} competency={competency} rating={rating} />
+          <CompetencyRow key={competency} competency={competency} rating={rating} overrides={overrides} />
         ))}
       </div>
-      {/* Slot: override affordance (COM-01) goes on each row once the override ledger exists. */}
     </div>
   );
 }
@@ -52,10 +60,23 @@ function Provenance({ ledger }: { ledger: CandidateLedger }) {
   );
 }
 
-function CompetencyRow({ competency, rating }: { competency: Competency; rating?: CompetencyRating }) {
+function CompetencyRow({
+  competency,
+  rating,
+  overrides,
+}: {
+  competency: Competency;
+  rating?: CompetencyRating;
+  overrides?: OverridesState;
+}) {
   const [open, setOpen] = useState(false);
+  const [overriding, setOverriding] = useState(false);
   const state = competencyState(rating);
   const expandable = !!rating && rating.indicators.length > 0;
+  const aiLevel = rating?.level ?? null;
+  const committee = committeeLevel(overrides?.history ?? null, competency);
+  const history = overrides?.history?.filter((o) => o.competency === competency) ?? [];
+  const canOverride = !!overrides?.history && !overrides.error;
 
   return (
     <div className="px-5 py-4" data-competency={competency}>
@@ -76,7 +97,20 @@ function CompetencyRow({ competency, rating }: { competency: Competency; rating?
           )}
           {expandable && <span className="text-gray-400 text-sm">{open ? "−" : "+"}</span>}
         </button>
-        <LevelChip state={state} />
+        {/* The AI level is always shown; a committee override sits next to it, never in its place. */}
+        <div className="flex items-center gap-2" data-slot="level-pair">
+          {aiLevel && <span className="text-xs text-[#969696]">AI</span>}
+          <LevelChip state={state} />
+          {committee && (
+            <>
+              <span className="text-[#969696]">→</span>
+              <span className="text-xs text-[#969696]">Committee</span>
+              <span className="rounded-full ring-2 ring-offset-1 ring-[#141414]">
+                <LevelChip state={committee} />
+              </span>
+            </>
+          )}
+        </div>
       </div>
 
       {state === "no_evidence" && (
@@ -88,6 +122,26 @@ function CompetencyRow({ competency, rating }: { competency: Competency; rating?
         <p className="mt-1 text-sm text-[#5d5d5d]">No AI level: the methodology owner rates this from the interview.</p>
       )}
       {rating && <ContrastiveHint text={rating.contrastive} />}
+
+      {history.length > 0 && <OverrideHistory entries={history} reasonCodes={overrides?.reasonCodes ?? []} />}
+      {canOverride && !overriding && (
+        <button
+          className="mt-2 text-xs font-medium text-[#5d5d5d] underline underline-offset-2 hover:text-[#141414]"
+          onClick={() => setOverriding(true)}
+        >
+          Override level
+        </button>
+      )}
+      {canOverride && overriding && overrides && (
+        <OverrideForm
+          competency={competency}
+          current={committee ?? aiLevel}
+          aiLevel={aiLevel}
+          reasonCodes={overrides.reasonCodes}
+          onSubmit={overrides.create}
+          onDone={() => setOverriding(false)}
+        />
+      )}
 
       {open && rating && (
         <div className="mt-3 space-y-3">

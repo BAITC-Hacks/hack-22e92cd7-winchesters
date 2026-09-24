@@ -203,14 +203,14 @@ def test_all_routes_are_reachable(client, committee, scorer, path):
 
 
 def test_override_is_gone_and_changes_nothing(client, db, committee, scorer):
+    """The score override was retired; COM-01 overrides levels in /api/overrides."""
     client.post("/api/scoring/ai/c-001", headers=committee)
     response = client.post(
         "/api/scoring/override",
         headers=committee,
         json={"candidate_id": "c-001", "dimension": "communication", "override_score": 5, "note": "x"},
     )
-    assert response.status_code == 410
-    assert "COM-01" in response.json()["detail"]
+    assert response.status_code == 404
 
     [run] = _runs(db, scoring.AI_SCORE_STAGE)
     assert CandidateScore.model_validate(run.output) == _score("c-001")

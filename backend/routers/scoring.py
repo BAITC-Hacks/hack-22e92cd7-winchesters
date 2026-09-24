@@ -160,21 +160,6 @@ def compare(candidate_id: str):
     return compare_scores(compute_baseline_score(candidate), CandidateScore.model_validate(stored))
 
 
-@router.post("/override", status_code=410)
-def override_score():
-    """Retired until the override ledger (COM-01) lands.
-
-    This used to rewrite a cached score in place, with no record of who changed
-    it or what it was before. Stored model runs are never rewritten, and a
-    change that is not recorded is not an override, so for now there is none.
-    The body is not read: whatever is sent, the answer is the same.
-    """
-    raise HTTPException(
-        status_code=410,
-        detail="Score overrides are disabled until the committee override ledger (COM-01) is in place.",
-    )
-
-
 @router.post("/reweight", response_model=list[RankedCandidate])
 def reweight(weights: ScoringWeights, scorer: str = "baseline"):
     """Re-rank with new weights without re-scoring."""

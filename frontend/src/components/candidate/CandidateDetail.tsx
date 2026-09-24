@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import type { Scorer } from "@/lib/dashboard";
+import { useOverrides } from "@/lib/useOverrides";
 import type {
   AIDetectionResult,
   Candidate,
@@ -15,7 +16,6 @@ import { GrowthMap } from "../views/GrowthMap";
 import { InterviewerBrief } from "../views/InterviewerBrief";
 import { ApplicationProfile } from "./ApplicationProfile";
 import { FeynmanPanel } from "./FeynmanPanel";
-import { OverridePanel } from "./OverridePanel";
 import { ScoreBreakdown } from "./ScoreBreakdown";
 import { SourceConsistencyPanel } from "./SourceConsistencyPanel";
 import { VideoPanel } from "./VideoPanel";
@@ -43,12 +43,12 @@ export interface CandidateDetailProps {
   onClose: () => void;
   onDetectAI: () => void;
   onAnalyzeVideo: () => void;
-  onOverride: (dimension: string, value: number, note: string) => Promise<string | null>;
 }
 
 export function CandidateDetail(props: CandidateDetailProps) {
   const { candidate: c, onClose } = props;
   const [tab, setTab] = useState<Tab>("application");
+  const overrides = useOverrides(c.id);
 
   return (
     <div className="fixed inset-0 flex items-center justify-center p-6" style={{ zIndex: 200 }}>
@@ -91,7 +91,7 @@ export function CandidateDetail(props: CandidateDetailProps) {
 
         <div className="p-8 space-y-8">
           {tab === "application" && <ApplicationTab {...props} />}
-          {tab === "committee" && <LedgerGate {...props} render={(l) => <CommitteeCard ledger={l} />} />}
+          {tab === "committee" && <LedgerGate {...props} render={(l) => <CommitteeCard ledger={l} overrides={overrides} />} />}
           {tab === "interviewer" && <LedgerGate {...props} render={(l) => <InterviewerBrief ledger={l} />} />}
           {tab === "growth" && <LedgerGate {...props} render={(l) => <GrowthMap ledger={l} />} />}
         </div>
@@ -109,7 +109,6 @@ function ApplicationTab(props: CandidateDetailProps) {
       <SourceConsistencyPanel result={props.aiDetection} loading={props.detectLoading} onRun={props.onDetectAI} />
       <VideoPanel analysis={props.videoAnalysis} onRun={props.onAnalyzeVideo} />
       {props.feynmanScore && <FeynmanPanel score={props.feynmanScore} />}
-      {score && <OverridePanel score={score} onOverride={props.onOverride} />}
     </>
   );
 }
