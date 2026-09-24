@@ -61,10 +61,8 @@ jobs:
       - name: Build
         run: npm run build
 
-      # Not blocking yet, deliberately: lint currently reports 1 error and 27
-      # warnings (react-hooks/set-state-in-effect in src/lib/useAuth.ts). Making
-      # it blocking today would mean every PR lands red for a reason unrelated to
-      # the PR. Fix that error, then delete this line so lint gates like the rest.
+      # Blocking. Warnings are allowed; errors fail the job. Also checks that the
+      # frontend copy of the LED-03 ledger fixture matches the backend one
+      # (scripts/check-ledger-fixture.mjs), since the views render from it until LED-11.
       - name: Lint
         run: npm run lint
-        continue-on-error: true

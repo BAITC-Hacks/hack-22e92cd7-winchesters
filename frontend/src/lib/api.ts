@@ -1,9 +1,13 @@
 import type {
   Candidate,
+  CandidateLedger,
   CandidateScore,
   RankedCandidate,
   AIDetectionResult,
+  VideoAnalysis,
 } from "./types";
+import { parseLedger } from "./ledger";
+import ledgerFixture from "./fixtures/ledger_example.json";
 import { clearSession, getToken, redirectToLogin, type User } from "./session";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -118,19 +122,19 @@ export const api = {
         method: "POST",
       }),
     analyzeVideo: (id: string) =>
-      fetchJSON<{
-        transcript: string;
-        language_detected: string;
-        authenticity_match: number;
-        motivation_score: number;
-        key_themes: string[];
-        growth_signals: string[];
-        concerns: string[];
-        summary: string;
-        is_mock: boolean;
-      }>(`/api/analysis/video-analysis/${id}`, {
+      fetchJSON<VideoAnalysis>(`/api/analysis/video-analysis/${id}`, {
         method: "POST",
       }),
+  },
+  // Until LED-11 there is no ledger API: every candidate gets the LED-03
+  // worked example. The async signature is the one LED-11 keeps, so only these
+  // two bodies change when `routers/ledger.py` lands.
+  ledger: {
+    get: async (candidateId: string): Promise<CandidateLedger> => {
+      void candidateId; // the fixture is one pseudonymous applicant, shown for everyone
+      return parseLedger(ledgerFixture);
+    },
+    list: async (): Promise<CandidateLedger[]> => [parseLedger(ledgerFixture)],
   },
   feynman: {
     score: <T>(candidateId: string) =>
@@ -154,3 +158,4 @@ export const api = {
       }>(`/api/feynman/finish?session_id=${sessionId}`, { method: "POST" }),
   },
 };
+
