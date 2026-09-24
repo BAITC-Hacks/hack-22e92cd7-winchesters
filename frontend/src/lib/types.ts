@@ -86,3 +86,123 @@ export interface RankedCandidate {
   ai_score: CandidateScore | null;
   baseline_score: CandidateScore | null;
 }
+
+export type FeynmanScore = {
+  clarity: number;
+  patience: number;
+  empathy: number;
+  adaptability: number;
+  quiz_transfer_score: number;
+  overall_score: number;
+  summary: string;
+};
+
+export type VideoAnalysis = {
+  transcript: string;
+  language_detected: string;
+  authenticity_match: number;
+  motivation_score: number;
+  key_themes: string[];
+  growth_signals: string[];
+  concerns: string[];
+  summary: string;
+  is_mock: boolean;
+};
+
+// ── Evidence ledger (mirrors backend/ledger/schema.py, LED-03) ──────
+// Change these only together with schema.py; the fixture copy in
+// lib/fixtures/ is checked against the backend one by `npm run lint`.
+
+export const LEDGER_SCHEMA_VERSION = "led-03.1";
+
+export const COMPETENCIES = [
+  "motivation_university",
+  "motivation_major",
+  "leadership_abilities",
+  "teamwork",
+  "values",
+  "prior_experience",
+  "intellect",
+  "purpose_driven_leadership",
+  "wounded_leadership",
+] as const;
+export type Competency = (typeof COMPETENCIES)[number];
+
+/** The client's three BARS levels, plus the honest fourth state. `no_evidence`
+ * is not `weak`, and never a zero: it means no behaviour was seen at all. */
+export const LEVELS = ["weak", "normal", "high", "no_evidence"] as const;
+export type Level = (typeof LEVELS)[number];
+
+export const ATOLA_COMPONENTS = ["action", "thinking", "outcome", "learnings", "application", "none"] as const;
+export type AtolaComponent = (typeof ATOLA_COMPONENTS)[number];
+
+export const SOURCES = [
+  "essay",
+  "written_presentation",
+  "video_transcript",
+  "scenario",
+  "interview_notes",
+  "recommendation_letter",
+  "ipsative_test",
+] as const;
+export type Source = (typeof SOURCES)[number];
+
+export const EVIDENCE_STATUSES = ["present", "claimed_only", "contradicted", "not_assessable"] as const;
+export type EvidenceStatus = (typeof EVIDENCE_STATUSES)[number];
+
+export interface EvidenceItem {
+  /** Verbatim, in the language the applicant used. */
+  quote: string;
+  source: Source;
+  source_ref: string;
+  /** -1 when the span could not be located in the raw source. */
+  char_start: number;
+  char_end: number;
+  atola: AtolaComponent;
+  status: EvidenceStatus;
+  /** Computed by the backend: the quote is literally present in the source. */
+  verified: boolean;
+  indicator_hint: string;
+}
+
+export interface IndicatorRating {
+  indicator_id: string;
+  observed_level: Level;
+  evidence: EvidenceItem[];
+  note: string;
+  /** Non-empty when the level that counts is lower than the observed one. Derived. */
+  capped_reason: string;
+}
+
+export interface AttentionFlag {
+  code: string;
+  quote: string;
+  source: Source | null;
+  explanation: string;
+}
+
+export interface CompetencyRating {
+  competency: Competency;
+  indicators: IndicatorRating[];
+  /** null when the rubric reserves this competency for humans. */
+  level: Level | null;
+  rule_applied: string;
+  reserved_for_humans: boolean;
+  /** What would move this to the next level, in anchor wording. */
+  contrastive: string;
+  probe_question: string;
+  flags: AttentionFlag[];
+  /** Derived from the evidence; the gaps are what interview probes are for. */
+  atola_present: AtolaComponent[];
+}
+
+export interface CandidateLedger {
+  /** Pseudonymous id; never a name. */
+  applicant_ref: string;
+  schema_version: string;
+  rubric_version: string;
+  model_judge: string;
+  model_extract: string;
+  prompt_version: string;
+  competencies: CompetencyRating[];
+}
