@@ -326,3 +326,37 @@ export interface FairnessAuditReport {
     notice: string;
   } | null;
 }
+
+export interface EvaluationReport {
+  status: "cached_demo" | "fallback_demo" | "live";
+  fixture_version: string;
+  fixture_hash: string;
+  seed: number;
+  prompt_id: string;
+  rubric_id: string;
+  model_id: string;
+  cases: number;
+  exact_level_rate: number;
+  level_flip_rate: number;
+  level_flip_count: number;
+  probe_count: number;
+  repeat_consistency: number;
+  repeat_count_per_case: number;
+  cross_lingual_agreement: number;
+  cross_lingual_by_language: Record<string, number>;
+  injection_suite: {
+    cases: number;
+    verified_injected_evidence: number;
+    level_changes_vs_clean: number;
+    passed: boolean;
+  };
+  noise_sd: number;
+  tolerance: number;
+  methodology_limits: string[];
+  production_invariance: {
+    score_path_changed: boolean;
+    ranking_changed: boolean;
+    recommendation_changed: boolean;
+  };
+  case_count_by: { competencies: number; levels: number; languages: number; variants: number };
+}

@@ -4,6 +4,7 @@ import type {
   CandidateScore,
   CounterfactualProbeResult,
   FairnessAuditReport,
+  EvaluationReport,
   OverrideEntry,
   OverrideInput,
   RankedCandidate,
@@ -135,6 +136,7 @@ export const api = {
         `/api/fairness/probe/${encodeURIComponent(candidateId)}?live=${live}`,
         { method: "POST" },
       ),
+      evaluation: (live = false) => fetchJSON<EvaluationReport>(`/api/fairness/evaluation?live=${live}`),
   },
   analysis: {
     detectAI: (id: string) =>
