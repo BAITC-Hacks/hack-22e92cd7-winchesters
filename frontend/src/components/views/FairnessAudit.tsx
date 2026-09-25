@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { ledgerStats, type CompetencyState } from "@/lib/ledger";
 import type { CandidateLedger } from "@/lib/types";
 import { CollapsiblePanel } from "../ui/CollapsiblePanel";
@@ -11,6 +11,16 @@ export interface FairnessAuditProps {
   ledgers: CandidateLedger[];
 }
 
+type AuditViewMode = "blind" | "informed";
+
+const INFORMED_ATTRIBUTES = [
+  "School type",
+  "Region and settlement",
+  "Application language",
+  "Foundation eligibility",
+  "Gender",
+];
+
 /**
  * Cohort-level checks. Two parts with very different standing:
  *
@@ -19,9 +29,51 @@ export interface FairnessAuditProps {
  * - The attribute-grouped audit (FAIR-07): impact ratios by declared background.
  */
 export function FairnessAudit({ ledgers }: FairnessAuditProps) {
+  const [mode, setMode] = useState<AuditViewMode>("blind");
+
   return (
     <CollapsiblePanel icon="/assets/Scales.svg" title="Fairness Audit">
       <div className="space-y-6">
+        <div className="flex flex-col gap-3 border-b border-[#eee] pb-4 sm:flex-row sm:items-start sm:justify-between" data-mode={mode}>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#141414]">Committee view</p>
+            <p className="mt-1 text-xs leading-relaxed text-[#5d5d5d]">
+              {mode === "blind"
+                ? "Candidate context is hidden while reviewing evidence."
+                : "Context is visible for fairness review only; it is excluded from scoring."}
+            </p>
+          </div>
+          <div className="flex shrink-0 self-start rounded-[10px] bg-[#eae9e9] p-1 gap-1" role="radiogroup" aria-label="Fairness audit view">
+            {(["blind", "informed"] as const).map((viewMode) => (
+              <button
+                key={viewMode}
+                type="button"
+                role="radio"
+                aria-checked={mode === viewMode}
+                onClick={() => setMode(viewMode)}
+                className={`px-3 py-1.5 rounded-[8px] text-[13px] font-semibold capitalize ${mode === viewMode ? "bg-[#141414] text-[#c1f11d]" : "text-[#141414]"}`}
+              >
+                {viewMode}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div
+          className={`border px-3 py-2.5 text-xs leading-relaxed ${mode === "blind" ? "border-[#d7d7d7] bg-[#f5f5f5] text-[#5d5d5d]" : "border-[#c1f11d] bg-[#f7fbdc] text-[#3d4f00]"}`}
+          data-slot="context-strip"
+          role="status"
+        >
+          {mode === "blind" ? (
+            <span>Blind: candidate context is withheld from this committee-facing view.</span>
+          ) : (
+            <span>
+              Informed: fairness-only context available: {INFORMED_ATTRIBUTES.join(", ")}. These attributes do not enter
+              scoring or recommendation; changing this view cannot prove fairness.
+            </span>
+          )}
+        </div>
+
         <div data-slot="attribute-audit">
           <AttributeAudit />
         </div>
