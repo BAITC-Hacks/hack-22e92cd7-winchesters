@@ -1250,7 +1250,8 @@
     "COM-01",
      "FAIR-01",
     "FAIR-02",
+    "FAIR-03",
     "FAIR-07"
  ],
-   "done_note": "FND-04, FND-05, LED-05, COM-01, FAIR-01, FAIR-02 and FAIR-07 are shipped. LED-09 (contrastive field) and LED-10 (competencies 8 and 9 as flags only) shipped inside LED-04 and are ticked here. LED-08 adds ATOLA coverage, the water checklist and the claimed-only cap. Verified by tests/ (198 passing, no API key needed). Note for the platform side: atola_present and capped_reason are derived, not stored; a loader calls backend.ledger.atola.hydrate once per competency."
+   "done_note": "FND-04, FND-05, LED-05, COM-01, FAIR-01, FAIR-02, FAIR-03 and FAIR-07 are shipped. LED-09 (contrastive field) and LED-10 (competencies 8 and 9 as flags only) shipped inside LED-04 and are ticked here. LED-08 adds ATOLA coverage, the water checklist and the claimed-only cap. Verified by tests/ (198 passing, no API key needed). Note for the platform side: atola_present and capped_reason are derived, not stored; a loader calls backend.ledger.atola.hydrate once per competency."
 }

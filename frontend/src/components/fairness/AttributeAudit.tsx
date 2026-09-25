@@ -5,10 +5,8 @@ import { api, ApiError } from "@/lib/api";
 import type { AuditGroup, AuditState, Competency, FairnessAuditReport, Level } from "@/lib/types";
 import { COMPETENCY_LABELS, STATE_LABELS } from "../ledger/labels";
 
-// Placeholder visuals until FAIR-03 delivers the fairness visual language. What
-// must survive the redesign: three states with words, not colour alone; one
-// line at 0.8 that reads as "review", not "fail"; n printed next to every rate;
-// and no level ever turned into an average.
+// The audit keeps three written states, treats 0.8 as a review trigger, prints
+// n beside every rate, and never turns competency levels into an average.
 
 const DIMENSION_LABELS: Record<string, string> = {
   settlement_type: "Urban / rural",
@@ -103,7 +101,7 @@ export function AttributeAudit() {
         </h4>
         <p className="text-xs text-[#5d5d5d]">
           Share of each group rated <strong>High</strong>, against the best group with enough data. Levels are counted,
-          never averaged. {threshold} is a line for human review, not a pass mark.
+          never averaged. {threshold} is a line for human review, not a pass mark or proof of fairness.
         </p>
       </div>
 
@@ -173,8 +171,8 @@ export function AttributeAudit() {
                 <th className="py-2 pr-3 font-medium">Group</th>
                 <th className="py-2 pr-3 font-medium text-right">n</th>
                 <th className="py-2 pr-3 font-medium w-40">Levels</th>
-                <th className="py-2 pr-3 font-medium text-right">High</th>
-                <th className="py-2 pr-3 font-medium text-right">No evidence</th>
+                <th className="py-2 pr-3 font-medium text-right">High rate / n</th>
+                <th className="py-2 pr-3 font-medium text-right">No evidence / n</th>
                 <th className="py-2 pr-3 font-medium w-64">Impact ratio, 95% CI</th>
                 <th className="py-2 font-medium">State</th>
               </tr>
@@ -196,6 +194,14 @@ export function AttributeAudit() {
           </span>
         ))}
         {undeclared > 0 && <span>· {undeclared} applicant{undeclared === 1 ? "" : "s"} did not declare this</span>}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-[#eee] pt-3 text-xs text-[#5d5d5d]">
+        <span className="font-semibold text-[#141414]">Impact ratio</span>
+        <span>dot = ratio</span>
+        <span>whisker = 95% CI</span>
+        <span className="border-l-2 border-dashed border-amber-500 pl-2">review line = {threshold.toFixed(2)}</span>
+        <span>axis: 0 to 2.00</span>
       </div>
 
       <p className="text-xs text-[#969696] leading-relaxed">
@@ -228,8 +234,12 @@ function GroupRow({ g, label, threshold }: { g: AuditGroup; label: string; thres
           )}
         </div>
       </td>
-      <td className="py-2 pr-3 text-right font-mono">{percent(g.high_rate)}</td>
-      <td className="py-2 pr-3 text-right font-mono">{percent(g.no_evidence_rate)}</td>
+      <td className="py-2 pr-3 text-right font-mono">
+        {percent(g.high_rate)} <span className="text-xs text-[#969696]">(n={g.n})</span>
+      </td>
+      <td className="py-2 pr-3 text-right font-mono">
+        {percent(g.no_evidence_rate)} <span className="text-xs text-[#969696]">(n={g.n})</span>
+      </td>
       <td className="py-2 pr-3">
         <RatioBar g={g} threshold={threshold} />
       </td>
@@ -253,18 +263,26 @@ function RatioBar({ g, threshold }: { g: AuditGroup; threshold: number }) {
   const ci = g.ci_low !== null && g.ci_high !== null ? `${g.ci_low.toFixed(2)}–${g.ci_high.toFixed(2)}` : "—";
   return (
     <div className="flex items-center gap-2">
-      <div className="relative h-4 w-36 shrink-0" aria-hidden>
+      <div
+        className="relative h-5 w-36 shrink-0"
+        role="img"
+        aria-label={`Impact ratio ${g.impact_ratio.toFixed(2)}, 95% confidence interval ${ci}, review line ${threshold.toFixed(2)}`}
+      >
         <div className="absolute inset-y-[7px] inset-x-0 bg-[#f0f0f0] rounded" />
         <div className="absolute inset-y-0 w-px bg-[#c9c9c9]" style={{ left: pct(1) }} />
         <div className="absolute inset-y-[-2px] border-l-2 border-dashed border-amber-500" style={{ left: pct(threshold) }} />
         {g.ci_low !== null && g.ci_high !== null && (
-          <div
-            className="absolute top-[7px] h-[2px]"
-            style={{ left: pct(g.ci_low), width: `calc(${pct(g.ci_high)} - ${pct(g.ci_low)})`, background: color }}
-          />
+          <>
+            <div
+              className="absolute top-[8px] h-0.5"
+              style={{ left: pct(g.ci_low), width: `calc(${pct(g.ci_high)} - ${pct(g.ci_low)})`, background: color }}
+            />
+            <div className="absolute top-[4px] h-2.5 w-px" style={{ left: pct(g.ci_low), background: color }} />
+            <div className="absolute top-[4px] h-2.5 w-px" style={{ left: pct(g.ci_high), background: color }} />
+          </>
         )}
         <div
-          className="absolute top-[3px] h-2.5 w-2.5 -ml-[5px] rounded-full border-2 border-white"
+          className="absolute top-[5px] h-2.5 w-2.5 -ml-[5px] rounded-full border-2 border-white"
           style={{ left: pct(g.impact_ratio), background: color }}
         />
       </div>
