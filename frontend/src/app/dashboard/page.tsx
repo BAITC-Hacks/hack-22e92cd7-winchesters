@@ -162,7 +162,7 @@ export default function Dashboard() {
           onChange={(key, value) => setWeights((prev) => ({ ...prev, [key]: value }))}
           onReset={() => setWeights({ ...DEFAULT_WEIGHTS })}
         />
-        <FairnessAudit ranked={ranked} scorer={scorer} ledgers={cohortLedgers} />
+        <FairnessAudit ledgers={cohortLedgers} />
 
         {error && (
           <div className="mb-5 p-4 bg-red-500/10 text-red-400 rounded-2xl text-base border border-red-500/20">{error}</div>
