@@ -5,6 +5,7 @@ import { groupOf, groupsFor, scoreOf, type Scorer } from "@/lib/dashboard";
 import { ledgerStats, type CompetencyState } from "@/lib/ledger";
 import type { CandidateLedger, RankedCandidate } from "@/lib/types";
 import { CollapsiblePanel } from "../ui/CollapsiblePanel";
+import { AttributeAudit } from "../fairness/AttributeAudit";
 import { LevelChip } from "../ledger/LevelChip";
 
 export interface FairnessAuditProps {
@@ -18,18 +19,15 @@ export interface FairnessAuditProps {
  *
  * - Ledger health: how often the pipeline abstained, capped or found nothing.
  *   Counts only; a level is never averaged.
- * - The legacy table by score group. It cannot detect bias (task FAIR-02 removes
- *   it); it stays until the attribute-grouped audit replaces it, in the slot below.
+ * - The attribute-grouped audit (FAIR-07): impact ratios by declared background.
+ * - The legacy table by score group. It cannot detect bias; task FAIR-02 removes it.
  */
 export function FairnessAudit({ ranked, scorer, ledgers }: FairnessAuditProps) {
   return (
     <CollapsiblePanel icon="/assets/Scales.svg" title="Fairness Audit">
       <div className="space-y-6">
-        <div
-          data-slot="attribute-audit"
-          className="rounded-xl border-2 border-dashed border-[#969696] px-4 py-3 text-sm text-[#5d5d5d]"
-        >
-          Attribute-grouped audit (school, region, language, Foundation) goes here: FAIR-02 / FAIR-03.
+        <div data-slot="attribute-audit">
+          <AttributeAudit />
         </div>
         <LedgerHealth ledgers={ledgers} />
         <LegacyGroupTable ranked={ranked} scorer={scorer} />

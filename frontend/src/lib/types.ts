@@ -241,3 +241,63 @@ export interface OverrideInput {
   note: string;
   ai_level: Level | null;
 }
+
+// ── Attribute-grouped fairness audit (FAIR-07) ─────────────────────
+// Mirrors backend/routers/fairness.py. Levels are counted per group, never
+// averaged; the outcome is the share rated High.
+
+export type AuditState = "ok" | "review_needed" | "not_enough_data";
+
+export interface AuditGroup {
+  group: string;
+  n: number;
+  share_of_pool: number;
+  levels: Record<Level, number>;
+  high_rate: number;
+  no_evidence_rate: number;
+  /** high_rate / the reference group's high_rate. Shown even when not judged. */
+  impact_ratio: number | null;
+  ci_low: number | null;
+  ci_high: number | null;
+  is_reference: boolean;
+  state: AuditState;
+  review_reason: "below_threshold" | "interval_crosses_threshold" | null;
+}
+
+export interface AuditCell {
+  competency: Competency;
+  pool: number;
+  reference_group: string | null;
+  groups: AuditGroup[];
+}
+
+export interface AuditDimension {
+  dimension: string;
+  undeclared: number;
+  competencies: AuditCell[];
+}
+
+export interface FairnessAuditReport {
+  source: "synthetic" | "db";
+  applicants: number;
+  applicants_with_levels: number;
+  input_hash: string;
+  method: {
+    outcome: string;
+    reference: string;
+    interval: string;
+    bootstrap_seed: number;
+    n_bootstrap: number;
+    review_threshold: number;
+    min_group_n: number;
+    min_group_share: number;
+  };
+  competencies: Competency[];
+  dimensions: AuditDimension[];
+  synthetic: {
+    cohort_seed: number;
+    size: number;
+    planted_effects: { competency: string; group: string; effect: string }[];
+    notice: string;
+  } | null;
+}

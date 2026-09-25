@@ -2,6 +2,7 @@ import type {
   Candidate,
   CandidateLedger,
   CandidateScore,
+  FairnessAuditReport,
   OverrideEntry,
   OverrideInput,
   RankedCandidate,
@@ -122,6 +123,12 @@ export const api = {
         method: "POST",
         body: JSON.stringify(input),
       }),
+  },
+  // Attribute-grouped audit (FAIR-07), committee and admin only. "synthetic"
+  // until LED-11 stores real levels; "db" is empty before then.
+  fairness: {
+    audit: (source: "synthetic" | "db" = "synthetic") =>
+      fetchJSON<FairnessAuditReport>(`/api/fairness/audit?source=${source}`),
   },
   analysis: {
     detectAI: (id: string) =>
