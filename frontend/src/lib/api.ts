@@ -2,6 +2,7 @@ import type {
   Candidate,
   CandidateLedger,
   CandidateScore,
+  CounterfactualProbeResult,
   FairnessAuditReport,
   OverrideEntry,
   OverrideInput,
@@ -129,6 +130,11 @@ export const api = {
   fairness: {
     audit: (source: "synthetic" | "db" = "synthetic") =>
       fetchJSON<FairnessAuditReport>(`/api/fairness/audit?source=${source}`),
+    probe: (candidateId: string, live = true) =>
+      fetchJSON<CounterfactualProbeResult>(
+        `/api/fairness/probe/${encodeURIComponent(candidateId)}?live=${live}`,
+        { method: "POST" },
+      ),
   },
   analysis: {
     detectAI: (id: string) =>

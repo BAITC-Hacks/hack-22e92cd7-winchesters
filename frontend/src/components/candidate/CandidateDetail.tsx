@@ -8,10 +8,12 @@ import type {
   Candidate,
   CandidateLedger,
   CandidateScore,
+  CounterfactualProbeResult,
   FeynmanScore,
   VideoAnalysis,
 } from "@/lib/types";
 import { CommitteeCard } from "../views/CommitteeCard";
+import { CounterfactualProbe } from "./CounterfactualProbe";
 import { GrowthMap } from "../views/GrowthMap";
 import { InterviewerBrief } from "../views/InterviewerBrief";
 import { ApplicationProfile } from "./ApplicationProfile";
@@ -39,10 +41,14 @@ export interface CandidateDetailProps {
   aiDetection: AIDetectionResult | null;
   feynmanScore: FeynmanScore | null;
   videoAnalysis: VideoAnalysis | null;
+  counterfactualProbe: CounterfactualProbeResult | null;
+  probeLoading: boolean;
+  probeError: string | null;
   detectLoading: boolean;
   onClose: () => void;
   onDetectAI: () => void;
   onAnalyzeVideo: () => void;
+  onRunProbe: () => void;
 }
 
 export function CandidateDetail(props: CandidateDetailProps) {
@@ -106,6 +112,12 @@ function ApplicationTab(props: CandidateDetailProps) {
     <>
       <ApplicationProfile candidate={candidate} />
       {score && <ScoreBreakdown score={score} scorer={scorer} />}
+      <CounterfactualProbe
+        result={props.counterfactualProbe}
+        loading={props.probeLoading}
+        error={props.probeError}
+        onRun={props.onRunProbe}
+      />
       <SourceConsistencyPanel result={props.aiDetection} loading={props.detectLoading} onRun={props.onDetectAI} />
       <VideoPanel analysis={props.videoAnalysis} onRun={props.onAnalyzeVideo} />
       {props.feynmanScore && <FeynmanPanel score={props.feynmanScore} />}

@@ -80,6 +80,31 @@ export interface CandidateScore {
   scorer_type: string;
 }
 
+export interface CounterfactualProbeVariant {
+  id: string;
+  marker: string;
+  changed_markers: string[];
+  score: CandidateScore;
+  signed_delta: number;
+  competency_deltas: Record<string, number>;
+  level_flips: string[];
+}
+
+export interface CounterfactualProbeResult {
+  candidate_id: string;
+  status: "live" | "cached_demo" | "fallback_demo";
+  baseline: CandidateScore;
+  variants: CounterfactualProbeVariant[];
+  signed_delta: number;
+  noise_sd: number;
+  tolerance: number;
+  flips_for_human_review: string[];
+  changed_markers: string[];
+  prompt_id: string;
+  model_id: string;
+  notice: string;
+}
+
 export interface RankedCandidate {
   rank: number;
   candidate: Candidate;

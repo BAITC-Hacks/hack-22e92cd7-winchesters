@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/useAuth";
 import { DEFAULT_WEIGHTS, groupOf, groupsFor, isHiddenGem, reweight, scoreOf, type Scorer } from "@/lib/dashboard";
-import type { AIDetectionResult, CandidateLedger, FeynmanScore, RankedCandidate, VideoAnalysis } from "@/lib/types";
+import type { AIDetectionResult, CandidateLedger, CounterfactualProbeResult, FeynmanScore, RankedCandidate, VideoAnalysis } from "@/lib/types";
 import { CandidateDetail } from "@/components/candidate/CandidateDetail";
 import { CandidateCard } from "@/components/dashboard/CandidateCard";
 import { DashboardFooter, DashboardHeader, DashboardNav, ScrollProgress } from "@/components/dashboard/Chrome";
@@ -34,6 +34,9 @@ export default function Dashboard() {
   const [aiDetections, setAiDetections] = useState<Record<string, AIDetectionResult>>({});
   const [feynmanScores, setFeynmanScores] = useState<Record<string, FeynmanScore>>({});
   const [videoAnalyses, setVideoAnalyses] = useState<Record<string, VideoAnalysis>>({});
+  const [counterfactualProbes, setCounterfactualProbes] = useState<Record<string, CounterfactualProbeResult>>({});
+  const [probeLoading, setProbeLoading] = useState(false);
+  const [probeError, setProbeError] = useState<string | null>(null);
   const [ledgers, setLedgers] = useState<Record<string, CandidateLedger>>({});
   const [ledgerErrors, setLedgerErrors] = useState<Record<string, string>>({});
   const [cohortLedgers, setCohortLedgers] = useState<CandidateLedger[]>([]);
@@ -117,6 +120,20 @@ export default function Dashboard() {
       setVideoAnalyses((prev) => ({ ...prev, [selectedId]: result }));
     } catch {
       /* ignore */
+    }
+  };
+
+  const handleRunProbe = async () => {
+    if (!selectedId) return;
+    setProbeLoading(true);
+    setProbeError(null);
+    try {
+      const result = await api.fairness.probe(selectedId);
+      setCounterfactualProbes((prev) => ({ ...prev, [selectedId]: result }));
+    } catch (e) {
+      setProbeError(message(e, "Fairness probe unavailable"));
+    } finally {
+      setProbeLoading(false);
     }
   };
 
@@ -219,10 +236,14 @@ export default function Dashboard() {
           aiDetection={aiDetections[selected.candidate.id] || null}
           feynmanScore={feynmanScores[selected.candidate.id] || null}
           videoAnalysis={videoAnalyses[selected.candidate.id] || null}
+          counterfactualProbe={counterfactualProbes[selected.candidate.id] || null}
+          probeLoading={probeLoading}
+          probeError={probeError}
           detectLoading={detectLoading}
           onClose={() => setSelectedId(null)}
           onDetectAI={handleDetectAI}
           onAnalyzeVideo={handleAnalyzeVideo}
+          onRunProbe={handleRunProbe}
         />
       )}
 
