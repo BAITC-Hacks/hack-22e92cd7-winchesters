@@ -9,7 +9,10 @@ assert.match(api, /preBrief: \(candidateId: string\)/);
 assert.match(api, /\/api\/committee\/pre-brief/);
 assert.match(types, /score_withheld: true/);
 assert.match(types, /canonical: string/);
+assert.match(types, /allowed_paraphrases: string\[\]/);
+assert.match(types, /content_hash: string/);
 assert.match(view, /Canonical probe:/);
+assert.match(view, /Allowed wording:/);
 assert.match(view, /preBrief\.strengths\.map/);
 assert.match(view, /discrepancy_alerts/);
 

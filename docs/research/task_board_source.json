@@ -424,8 +424,8 @@
    "dev",
    "M",
    0,
-   "Load the full rubric and extend the pipeline to all 9 competencies",
-   "rubric_versions with content hash; Talent Craft BARS verbatim; 162-case gold set written with the designer.",
+  "Load the approved extended-methodology probe bank for COM-06",
+  "Score-free 9 x 5 competency × missing-ATOLA bank with stable probe IDs, canonical wording, allowed paraphrases, version/hash provenance and leak-guard metadata; no live rebuild or score-path change.",
    [
     "LED-04"
    ],
@@ -1247,6 +1247,7 @@
   "LED-04",
   "LED-08",
   "LED-09",
+  "LED-13",
     "LED-10",
     "COM-01",
     "COM-04",

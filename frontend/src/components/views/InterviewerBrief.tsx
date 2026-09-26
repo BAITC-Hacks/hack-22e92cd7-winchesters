@@ -95,6 +95,9 @@ function BriefRow({ competency, rating, preBrief }: { competency: Competency; ra
         <div data-slot="probe" className="mt-2 space-y-1">
           <p><span className="text-[#969696]">Ask: </span>{preBrief.probe.paraphrase}</p>
           <p className="text-xs text-[#5d5d5d]"><span className="font-medium">Canonical probe: </span>{preBrief.probe.canonical}</p>
+          <p className="text-xs text-[#5d5d5d]" data-slot="allowed-paraphrases">
+            <span className="font-medium">Allowed wording: </span>{preBrief.probe.allowed_paraphrases.join(" / ")}
+          </p>
         </div>
       ) : rating?.probe_question && (
         <p data-slot="probe" className="mt-2">

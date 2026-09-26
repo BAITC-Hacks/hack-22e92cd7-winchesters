@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from backend.committee_prebrief import build_prebrief
+from backend.committee_probe_bank import PROBE_BANK, PROBE_BANK_PROVENANCE
 from backend.db.ledger import save_ledger
 from backend.ledger.schema import CandidateLedger
 
@@ -24,7 +25,19 @@ def test_prebrief_selects_competency_missing_component_and_withholds_score():
     assert row["probe"]["probe_id"] == f"leadership_abilities.{row['missing_components'][0]}"
     assert row["probe"]["canonical"]
     assert row["probe"]["paraphrase"]
+    assert row["probe"]["allowed_paraphrases"]
+    assert row["probe"]["leak_guard"]["candidate_facing"] is False
     assert all("level" not in item for item in brief["rows"])
+
+
+def test_extended_probe_bank_is_complete_and_provenance_is_frozen():
+    assert len(PROBE_BANK) == 9 * 5
+    assert len({item["probe_id"] for item in PROBE_BANK}) == len(PROBE_BANK)
+    assert PROBE_BANK_PROVENANCE["entry_count"] == len(PROBE_BANK)
+    assert PROBE_BANK_PROVENANCE["content_hash"].startswith("sha256:")
+    assert PROBE_BANK_PROVENANCE["selection_key"] == "competency x missing ATOLA component"
+    assert all(item["allowed_paraphrases"] for item in PROBE_BANK)
+    assert all(item["leak_guard"]["candidate_facing"] is False for item in PROBE_BANK)
 
 
 def test_prebrief_endpoint_is_staff_only_and_reads_persisted_ledger(client, auth_headers):
@@ -35,6 +48,8 @@ def test_prebrief_endpoint_is_staff_only_and_reads_persisted_ledger(client, auth
     assert response.status_code == 200
     assert response.json()["candidate_id"] == "c-001"
     assert response.json()["score_withheld"] is True
+    assert response.json()["probe_bank"]["entry_count"] == 45
+    assert response.json()["probe_bank"]["content_hash"].startswith("sha256:")
     assert "level" not in response.json()
 
 

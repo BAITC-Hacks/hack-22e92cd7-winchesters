@@ -9,20 +9,18 @@ from __future__ import annotations
 
 from typing import Any
 
+from backend.committee_probe_bank import PROBE_BANK_PROVENANCE, probe_for
 from backend.ledger import atola
-from backend.ledger.rubric import RUBRIC
 from backend.ledger.schema import CandidateLedger, Competency, EvidenceStatus
 
-PROBE_BANK_VERSION = "com-06-atola-v2"
+PROBE_BANK_VERSION = PROBE_BANK_PROVENANCE["version"]
 
 
-def _probe(competency: Competency, component: atola.AtolaComponent) -> dict[str, str]:
-    rubric = RUBRIC[competency]
-    paraphrase = rubric.probes[0] if rubric.probes else rubric.question
+def _probe(competency: Competency, component: atola.AtolaComponent) -> dict[str, Any]:
+    bank_probe = probe_for(competency, component)
     return {
-        "probe_id": f"{competency.value}.{component.value}",
-        "canonical": atola.PROBE_FOR_MISSING[component],
-        "paraphrase": paraphrase,
+        **bank_probe,
+        "paraphrase": bank_probe["allowed_paraphrases"][0],
     }
 
 
@@ -69,6 +67,7 @@ def build_prebrief(ledger: CandidateLedger) -> dict[str, Any]:
 
     return {
         "candidate_id": ledger.applicant_ref,
+        "probe_bank": PROBE_BANK_PROVENANCE,
         "probe_bank_version": PROBE_BANK_VERSION,
         "score_withheld": True,
         "strengths": strengths[:2],

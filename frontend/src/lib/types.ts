@@ -264,8 +264,18 @@ export interface CandidateLedger {
 
 export interface PreBriefProbe {
   probe_id: string;
+  competency: Competency;
+  missing_atola_component: AtolaComponent;
   canonical: string;
   paraphrase: string;
+  allowed_paraphrases: string[];
+  methodology_source: string;
+  approval_status: string;
+  leak_guard: {
+    candidate_facing: false;
+    public_item_ids: string[];
+    checks: string[];
+  };
 }
 
 export interface PreBriefStrength {
@@ -284,6 +294,15 @@ export interface PreBriefRow {
 
 export interface InterviewerPreBrief {
   candidate_id: string;
+  probe_bank: {
+    version: string;
+    content_hash: string;
+    source: string;
+    entry_count: number;
+    selection_key: string;
+    score_path_unchanged: true;
+    live_rebuild: false;
+  };
   probe_bank_version: string;
   score_withheld: true;
   strengths: PreBriefStrength[];
