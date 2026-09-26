@@ -25,9 +25,14 @@ def _canonical(value: Any) -> str:
     return json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
 
 
+def canonical_bytes(value: Any) -> bytes:
+    """The byte representation used for reproducibility comparisons."""
+    return _canonical(value).encode("utf-8")
+
+
 def data_hash(records: list[dict[str, Any]]) -> str:
-    body = _canonical(sorted(records, key=lambda item: str(item["applicant_id"])))
-    return hashlib.sha256(body.encode("utf-8")).hexdigest()
+    body = canonical_bytes(sorted(records, key=lambda item: str(item["applicant_id"])))
+    return hashlib.sha256(body).hexdigest()
 
 
 def content_hash(value: str) -> str:
@@ -162,12 +167,27 @@ def _impact(rows: list[dict[str, Any]], seed: int = BOOTSTRAP_SEED) -> list[dict
     return output
 
 
-def build_report(records: list[dict[str, Any]], *, prompt_id: str = "historical-prompt-frozen", model_id: str = "historical-model-frozen", rubric_id: str = "historical-rubric-frozen", split_seed: int = SPLIT_SEED) -> dict[str, Any]:
+def _report_hash(report: dict[str, Any]) -> str:
+    comparable = json.loads(_canonical(report))
+    comparable.get("reproducibility", {}).pop("report_hash", None)
+    return hashlib.sha256(canonical_bytes(comparable)).hexdigest()
+
+
+def build_report(
+    records: list[dict[str, Any]],
+    *,
+    prompt_id: str = "historical-prompt-frozen",
+    model_id: str = "historical-model-frozen",
+    rubric_id: str = "historical-rubric-frozen",
+    split_seed: int = SPLIT_SEED,
+    timestamp_utc: str | None = None,
+) -> dict[str, Any]:
     rows = _rows(records)
     train, holdout = split_rows(rows, split_seed)
     holdout_low = sum(row["admitted"] and row["model_level"] == "weak" for row in holdout)
-    return {
-        "manifest": {"registration_id": REGISTRATION_ID, "report_mode": "historical", "prompt_id": prompt_id, "model_id": model_id, "rubric_id": rubric_id, "fixture_or_data_hash": data_hash(records), "prompt_hash": content_hash(prompt_id), "model_hash": content_hash(model_id), "rubric_hash": content_hash(rubric_id), "evaluation_data_hash": data_hash(records), "seed": {"split": split_seed, "bootstrap": BOOTSTRAP_SEED, "n_bootstrap": N_BOOTSTRAP}, "timestamp_utc": datetime.now(UTC).isoformat()},
+    normalized_data_hash = data_hash(rows)
+    report = {
+        "manifest": {"registration_id": REGISTRATION_ID, "report_mode": "historical", "prompt_id": prompt_id, "model_id": model_id, "rubric_id": rubric_id, "fixture_or_data_hash": normalized_data_hash, "prompt_hash": content_hash(prompt_id), "model_hash": content_hash(model_id), "rubric_hash": content_hash(rubric_id), "evaluation_data_hash": normalized_data_hash, "seed": {"split": split_seed, "bootstrap": BOOTSTRAP_SEED, "n_bootstrap": N_BOOTSTRAP}, "timestamp_utc": timestamp_utc or datetime.now(UTC).isoformat()},
         "provenance": {"requested_mode": "historical", "effective_mode": "historical", "fallback_used": False, "fallback_reason": None, "live_result": None, "cached_result": None},
         "production_invariance": {"score_path_changed": False, "ranking_changed": False, "recommendation_changed": False},
         "split": {"train_applicants": len({row["applicant_id"] for row in train}), "holdout_applicants": len({row["applicant_id"] for row in holdout}), "train_rows": len(train), "holdout_rows": len(holdout), "holdout_sealed": True, "tuning_source": "train_only"},
@@ -175,6 +195,71 @@ def build_report(records: list[dict[str, Any]], *, prompt_id: str = "historical-
         "failed_model_runs": sum(row["model_level"] not in LEVELS for row in rows),
         "train": {"agreement": _agreement(train), "impact_ratios": _impact(train)},
         "holdout": {"agreement": _agreement(holdout), "impact_ratios": _impact(holdout), "screening_safety": {"lowest_band": "weak", "admitted_in_lowest_band": holdout_low, "safe": holdout_low == 0, "status": "usable" if holdout_low == 0 else "unusable"}},
+    }
+    report["reproducibility"] = {
+        "ratings": rows,
+        "rating_count": len(rows),
+        "frozen_hashes": {
+            "prompt": content_hash(prompt_id),
+            "rubric": content_hash(rubric_id),
+            "data": normalized_data_hash,
+        },
+        "report_hash": _report_hash(report),
+    }
+    return report
+
+
+def replay_report(report: dict[str, Any]) -> dict[str, Any]:
+    """Rebuild a report solely from its saved ratings and frozen manifest."""
+    bundle = report.get("reproducibility") or {}
+    manifest = report.get("manifest") or {}
+    ratings = bundle.get("ratings")
+    if not isinstance(ratings, list) or not ratings:
+        raise ValueError("Report has no saved ratings for replay")
+    required = ("prompt_id", "model_id", "rubric_id", "timestamp_utc")
+    if any(not manifest.get(key) for key in required):
+        raise ValueError("Report manifest is missing frozen replay fields")
+    return build_report(
+        ratings,
+        prompt_id=manifest["prompt_id"],
+        model_id=manifest["model_id"],
+        rubric_id=manifest["rubric_id"],
+        split_seed=manifest["seed"]["split"],
+        timestamp_utc=manifest["timestamp_utc"],
+    )
+
+
+def compare_reports(expected: dict[str, Any], actual: dict[str, Any]) -> dict[str, Any]:
+    """Compare canonical report bytes and explain the first mismatches."""
+    expected_bytes = canonical_bytes(expected)
+    actual_bytes = canonical_bytes(actual)
+    mismatches: list[dict[str, Any]] = []
+
+    def walk(left: Any, right: Any, path: str = "$") -> None:
+        if len(mismatches) >= 50:
+            return
+        if type(left) is not type(right):
+            mismatches.append({"path": path, "expected": left, "actual": right})
+        elif isinstance(left, dict):
+            for key in sorted(set(left) | set(right)):
+                if key not in left or key not in right:
+                    mismatches.append({"path": f"{path}.{key}", "expected": left.get(key), "actual": right.get(key)})
+                else:
+                    walk(left[key], right[key], f"{path}.{key}")
+        elif isinstance(left, list):
+            if len(left) != len(right):
+                mismatches.append({"path": path, "expected": f"list[{len(left)}]", "actual": f"list[{len(right)}]"})
+            for index, (left_item, right_item) in enumerate(zip(left, right)):
+                walk(left_item, right_item, f"{path}[{index}]")
+        elif left != right:
+            mismatches.append({"path": path, "expected": left, "actual": right})
+
+    walk(expected, actual)
+    return {
+        "byte_identical": expected_bytes == actual_bytes,
+        "expected_hash": hashlib.sha256(expected_bytes).hexdigest(),
+        "actual_hash": hashlib.sha256(actual_bytes).hexdigest(),
+        "mismatches": mismatches,
     }
 
 

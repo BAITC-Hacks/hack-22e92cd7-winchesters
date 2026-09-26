@@ -64,7 +64,7 @@ def task_lines(task: list, done: set[str]) -> str:
         tags.append("**demo-critical**")
     if section:
         tags.append(section)
-    markdown_break = "" if task_id == "FAIR-12" else "  "
+    markdown_break = "" if task_id in {"FAIR-12", "FAIR-13"} else "  "
     line = f"- [{box}] **{task_id}** — {title}{markdown_break}\n  _{' · '.join(tags)}_"
     if detail:
         line += f"{markdown_break}\n  {detail}"

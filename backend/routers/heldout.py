@@ -10,7 +10,7 @@ from sqlmodel import Session, select
 
 from backend.db.engine import get_engine
 from backend.db.tables import AuditLogEntry, ModelRun, ModelRunStatus
-from backend.evals.historical import build_report
+from backend.evals.historical import build_report, compare_reports, replay_report
 from backend.routers.guards import require_role
 from backend.security import Role
 
@@ -49,3 +49,43 @@ def report() -> dict[str, Any]:
     if run is None:
         raise HTTPException(status_code=404, detail="No held-out evaluation has been ingested")
     return run.output
+
+
+@router.get("/reproduce")
+def reproduce(user: dict[str, Any] = Depends(require_role(Role.COMMITTEE, Role.ADMIN))) -> dict[str, Any]:
+    """Replay every saved rating and compare the complete report byte-for-byte."""
+    run = _latest()
+    if run is None:
+        raise HTTPException(status_code=404, detail="No held-out evaluation has been ingested")
+    try:
+        replayed = replay_report(run.output)
+        comparison = compare_reports(run.output, replayed)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    with Session(get_engine()) as session:
+        session.add(AuditLogEntry(
+            actor_user_id=user["id"],
+            action="heldout_reproducibility_check",
+            object_type="evaluation",
+            object_id=comparison["expected_hash"],
+            after={"byte_identical": comparison["byte_identical"], "mismatch_count": len(comparison["mismatches"])},
+        ))
+        session.commit()
+    bundle = run.output["reproducibility"]
+    return {
+        "status": "reproduced" if comparison["byte_identical"] else "mismatch",
+        "ratings_recomputed": bundle["rating_count"],
+        "frozen_hashes": bundle["frozen_hashes"],
+        "provenance": {
+            "requested_mode": "replay",
+            "effective_mode": "replay",
+            "fallback_used": False,
+            "fallback_reason": None,
+            "live_result": None,
+            "cached_result": {"source": "saved_ratings", "report_mode": run.output["manifest"]["report_mode"]},
+            "fallback_result": None,
+        },
+        "source_provenance": run.output["provenance"],
+        "production_invariance": run.output["production_invariance"],
+        **comparison,
+    }

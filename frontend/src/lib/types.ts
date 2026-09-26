@@ -432,3 +432,16 @@ export interface HeldoutReport {
   holdout: { agreement: Array<{ competency: string; n: number; qwk: number | null; icc: number | null }>; impact_ratios: unknown[]; screening_safety: { lowest_band: string; admitted_in_lowest_band: number; safe: boolean; status: string } };
   production_invariance: { score_path_changed: boolean; ranking_changed: boolean; recommendation_changed: boolean };
 }
+
+export interface HeldoutReproducibility {
+  status: "reproduced" | "mismatch";
+  ratings_recomputed: number;
+  frozen_hashes: { prompt: string; rubric: string; data: string };
+  provenance: { requested_mode: string; effective_mode: string; fallback_used: boolean; fallback_reason: string | null; live_result: unknown; cached_result: unknown; fallback_result: unknown };
+  source_provenance: { requested_mode: string; effective_mode: string; fallback_used: boolean; fallback_reason: string | null; live_result: unknown; cached_result: unknown };
+  production_invariance: { score_path_changed: boolean; ranking_changed: boolean; recommendation_changed: boolean };
+  byte_identical: boolean;
+  expected_hash: string;
+  actual_hash: string;
+  mismatches: { path: string; expected: unknown; actual: unknown }[];
+}
