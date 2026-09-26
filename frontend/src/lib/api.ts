@@ -8,6 +8,7 @@ import type {
   EvaluationReport,
   ModelCard,
   HeldoutReport,
+  FunderMemo,
   HeldoutReproducibility,
   OverrideEntry,
   OverrideInput,
@@ -144,6 +145,7 @@ export const api = {
       cohortProbe: (live = false) => fetchJSON<CohortProbeReport>(`/api/fairness/cohort-probe?live=${live}`),
       modelCard: () => fetchJSON<ModelCard>("/api/fairness/historical/model-card"),
       heldoutReport: () => fetchJSON<HeldoutReport>("/api/fairness/heldout/report"),
+      funderMemo: () => fetchJSON<FunderMemo>("/api/fairness/heldout/memo"),
       heldoutReproduce: () => fetchJSON<HeldoutReproducibility>("/api/fairness/heldout/reproduce"),
   },
   analysis: {

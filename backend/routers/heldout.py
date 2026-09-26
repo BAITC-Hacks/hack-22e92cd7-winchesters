@@ -10,7 +10,7 @@ from sqlmodel import Session, select
 
 from backend.db.engine import get_engine
 from backend.db.tables import AuditLogEntry, ModelRun, ModelRunStatus
-from backend.evals.historical import build_report, compare_reports, replay_report
+from backend.evals.historical import build_funder_memo, build_report, compare_reports, replay_report
 from backend.routers.guards import require_role
 from backend.security import Role
 
@@ -49,6 +49,17 @@ def report() -> dict[str, Any]:
     if run is None:
         raise HTTPException(status_code=404, detail="No held-out evaluation has been ingested")
     return run.output
+
+
+@router.get("/memo")
+def memo() -> dict[str, Any]:
+    run = _latest()
+    if run is None:
+        raise HTTPException(status_code=404, detail="No held-out evaluation has been ingested")
+    try:
+        return build_funder_memo(run.output)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
 
 @router.get("/reproduce")

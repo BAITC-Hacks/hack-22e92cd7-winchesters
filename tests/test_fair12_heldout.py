@@ -5,7 +5,7 @@ import copy
 from sqlmodel import Session, select
 
 from backend.db.tables import CompetencyScore, ModelRun
-from backend.evals.historical import build_report, compare_reports, replay_report
+from backend.evals.historical import build_funder_memo, build_report, compare_reports, replay_report
 
 
 def _records(count: int = 20) -> list[dict]:
@@ -71,6 +71,18 @@ def test_fair13_replays_saved_ratings_byte_identically():
     assert report["reproducibility"]["frozen_hashes"]["data"] == report["manifest"]["evaluation_data_hash"]
 
 
+def test_fair14_funder_memo_projects_frozen_holdout_metrics():
+    memo = build_funder_memo(build_report(_records()))
+
+    assert memo["audience"] == "inDrive"
+    assert memo["abstention"]["abstentions"] == 0
+    assert memo["abstention"]["abstention_rate"] == 0.0
+    assert {row["competency"] for row in memo["calibration"]} == {"leadership", "teamwork"}
+    assert memo["provenance"]["holdout_sealed"] is True
+    assert memo["provenance"]["report_hash"]
+    assert memo["production_invariance"] == {"score_path_changed": False, "ranking_changed": False, "recommendation_changed": False}
+
+
 def test_fair12_endpoint_is_staff_only_and_does_not_write_scores(client, auth_headers, db):
     before_scores = len(list(Session(db).exec(select(CompetencyScore))))
     payload = {"records": _records()}
@@ -116,3 +128,18 @@ def test_fair13_reproduction_is_staff_only_and_reports_mismatches(client, auth_h
     assert body["status"] == "mismatch"
     assert body["byte_identical"] is False
     assert any(item["path"] == "$.holdout.agreement[0].qwk" for item in body["mismatches"])
+
+
+def test_fair14_funder_memo_is_staff_only_and_read_only(client, auth_headers, db):
+    payload = {"records": _records()}
+    for role in ("applicant", "interviewer"):
+        assert client.get("/api/fairness/heldout/memo", headers=auth_headers(role)).status_code == 403
+
+    assert client.post("/api/fairness/heldout/ingest", json=payload, headers=auth_headers("committee")).status_code == 200
+    response = client.get("/api/fairness/heldout/memo", headers=auth_headers("admin"))
+    assert response.status_code == 200
+    body = response.json()
+    assert body["audience"] == "inDrive"
+    assert body["impact_ratios"] == body["holdout"]["impact_ratios"]
+    assert body["production_invariance"]["score_path_changed"] is False
+    assert len(list(Session(db).exec(select(CompetencyScore)))) == 0

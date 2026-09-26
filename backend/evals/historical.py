@@ -323,3 +323,51 @@ def build_model_card(report: dict[str, Any]) -> dict[str, Any]:
             "residual_risk": "A passing metric is not proof of fairness, safety, or legal compliance; governance review remains required.",
         },
     }
+
+
+def build_funder_memo(report: dict[str, Any]) -> dict[str, Any]:
+    """Project a frozen held-out report into the funder-facing memo contract."""
+    manifest = report["manifest"]
+    ratings = report.get("reproducibility", {}).get("ratings")
+    if not isinstance(ratings, list) or not ratings:
+        raise ValueError("Report has no saved ratings for the funder memo")
+    _, holdout = split_rows(ratings, manifest["seed"]["split"])
+    by_competency = []
+    for competency in sorted({row["competency"] for row in holdout}):
+        rows = [row for row in holdout if row["competency"] == competency]
+        failed = sum(row["model_level"] not in LEVELS for row in rows)
+        by_competency.append({
+            "competency": competency,
+            "ratings": len(rows),
+            "abstentions": failed,
+            "abstention_rate": failed / len(rows) if rows else 0.0,
+        })
+    abstentions = sum(row["model_level"] not in LEVELS for row in holdout)
+    return {
+        "title": "Funder cohort memo",
+        "audience": "inDrive",
+        "report_mode": manifest["report_mode"],
+        "holdout": report["holdout"],
+        "impact_ratios": report["holdout"]["impact_ratios"],
+        "calibration": report["holdout"]["agreement"],
+        "abstention": {
+            "ratings": len(holdout),
+            "abstentions": abstentions,
+            "abstention_rate": abstentions / len(holdout) if holdout else 0.0,
+            "by_competency": by_competency,
+            "definition": "Failed or missing model labels are abstentions, not weak ratings.",
+        },
+        "provenance": {
+            "registration_id": manifest["registration_id"],
+            "report_hash": report["reproducibility"].get("report_hash"),
+            "evaluation_data_hash": manifest["evaluation_data_hash"],
+            "prompt_hash": manifest["prompt_hash"],
+            "model_hash": manifest["model_hash"],
+            "rubric_hash": manifest["rubric_hash"],
+            "split_seed": manifest["seed"]["split"],
+            "bootstrap_seed": manifest["seed"]["bootstrap"],
+            "holdout_sealed": report["split"]["holdout_sealed"],
+            "tuning_source": report["split"]["tuning_source"],
+        },
+        "production_invariance": report["production_invariance"],
+    }

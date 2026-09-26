@@ -433,6 +433,18 @@ export interface HeldoutReport {
   production_invariance: { score_path_changed: boolean; ranking_changed: boolean; recommendation_changed: boolean };
 }
 
+export interface FunderMemo {
+  title: string;
+  audience: string;
+  report_mode: string;
+  holdout: { screening_safety: { lowest_band: string; admitted_in_lowest_band: number; safe: boolean; status: string } };
+  impact_ratios: Array<{ dimension: string; reference_group: string | null; groups: Array<{ group: string; n: number; high_rate: number; impact_ratio: number | null; ci_low: number | null; ci_high: number | null; state: string }> }>;
+  calibration: Array<{ competency: string; n: number; qwk: number | null; icc: number | null; calibration: Record<string, Record<string, number>> }>;
+  abstention: { ratings: number; abstentions: number; abstention_rate: number; by_competency: Array<{ competency: string; ratings: number; abstentions: number; abstention_rate: number }>; definition: string };
+  provenance: { registration_id: string; report_hash: string; evaluation_data_hash: string; prompt_hash: string; model_hash: string; rubric_hash: string; split_seed: number; bootstrap_seed: number; holdout_sealed: boolean; tuning_source: string };
+  production_invariance: { score_path_changed: boolean; ranking_changed: boolean; recommendation_changed: boolean };
+}
+
 export interface HeldoutReproducibility {
   status: "reproduced" | "mismatch";
   ratings_recomputed: number;
