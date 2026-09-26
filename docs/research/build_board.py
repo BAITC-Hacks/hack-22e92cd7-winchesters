@@ -64,7 +64,7 @@ def task_lines(task: list, done: set[str]) -> str:
         tags.append("**demo-critical**")
     if section:
         tags.append(section)
-    markdown_break = "" if task_id in {"FAIR-12", "FAIR-13", "FAIR-14"} else "  "
+    markdown_break = ""
     line = f"- [{box}] **{task_id}** — {title}{markdown_break}\n  _{' · '.join(tags)}_"
     if detail:
         line += f"{markdown_break}\n  {detail}"
@@ -132,7 +132,7 @@ def build_markdown(data: dict) -> str:
         "social-media scraping, third-party reference forms for minors, per-language score calibration, "
         "a rejection-explaining chatbot, rewriting candidate text before scoring._\n"
     )
-    return "\n".join(out)
+    return "\n".join(line.rstrip() for line in out)
 
 
 def main() -> None:

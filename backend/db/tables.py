@@ -377,6 +377,24 @@ class EvidenceItemRecord(SQLModel, table=True):
     created_at: datetime = _created_at()
 
 
+class CommitteeSignatureRecord(SQLModel, table=True):
+    """One append-only signature in a committee decision workflow."""
+
+    __tablename__ = "committee_signatures"
+    __table_args__ = (Index("ix_committee_signatures_applicant_id", "applicant_id"),)
+
+    id: str = Field(default_factory=_uuid, sa_column=Column(String(36), primary_key=True))
+    applicant_id: str = Field(
+        sa_column=Column(String(36), ForeignKey("applicants.id", ondelete="CASCADE"), nullable=False)
+    )
+    role: str = Field(sa_column=Column(String(32), nullable=False))
+    signer_user_id: str = Field(
+        sa_column=Column(String(36), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    )
+    signer_name: str = Field(sa_column=Column(Text, nullable=False))
+    created_at: datetime = _created_at()
+
+
 # ── Committee and audit ────────────────────────────────────────────
 
 
@@ -436,7 +454,7 @@ class AuditLogEntry(SQLModel, table=True):
 # created in migration 0003. A batch-mode rebuild (copy, drop, rename) drops a
 # table's triggers along with the old table; backend/migrations/env.py refuses
 # to finish a migration that leaves one of these tables without them.
-APPEND_ONLY_TABLES = ("evidence_items", "committee_overrides", "audit_log")
+APPEND_ONLY_TABLES = ("evidence_items", "committee_overrides", "committee_signatures", "audit_log")
 
 
 def append_only_trigger_names(table: str) -> tuple[str, str]:

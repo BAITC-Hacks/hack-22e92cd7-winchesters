@@ -56,3 +56,14 @@ def seed() -> SeedResult:
         session.commit()
 
     return SeedResult(applicants_added=added, applicants_total=len(records), demo_user_added=demo_user_added)
+
+
+def seed_demo_ledger() -> None:
+    """Load the checked-in LED-11 snapshot for the demo database."""
+    from backend.db import ledger as ledger_store
+    from backend.ledger.schema import CandidateLedger
+
+    if ledger_store.load_ledger("c-001") is not None:
+        return
+    fixture = Path(__file__).resolve().parents[1] / "ledger" / "fixtures" / "ledger_example.json"
+    ledger_store.save_ledger("c-001", CandidateLedger.model_validate(json.loads(fixture.read_text(encoding="utf-8"))))

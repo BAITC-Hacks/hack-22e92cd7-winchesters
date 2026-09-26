@@ -22,13 +22,15 @@ from sqlalchemy.engine import make_url
 from backend import settings
 from backend.db.engine import alembic_config, get_engine
 from backend.db import users
-from backend.db.seed import seed
+from backend.db.seed import seed, seed_demo_ledger
 from backend.security import STAFF_ROLES, hash_password
 
 
 def init() -> None:
     command.upgrade(alembic_config(), "head")
     result = seed()
+    if settings.DEMO_MODE:
+        seed_demo_ledger()
     print(
         f"schema at head; applicants: {result.applicants_added} added, "
         f"{result.applicants_total - result.applicants_added} already present"

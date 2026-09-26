@@ -448,6 +448,9 @@ export interface FunderMemo {
 export interface CommitteeDecisionMemo {
   candidate_id: string;
   title: string;
+  locale: "ru" | "kk";
+  candidate_label: string;
+  human_review_label: string;
   competencies: Array<{
     competency: Competency;
     label: string;
@@ -467,7 +470,7 @@ export interface CommitteeDecisionMemo {
   probe_result: Record<string, unknown>;
   provenance: { schema_version: string; model: string; prompt: string; rubric: string; model_hash: string; prompt_hash: string; rubric_hash: string };
   counts: { ai_drafted: number; items: number; committee_changed: number };
-  signatures: Array<{ role: string; name: string; signed_at: string }>;
+  signatures: Array<{ role: "chair" | "member"; name: string; signed_at: string }>;
   generated_at: string;
 }
 

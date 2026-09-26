@@ -10,3 +10,4 @@ argon2-cffi==25.1.0
 scikit-learn==1.9.0
 pandas==3.0.3
 numpy==2.5.1
+reportlab>=4,<5

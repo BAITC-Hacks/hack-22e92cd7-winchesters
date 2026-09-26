@@ -33,6 +33,7 @@ from backend.db.tables import (
     Artifact,
     AuditLogEntry,
     CommitteeOverrideRecord,
+    CommitteeSignatureRecord,
     CompetencyScore,
     Consent,
     EvidenceItemRecord,
@@ -149,6 +150,12 @@ def ledger(db):
             reason="Interview did not confirm the scale of the project.",
             user_id=committee["id"],
         )
+        signature = CommitteeSignatureRecord(
+            applicant_id=applicant_id,
+            role="chair",
+            signer_user_id=committee["id"],
+            signer_name="Committee Chair",
+        )
         audit = AuditLogEntry(
             actor_user_id=committee["id"],
             action="override",
@@ -158,7 +165,7 @@ def ledger(db):
         )
         protected = ProtectedAttributesRecord(applicant_id=applicant_id, school_type="public", languages_spoken=["kk"])
         consent = Consent(applicant_id=applicant_id, kind="data_processing", given_by="applicant", version="v1")
-        session.add_all([evidence, override, audit, protected, consent])
+        session.add_all([evidence, override, signature, audit, protected, consent])
         session.commit()
         return {
             "applicant": applicant_id,
@@ -167,6 +174,7 @@ def ledger(db):
             "rating": rating.id,
             "evidence_items": evidence.id,
             "committee_overrides": override.id,
+            "committee_signatures": signature.id,
             "audit_log": audit.id,
         }
 

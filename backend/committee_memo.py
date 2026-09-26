@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import io
+import os
+from pathlib import Path
 from datetime import UTC, datetime
 from typing import Any
 
@@ -37,7 +40,7 @@ def _anchors(competency: str) -> dict[str, list[str]]:
     return {level.value: [indicator.anchor(level) for indicator in rubric.indicators] for level in (Level.WEAK, Level.NORMAL, Level.HIGH)}
 
 
-def build_decision_memo(candidate_id: str, ledger: CandidateLedger) -> dict[str, Any]:
+def build_decision_memo(candidate_id: str, ledger: CandidateLedger, *, locale: str = "ru") -> dict[str, Any]:
     """Return a JSON-safe memo; overrides affect only the displayed level."""
     overrides = list_overrides(applicant_id_for(candidate_id) or candidate_id)
     latest = {item["competency"]: item for item in overrides}
@@ -78,9 +81,16 @@ def build_decision_memo(candidate_id: str, ledger: CandidateLedger) -> dict[str,
     model = ledger.model_judge or "unknown"
     prompt = ledger.prompt_version or "unknown"
     rubric = ledger.rubric_version or "unknown"
+    labels = {
+        "ru": {"title": "Решение комитета", "candidate": "Кандидат", "human_review": "нужна проверка человеком"},
+        "kk": {"title": "Комитет шешімі", "candidate": "Кандидат", "human_review": "адам тексеруі қажет"},
+    }.get(locale, {"title": "Committee decision memo", "candidate": "Candidate", "human_review": "human review"})
     return {
         "candidate_id": candidate_id,
-        "title": "Committee decision memo",
+        "title": labels["title"],
+        "locale": locale,
+        "candidate_label": labels["candidate"],
+        "human_review_label": labels["human_review"],
         "competencies": competencies,
         "verified_quotes": verified_quotes,
         "test_bands": [{"level": level.value, "label": level.value.replace("_", " ")} for level in (Level.WEAK, Level.NORMAL, Level.HIGH)],
@@ -93,36 +103,48 @@ def build_decision_memo(candidate_id: str, ledger: CandidateLedger) -> dict[str,
     }
 
 
-def render_pdf(memo: dict[str, Any]) -> bytes:
-    """Render a compact dependency-free printable PDF summary."""
-    lines = [memo["title"], f"Candidate: {memo['candidate_id']}", ""]
+def render_pdf(memo: dict[str, Any], *, locale: str | None = None) -> bytes:
+    """Render an A4, Unicode, print-ready PDF using a system TTF font."""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.pdfgen.canvas import Canvas
+
+    font_paths = [
+        os.getenv("DECISION_MEMO_FONT", ""),
+        "C:/Windows/Fonts/arial.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+    ]
+    font_path = next((path for path in font_paths if path and Path(path).is_file()), None)
+    if font_path is None:
+        raise RuntimeError("A Unicode TTF font is required; set DECISION_MEMO_FONT to Arial or DejaVuSans")
+    pdfmetrics.registerFont(TTFont("DecisionMemoUnicode", font_path))
+    active_locale = locale or memo.get("locale", "ru")
+    labels = {
+        "ru": {"candidate": "Кандидат", "probe": "Вопрос", "summary": "AI подготовил", "changed": "пунктов изменено комитетом", "chair": "Председатель комитета", "member": "Член комитета"},
+        "kk": {"candidate": "Кандидат", "probe": "Сұрақ", "summary": "AI дайындағаны", "changed": "тармақты комитет өзгертті", "chair": "Комитет төрағасы", "member": "Комитет мүшесі"},
+    }.get(active_locale, {"candidate": "Candidate", "probe": "Probe", "summary": "AI drafted", "changed": "committee changes", "chair": "Committee chair", "member": "Committee member"})
+    lines = [memo["title"], f"{labels['candidate']}: {memo['candidate_id']}", ""]
     for item in memo["competencies"]:
         lines.append(f"{item['label']}: {item['effective_level'] or 'human review'}")
         for indicator in item["indicators"]:
             for quote in indicator["verified_quotes"]:
                 lines.append(f"  [{indicator['indicator_id']}] {quote['quote']}")
-        lines.append(f"  Probe: {item['probe_question']}")
-    lines += ["", f"AI drafted {memo['counts']['ai_drafted']} of {memo['counts']['items']} items; committee changed {memo['counts']['committee_changed']}.", "", "Committee chair signature: ____________________", "Committee member signature: ____________________"]
-    text_lines = []
+        lines.append(f"  {labels['probe']}: {item['probe_question']}")
+    lines += ["", f"{labels['summary']} {memo['counts']['ai_drafted']} / {memo['counts']['items']}; {memo['counts']['committee_changed']} {labels['changed']}.", "", f"{labels['chair']}: ____________________", f"{labels['member']}: ____________________"]
+    output = io.BytesIO()
+    canvas = Canvas(output, pagesize=A4)
+    canvas.setTitle(memo["title"])
+    canvas.setFont("DecisionMemoUnicode", 9)
+    width, height = A4
+    y = height - 48
     for line in lines:
-        safe = line.encode("latin-1", errors="replace").decode("latin-1")
-        escaped = safe.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
-        text_lines.append(f"({escaped}) Tj T*\n")
-    stream = "BT /F1 9 Tf 50 780 Td 12 TL\n" + "".join(text_lines) + "ET"
-    objects = [
-        "<< /Type /Catalog /Pages 2 0 R >>",
-        "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
-        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-        f"<< /Length {len(stream.encode('latin-1'))} >>\nstream\n{stream}\nendstream",
-    ]
-    pdf = bytearray(b"%PDF-1.4\n")
-    offsets = [0]
-    for index, obj in enumerate(objects, 1):
-        offsets.append(len(pdf))
-        pdf.extend(f"{index} 0 obj\n{obj}\nendobj\n".encode("latin-1"))
-    xref = len(pdf)
-    pdf.extend(f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n".encode("ascii"))
-    pdf.extend("".join(f"{offset:010d} 00000 n \n" for offset in offsets[1:]).encode("ascii"))
-    pdf.extend(f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF".encode("ascii"))
-    return bytes(pdf)
+        if y < 48:
+            canvas.showPage()
+            canvas.setFont("DecisionMemoUnicode", 9)
+            y = height - 48
+        canvas.drawString(42, y, line[:160])
+        y -= 14
+    canvas.save()
+    return output.getvalue()
