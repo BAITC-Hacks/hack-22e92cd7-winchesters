@@ -67,5 +67,8 @@ def test_fair09_ingest_is_staff_only_and_does_not_write_production_scores(client
     response = client.post("/api/fairness/historical/ingest", json=payload, headers=auth_headers("committee"))
     assert response.status_code == 200
     assert client.get("/api/fairness/historical/report", headers=auth_headers("admin")).status_code == 200
+    assert client.get("/api/fairness/historical/model-card", headers=auth_headers("committee")).status_code == 200
+    for role in ("applicant", "interviewer"):
+        assert client.get("/api/fairness/historical/model-card", headers=auth_headers(role)).status_code == 403
     after = len(list(Session(db).exec(select(CompetencyScore))))
     assert before == after

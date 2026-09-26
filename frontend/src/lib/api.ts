@@ -5,6 +5,7 @@ import type {
   CounterfactualProbeResult,
   FairnessAuditReport,
   EvaluationReport,
+  ModelCard,
   OverrideEntry,
   OverrideInput,
   RankedCandidate,
@@ -137,6 +138,7 @@ export const api = {
         { method: "POST" },
       ),
       evaluation: (live = false) => fetchJSON<EvaluationReport>(`/api/fairness/evaluation?live=${live}`),
+      modelCard: () => fetchJSON<ModelCard>("/api/fairness/historical/model-card"),
   },
   analysis: {
     detectAI: (id: string) =>

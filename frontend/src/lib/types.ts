@@ -360,3 +360,35 @@ export interface EvaluationReport {
   };
   case_count_by: { competencies: number; levels: number; languages: number; variants: number };
 }
+
+export interface ModelCard {
+  title: string;
+  status: string;
+  intended_use: string;
+  out_of_scope_use: string[];
+  provenance: {
+    registration_id: string;
+    report_mode: string;
+    model_hash: string;
+    prompt_hash: string;
+    rubric_hash: string;
+    evaluation_data_hash: string;
+    split: { train_applicants: number; holdout_applicants: number; train_rows: number; holdout_rows: number; holdout_sealed: boolean; tuning_source: string };
+  };
+  metrics: {
+    agreement: Array<{
+      competency: string;
+      n: number;
+      qwk: number;
+      icc: number | null;
+      human_human_ceiling: { qwk: number | null; icc: number | null };
+      calibration: Record<string, Record<string, number>>;
+    }>;
+    impact_ratios: Array<{ dimension: string; reference_group: string | null; groups: Array<{ group: string; n: number; impact_ratio: number | null; ci_low: number | null; ci_high: number | null; state: string }> }>;
+    screening_safety: { lowest_band: string; admitted_in_lowest_band: number; safe: boolean; status: string };
+  };
+  abstention: { policy: string; failed_model_runs: number; no_evidence_state: string; production_effect: string };
+  screening_safety: { lowest_band: string; admitted_in_lowest_band: number; safe: boolean; status: string };
+  limitations: string[];
+  impact_assessment: { legal_basis: string; scope: string; affected_people: string; risks: string[]; mitigations: string[]; human_oversight: string; monitoring: string; residual_risk: string };
+}

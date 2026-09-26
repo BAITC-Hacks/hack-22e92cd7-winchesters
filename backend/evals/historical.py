@@ -30,6 +30,10 @@ def data_hash(records: list[dict[str, Any]]) -> str:
     return hashlib.sha256(body.encode("utf-8")).hexdigest()
 
 
+def content_hash(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
 def _rows(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Normalize either one row per rating or one applicant with ratings."""
     rows: list[dict[str, Any]] = []
@@ -163,10 +167,70 @@ def build_report(records: list[dict[str, Any]], *, prompt_id: str = "historical-
     train, holdout = split_rows(rows, split_seed)
     holdout_low = sum(row["admitted"] and row["model_level"] == "weak" for row in holdout)
     return {
-        "manifest": {"registration_id": REGISTRATION_ID, "report_mode": "historical", "prompt_id": prompt_id, "model_id": model_id, "rubric_id": rubric_id, "fixture_or_data_hash": data_hash(records), "seed": {"split": split_seed, "bootstrap": BOOTSTRAP_SEED, "n_bootstrap": N_BOOTSTRAP}, "timestamp_utc": datetime.now(UTC).isoformat()},
+        "manifest": {"registration_id": REGISTRATION_ID, "report_mode": "historical", "prompt_id": prompt_id, "model_id": model_id, "rubric_id": rubric_id, "fixture_or_data_hash": data_hash(records), "prompt_hash": content_hash(prompt_id), "model_hash": content_hash(model_id), "rubric_hash": content_hash(rubric_id), "evaluation_data_hash": data_hash(records), "seed": {"split": split_seed, "bootstrap": BOOTSTRAP_SEED, "n_bootstrap": N_BOOTSTRAP}, "timestamp_utc": datetime.now(UTC).isoformat()},
         "split": {"train_applicants": len({row["applicant_id"] for row in train}), "holdout_applicants": len({row["applicant_id"] for row in holdout}), "train_rows": len(train), "holdout_rows": len(holdout), "holdout_sealed": True, "tuning_source": "train_only"},
         "missing_labels": sum(row["committee_level"] not in LEVELS for row in rows),
         "failed_model_runs": sum(row["model_level"] not in LEVELS for row in rows),
         "train": {"agreement": _agreement(train), "impact_ratios": _impact(train)},
         "holdout": {"agreement": _agreement(holdout), "impact_ratios": _impact(holdout), "screening_safety": {"lowest_band": "weak", "admitted_in_lowest_band": holdout_low, "safe": holdout_low == 0, "status": "usable" if holdout_low == 0 else "unusable"}},
+    }
+
+
+def build_model_card(report: dict[str, Any]) -> dict[str, Any]:
+    """Project the historical report into the committee-facing model card."""
+    manifest = report["manifest"]
+    holdout = report["holdout"]
+    agreement = [
+        {
+            **metric,
+            "human_human_ceiling": {"qwk": metric["human_human_qwk"], "icc": metric["human_human_icc"]},
+        }
+        for metric in holdout["agreement"]
+    ]
+    return {
+        "title": "Historical scorer model card",
+        "status": "historical_holdout",
+        "intended_use": "Committee-only evaluation of an AI-drafted competency signal before human review. The committee remains the decision-maker.",
+        "out_of_scope_use": [
+            "Automated admission, rejection, ranking, or recommendation decisions",
+            "Applicant or interviewer self-service access",
+            "Inferring protected attributes or treating historical committee labels as ground truth",
+        ],
+        "provenance": {
+            "registration_id": manifest["registration_id"],
+            "report_mode": manifest["report_mode"],
+            "model_hash": manifest["model_hash"],
+            "prompt_hash": manifest["prompt_hash"],
+            "rubric_hash": manifest["rubric_hash"],
+            "evaluation_data_hash": manifest["evaluation_data_hash"],
+            "split": report["split"],
+        },
+        "metrics": {
+            "agreement": agreement,
+            "impact_ratios": holdout["impact_ratios"],
+            "screening_safety": holdout["screening_safety"],
+        },
+        "abstention": {
+            "policy": "No evidence is a first-class outcome: failed or missing model labels are excluded from agreement and fairness rates, never converted to zero.",
+            "failed_model_runs": report["failed_model_runs"],
+            "no_evidence_state": "not_enough_data" if report["failed_model_runs"] else "observed",
+            "production_effect": "Abstention does not change production scores, recommendations, or ranking.",
+        },
+        "screening_safety": holdout["screening_safety"],
+        "limitations": [
+            "Historical committee labels reflect selection and interviewer severity; agreement is not ground truth.",
+            "Small groups below n=10 or 2% of the pool are descriptive and marked not_enough_data.",
+            "Confidence intervals are bootstrap diagnostics and do not establish causality or absence of discrimination.",
+            "The holdout is sealed and no prompt, rubric, threshold, subgroup, or model tuning is permitted on it.",
+        ],
+        "impact_assessment": {
+            "legal_basis": "EU AI Act Article 27",
+            "scope": "Before deployment or substantial modification, the deployer documents intended purpose, affected groups, foreseeable risks, mitigations, human oversight, and monitoring.",
+            "affected_people": "Applicants whose artifacts are reviewed by the admissions committee, including declared audit subgroups.",
+            "risks": ["automation bias", "unequal error or abstention rates", "historical-label and selection bias", "privacy and purpose limitation"],
+            "mitigations": ["committee/admin-only access", "human review and append-only overrides", "no protected attributes in scoring", "pre-registered metrics with confidence intervals", "abstention and small-n states shown explicitly"],
+            "human_oversight": "Committee members can review evidence, disagree, and override; the model cannot publish a decision.",
+            "monitoring": "Re-run agreement, calibration, abstention, screening-safety, and impact-ratio checks for each frozen model/prompt/rubric/data version.",
+            "residual_risk": "A passing metric is not proof of fairness, safety, or legal compliance; governance review remains required.",
+        },
     }

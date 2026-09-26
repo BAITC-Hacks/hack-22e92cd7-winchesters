@@ -10,7 +10,7 @@ from sqlmodel import Session, select
 
 from backend.db.engine import get_engine
 from backend.db.tables import AuditLogEntry, ModelRun, ModelRunStatus
-from backend.evals.historical import build_report
+from backend.evals.historical import build_model_card, build_report
 from backend.routers.guards import require_role
 from backend.security import Role
 
@@ -45,3 +45,12 @@ def report() -> dict[str, Any]:
     if run is None:
         raise HTTPException(status_code=404, detail="No historical evaluation has been ingested")
     return run.output
+
+
+@router.get("/model-card")
+def model_card() -> dict[str, Any]:
+    with Session(get_engine()) as session:
+        run = session.exec(select(ModelRun).where(ModelRun.stage == "historical_ingest").order_by(ModelRun.created_at.desc())).first()
+    if run is None:
+        raise HTTPException(status_code=404, detail="No historical evaluation has been ingested")
+    return build_model_card(run.output)
