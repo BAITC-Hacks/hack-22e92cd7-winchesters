@@ -1,6 +1,7 @@
 import type {
   Candidate,
   CandidateLedger,
+  InterviewerPreBrief,
   CandidateScore,
   CounterfactualProbeResult,
   CohortProbeReport,
@@ -157,6 +158,7 @@ export const api = {
       heldoutReproduce: () => fetchJSON<HeldoutReproducibility>("/api/fairness/heldout/reproduce"),
   },
   committee: {
+    preBrief: (candidateId: string) => fetchJSON<InterviewerPreBrief>(`/api/committee/pre-brief/${encodeURIComponent(candidateId)}`),
     decisionMemo: (candidateId: string, locale: "ru" | "kk" = "ru") => fetchJSON<CommitteeDecisionMemo>(`/api/committee/decision-memo/${encodeURIComponent(candidateId)}?locale=${locale}`),
     decisionMemoPdf: (candidateId: string, locale: "ru" | "kk" = "ru") => fetchPDF(`/api/committee/decision-memo/${encodeURIComponent(candidateId)}/pdf?locale=${locale}`),
     signDecisionMemo: (candidateId: string, role: "chair" | "member") => fetchJSON<{ status: string; role: string }>(`/api/committee/decision-memo/${encodeURIComponent(candidateId)}/signatures/${role}`, { method: "POST" }),

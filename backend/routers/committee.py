@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi.concurrency import run_in_threadpool
 
 from backend.committee_memo import build_decision_memo, render_pdf
+from backend.committee_prebrief import build_prebrief
 from backend.db import ledger as ledger_store
 from backend.db import signatures as signature_store
 from backend.routers.candidates import get_candidate_or_404
@@ -28,6 +29,17 @@ async def _memo(candidate_id: str, locale: str = "ru") -> dict:
 @router.get("/decision-memo/{candidate_id}")
 async def decision_memo(candidate_id: str, locale: str = Query("ru", pattern="^(ru|kk)$")) -> dict:
     return await _memo(candidate_id, locale)
+
+
+@router.get("/pre-brief/{candidate_id}")
+async def pre_brief(candidate_id: str) -> dict:
+    await run_in_threadpool(get_candidate_or_404, candidate_id)
+    ledger = await run_in_threadpool(ledger_store.load_ledger, candidate_id)
+    if ledger is None:
+        raise HTTPException(status_code=409, detail="No persisted ledger is available for this candidate")
+    brief = build_prebrief(ledger)
+    brief["candidate_id"] = candidate_id
+    return brief
 
 
 @router.get("/decision-memo/{candidate_id}/pdf")

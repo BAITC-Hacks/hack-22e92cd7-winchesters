@@ -1,10 +1,11 @@
 import { ATOLA_SEQUENCE, atolaGaps, demonstratedEvidence, evidenceState, nineRows } from "@/lib/ledger";
-import type { CandidateLedger, Competency, CompetencyRating } from "@/lib/types";
+import type { CandidateLedger, Competency, CompetencyRating, InterviewerPreBrief } from "@/lib/types";
 import { EvidenceQuote } from "../ledger/EvidenceQuote";
 import { ATOLA_LABELS, COMPETENCY_LABELS, EVIDENCE_STATE_LABELS } from "../ledger/labels";
 
 export interface InterviewerBriefProps {
   ledger: CandidateLedger;
+  preBrief?: InterviewerPreBrief;
 }
 
 /**
@@ -13,7 +14,7 @@ export interface InterviewerBriefProps {
  * found, what is missing from each account, and what to ask. COM-03 turns this
  * into the phone and print one-pager (COM-02 layout).
  */
-export function InterviewerBrief({ ledger }: InterviewerBriefProps) {
+export function InterviewerBrief({ ledger, preBrief }: InterviewerBriefProps) {
   const rows = nineRows(ledger);
   const strengths = ledger.competencies
     .filter((r) => !r.reserved_for_humans)
@@ -28,7 +29,14 @@ export function InterviewerBrief({ ledger }: InterviewerBriefProps) {
 
       <section data-slot="strengths">
         <h4 className="text-sm font-semibold text-[#141414] uppercase tracking-wider mb-2">Two strengths in their words</h4>
-        {strengths.length > 0 ? (
+        {preBrief?.strengths.length ? (
+          preBrief.strengths.map(({ competency, quote }, i) => (
+            <div key={i} className="mb-2">
+              <p className="text-xs text-[#969696]">{COMPETENCY_LABELS[competency]}</p>
+              <p className="border-l-4 border-[#c1f11d] pl-3 text-sm italic">&ldquo;{quote}&rdquo;</p>
+            </div>
+          ))
+        ) : strengths.length > 0 ? (
           strengths.map(({ competency, item }, i) => (
             <div key={i} className="mb-2">
               <p className="text-xs text-[#969696]">{COMPETENCY_LABELS[competency]}</p>
@@ -44,7 +52,7 @@ export function InterviewerBrief({ ledger }: InterviewerBriefProps) {
         <h4 className="text-sm font-semibold text-[#141414] uppercase tracking-wider mb-2">By competency</h4>
         <div className="rounded-2xl border-2 border-[#d7d7d7] divide-y divide-[#d7d7d7]">
           {rows.map(({ competency, rating }) => (
-            <BriefRow key={competency} competency={competency} rating={rating} />
+            <BriefRow key={competency} competency={competency} rating={rating} preBrief={preBrief?.rows.find((row) => row.competency === competency)} />
           ))}
         </div>
       </section>
@@ -52,7 +60,7 @@ export function InterviewerBrief({ ledger }: InterviewerBriefProps) {
   );
 }
 
-function BriefRow({ competency, rating }: { competency: Competency; rating?: CompetencyRating }) {
+function BriefRow({ competency, rating, preBrief }: { competency: Competency; rating?: CompetencyRating; preBrief?: InterviewerPreBrief["rows"][number] }) {
   const state = evidenceState(rating);
   const gaps = rating ? atolaGaps(rating) : [];
   const flags = rating?.flags ?? [];
@@ -83,7 +91,12 @@ function BriefRow({ competency, rating }: { competency: Competency; rating?: Com
         </div>
       )}
 
-      {rating?.probe_question && (
+      {preBrief?.probe ? (
+        <div data-slot="probe" className="mt-2 space-y-1">
+          <p><span className="text-[#969696]">Ask: </span>{preBrief.probe.paraphrase}</p>
+          <p className="text-xs text-[#5d5d5d]"><span className="font-medium">Canonical probe: </span>{preBrief.probe.canonical}</p>
+        </div>
+      ) : rating?.probe_question && (
         <p data-slot="probe" className="mt-2">
           <span className="text-[#969696]">Ask: </span>
           <span className="text-[#141414]">{rating.probe_question}</span>
@@ -93,9 +106,9 @@ function BriefRow({ competency, rating }: { competency: Competency; rating?: Com
         </p>
       )}
 
-      {flags.length > 0 && (
+      {(preBrief?.discrepancy_alerts.length || flags.length > 0) && (
         <ul data-slot="flags" className="mt-2 space-y-1">
-          {flags.map((f, i) => (
+          {(preBrief?.discrepancy_alerts ?? flags).map((f, i) => (
             <li key={i} className="flex gap-2">
               <span className="shrink-0 mt-0.5 w-4 h-4 border border-[#141414] rounded-sm" aria-hidden />
               <span className="text-[#5d5d5d]">

@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/useAuth";
 import { DEFAULT_WEIGHTS, groupOf, groupsFor, isHiddenGem, reweight, scoreOf, type Scorer } from "@/lib/dashboard";
-import type { AIDetectionResult, CandidateLedger, CounterfactualProbeResult, FeynmanScore, RankedCandidate, VideoAnalysis } from "@/lib/types";
+import type { AIDetectionResult, CandidateLedger, CounterfactualProbeResult, FeynmanScore, InterviewerPreBrief, RankedCandidate, VideoAnalysis } from "@/lib/types";
 import { CandidateDetail } from "@/components/candidate/CandidateDetail";
 import { CandidateCard } from "@/components/dashboard/CandidateCard";
 import { DashboardFooter, DashboardHeader, DashboardNav, ScrollProgress } from "@/components/dashboard/Chrome";
@@ -39,6 +39,7 @@ export default function Dashboard() {
   const [probeError, setProbeError] = useState<string | null>(null);
   const [ledgers, setLedgers] = useState<Record<string, CandidateLedger>>({});
   const [ledgerErrors, setLedgerErrors] = useState<Record<string, string>>({});
+  const [preBriefs, setPreBriefs] = useState<Record<string, InterviewerPreBrief>>({});
   const [cohortLedgers, setCohortLedgers] = useState<CandidateLedger[]>([]);
   const [detectLoading, setDetectLoading] = useState(false);
 
@@ -99,6 +100,14 @@ export default function Dashboard() {
       .then((l) => setLedgers((prev) => ({ ...prev, [selectedId]: l })))
       .catch((e) => setLedgerErrors((prev) => ({ ...prev, [selectedId]: message(e, "Failed to load ledger") })));
   }, [selectedId, ledgers, ledgerErrors]);
+
+  useEffect(() => {
+    if (!selectedId || preBriefs[selectedId]) return;
+    api.committee
+      .preBrief(selectedId)
+      .then((brief) => setPreBriefs((prev) => ({ ...prev, [selectedId]: brief })))
+      .catch(() => {});
+  }, [selectedId, preBriefs]);
 
   const handleDetectAI = async () => {
     if (!selectedId) return;
@@ -232,6 +241,7 @@ export default function Dashboard() {
           scorer={scorer}
           score={scoreOf(selected)}
           ledger={ledgers[selected.candidate.id]}
+          preBrief={preBriefs[selected.candidate.id]}
           ledgerError={ledgerErrors[selected.candidate.id] ?? null}
           aiDetection={aiDetections[selected.candidate.id] || null}
           feynmanScore={feynmanScores[selected.candidate.id] || null}

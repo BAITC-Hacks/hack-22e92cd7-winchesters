@@ -262,6 +262,34 @@ export interface CandidateLedger {
   competencies: CompetencyRating[];
 }
 
+export interface PreBriefProbe {
+  probe_id: string;
+  canonical: string;
+  paraphrase: string;
+}
+
+export interface PreBriefStrength {
+  competency: Competency;
+  quote: string;
+  source: Source;
+}
+
+export interface PreBriefRow {
+  competency: Competency;
+  evidence_state: string;
+  missing_components: AtolaComponent[];
+  probe: PreBriefProbe | null;
+  discrepancy_alerts: AttentionFlag[];
+}
+
+export interface InterviewerPreBrief {
+  candidate_id: string;
+  probe_bank_version: string;
+  score_withheld: true;
+  strengths: PreBriefStrength[];
+  rows: PreBriefRow[];
+}
+
 // ── Committee overrides (backend/routers/overrides.py, COM-01) ──────
 
 export interface ReasonCodeOption {

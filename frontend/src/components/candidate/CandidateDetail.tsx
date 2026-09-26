@@ -7,6 +7,7 @@ import type {
   AIDetectionResult,
   Candidate,
   CandidateLedger,
+  InterviewerPreBrief,
   CandidateScore,
   CounterfactualProbeResult,
   FeynmanScore,
@@ -37,6 +38,7 @@ export interface CandidateDetailProps {
   score: CandidateScore | null;
   /** undefined while loading. */
   ledger: CandidateLedger | undefined;
+  preBrief: InterviewerPreBrief | undefined;
   ledgerError: string | null;
   aiDetection: AIDetectionResult | null;
   feynmanScore: FeynmanScore | null;
@@ -98,7 +100,7 @@ export function CandidateDetail(props: CandidateDetailProps) {
         <div className="p-8 space-y-8">
           {tab === "application" && <ApplicationTab {...props} />}
           {tab === "committee" && <LedgerGate {...props} render={(l) => <CommitteeCard ledger={l} overrides={overrides} />} />}
-          {tab === "interviewer" && <LedgerGate {...props} render={(l) => <InterviewerBrief ledger={l} />} />}
+          {tab === "interviewer" && <LedgerGate {...props} render={(l) => <InterviewerBrief ledger={l} preBrief={props.preBrief} />} />}
           {tab === "growth" && <LedgerGate {...props} render={(l) => <GrowthMap ledger={l} />} />}
         </div>
       </div>
