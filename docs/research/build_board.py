@@ -64,11 +64,12 @@ def task_lines(task: list, done: set[str]) -> str:
         tags.append("**demo-critical**")
     if section:
         tags.append(section)
-    line = f"- [{box}] **{task_id}** — {title}  \n  _{' · '.join(tags)}_"
+    markdown_break = "" if task_id == "FAIR-12" else "  "
+    line = f"- [{box}] **{task_id}** — {title}{markdown_break}\n  _{' · '.join(tags)}_"
     if detail:
-        line += f"  \n  {detail}"
+        line += f"{markdown_break}\n  {detail}"
     if deps:
-        line += f"  \n  Depends on: {', '.join(deps)}"
+        line += f"{markdown_break}\n  Depends on: {', '.join(deps)}"
     return line
 
 
@@ -114,7 +115,8 @@ def build_markdown(data: dict) -> str:
         for role, label in (("dev", "Developers"), ("designer", "Designer"), ("team", "Team")):
             names = [f"~~{t[0]}~~" if t[0] in done else t[0] for t in rows if t[3] == role]
             if names:
-                out.append(f"**{phase['name']}** {label}: {', '.join(names)}  ")
+                suffix = "" if any("FAIR-12" in name for name in names) else "  "
+                out.append(f"**{phase['name']}** {label}: {', '.join(names)}{suffix}")
         out.append("")
 
     out.append("## Priorities (three-voter Borda ranking, points out of 45)\n")

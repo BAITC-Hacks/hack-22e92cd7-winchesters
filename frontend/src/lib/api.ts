@@ -7,6 +7,7 @@ import type {
   FairnessAuditReport,
   EvaluationReport,
   ModelCard,
+  HeldoutReport,
   OverrideEntry,
   OverrideInput,
   RankedCandidate,
@@ -141,6 +142,7 @@ export const api = {
       evaluation: (live = false) => fetchJSON<EvaluationReport>(`/api/fairness/evaluation?live=${live}`),
       cohortProbe: (live = false) => fetchJSON<CohortProbeReport>(`/api/fairness/cohort-probe?live=${live}`),
       modelCard: () => fetchJSON<ModelCard>("/api/fairness/historical/model-card"),
+      heldoutReport: () => fetchJSON<HeldoutReport>("/api/fairness/heldout/report"),
   },
   analysis: {
     detectAI: (id: string) =>

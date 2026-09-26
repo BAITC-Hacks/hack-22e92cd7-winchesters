@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend import settings
 from backend.db.engine import assert_schema_current
-from backend.routers import analysis, auth, candidates, evaluation, fairness, feynman, historical, overrides, scoring
+from backend.routers import analysis, auth, candidates, evaluation, fairness, feynman, heldout, historical, overrides, scoring
 from backend.security import check_auth_config
 
 
@@ -51,6 +51,7 @@ app.include_router(overrides.router)
 app.include_router(fairness.router)
 app.include_router(evaluation.router)
 app.include_router(historical.router)
+app.include_router(heldout.router)
 
 
 @app.get("/")

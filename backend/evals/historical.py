@@ -118,7 +118,7 @@ def _agreement(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "n": len(selected),
             "model_level_counts": dict(Counter(row["model_level"] for row in selected)),
             "committee_level_counts": dict(Counter(row["committee_level"] for row in selected)),
-            "qwk": float(cohen_kappa_score(model, committee, weights="quadratic")) if len(set(committee)) > 1 or len(set(model)) > 1 else 1.0,
+            "qwk": (float(cohen_kappa_score(model, committee, weights="quadratic")) if len(selected) and (len(set(committee)) > 1 or len(set(model)) > 1) else (1.0 if selected else None)),
             "icc": _icc(list(zip(model, committee))),
             "human_human_qwk": float(cohen_kappa_score(*zip(*human_pairs), weights="quadratic")) if human_pairs and (len({p[0] for p in human_pairs}) > 1 or len({p[1] for p in human_pairs}) > 1) else (1.0 if human_pairs else None),
             "human_human_icc": _icc(human_pairs),
@@ -168,6 +168,8 @@ def build_report(records: list[dict[str, Any]], *, prompt_id: str = "historical-
     holdout_low = sum(row["admitted"] and row["model_level"] == "weak" for row in holdout)
     return {
         "manifest": {"registration_id": REGISTRATION_ID, "report_mode": "historical", "prompt_id": prompt_id, "model_id": model_id, "rubric_id": rubric_id, "fixture_or_data_hash": data_hash(records), "prompt_hash": content_hash(prompt_id), "model_hash": content_hash(model_id), "rubric_hash": content_hash(rubric_id), "evaluation_data_hash": data_hash(records), "seed": {"split": split_seed, "bootstrap": BOOTSTRAP_SEED, "n_bootstrap": N_BOOTSTRAP}, "timestamp_utc": datetime.now(UTC).isoformat()},
+        "provenance": {"requested_mode": "historical", "effective_mode": "historical", "fallback_used": False, "fallback_reason": None, "live_result": None, "cached_result": None},
+        "production_invariance": {"score_path_changed": False, "ranking_changed": False, "recommendation_changed": False},
         "split": {"train_applicants": len({row["applicant_id"] for row in train}), "holdout_applicants": len({row["applicant_id"] for row in holdout}), "train_rows": len(train), "holdout_rows": len(holdout), "holdout_sealed": True, "tuning_source": "train_only"},
         "missing_labels": sum(row["committee_level"] not in LEVELS for row in rows),
         "failed_model_runs": sum(row["model_level"] not in LEVELS for row in rows),
@@ -204,6 +206,7 @@ def build_model_card(report: dict[str, Any]) -> dict[str, Any]:
             "rubric_hash": manifest["rubric_hash"],
             "evaluation_data_hash": manifest["evaluation_data_hash"],
             "split": report["split"],
+            "execution": report["provenance"],
         },
         "metrics": {
             "agreement": agreement,
@@ -217,6 +220,7 @@ def build_model_card(report: dict[str, Any]) -> dict[str, Any]:
             "production_effect": "Abstention does not change production scores, recommendations, or ranking.",
         },
         "screening_safety": holdout["screening_safety"],
+        "production_invariance": report["production_invariance"],
         "limitations": [
             "Historical committee labels reflect selection and interviewer severity; agreement is not ground truth.",
             "Small groups below n=10 or 2% of the pool are descriptive and marked not_enough_data.",

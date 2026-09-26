@@ -404,6 +404,7 @@ export interface ModelCard {
     rubric_hash: string;
     evaluation_data_hash: string;
     split: { train_applicants: number; holdout_applicants: number; train_rows: number; holdout_rows: number; holdout_sealed: boolean; tuning_source: string };
+    execution: { requested_mode: string; effective_mode: string; fallback_used: boolean; fallback_reason: string | null; live_result: unknown; cached_result: unknown };
   };
   metrics: {
     agreement: Array<{
@@ -421,4 +422,13 @@ export interface ModelCard {
   screening_safety: { lowest_band: string; admitted_in_lowest_band: number; safe: boolean; status: string };
   limitations: string[];
   impact_assessment: { legal_basis: string; scope: string; affected_people: string; risks: string[]; mitigations: string[]; human_oversight: string; monitoring: string; residual_risk: string };
+  production_invariance: { score_path_changed: boolean; ranking_changed: boolean; recommendation_changed: boolean };
+}
+
+export interface HeldoutReport {
+  manifest: { registration_id: string; report_mode: string; prompt_id: string; model_id: string; rubric_id: string; evaluation_data_hash: string; seed: { split: number; bootstrap: number; n_bootstrap: number } };
+  provenance: { requested_mode: string; effective_mode: string; fallback_used: boolean; fallback_reason: string | null; live_result: unknown; cached_result: unknown };
+  split: { train_applicants: number; holdout_applicants: number; train_rows: number; holdout_rows: number; holdout_sealed: boolean; tuning_source: string };
+  holdout: { agreement: Array<{ competency: string; n: number; qwk: number | null; icc: number | null }>; impact_ratios: unknown[]; screening_safety: { lowest_band: string; admitted_in_lowest_band: number; safe: boolean; status: string } };
+  production_invariance: { score_path_changed: boolean; ranking_changed: boolean; recommendation_changed: boolean };
 }
