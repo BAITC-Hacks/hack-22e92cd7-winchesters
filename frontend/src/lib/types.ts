@@ -445,6 +445,32 @@ export interface FunderMemo {
   production_invariance: { score_path_changed: boolean; ranking_changed: boolean; recommendation_changed: boolean };
 }
 
+export interface CommitteeDecisionMemo {
+  candidate_id: string;
+  title: string;
+  competencies: Array<{
+    competency: Competency;
+    label: string;
+    ai_level: Level | null;
+    effective_level: Level | null;
+    reserved_for_humans: boolean;
+    rule_applied: string;
+    indicators: Array<{ indicator_id: string; observed_level: Level; note: string; capped_reason: string; bars_anchors: Record<string, string>; verified_quotes: EvidenceItem[] }>;
+    probe_question: string;
+    flags: AttentionFlag[];
+    bars_anchors: Record<string, string[]>;
+    override: OverrideEntry | null;
+  }>;
+  verified_quotes: Array<EvidenceItem & { competency: string; indicator_id: string }>;
+  test_bands: Array<{ level: Level; label: string }>;
+  overrides: OverrideEntry[];
+  probe_result: Record<string, unknown>;
+  provenance: { schema_version: string; model: string; prompt: string; rubric: string; model_hash: string; prompt_hash: string; rubric_hash: string };
+  counts: { ai_drafted: number; items: number; committee_changed: number };
+  signatures: Array<{ role: string; name: string; signed_at: string }>;
+  generated_at: string;
+}
+
 export interface HeldoutReproducibility {
   status: "reproduced" | "mismatch";
   ratings_recomputed: number;

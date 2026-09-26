@@ -16,6 +16,7 @@ import type {
   ReasonCodeOption,
   AIDetectionResult,
   VideoAnalysis,
+  CommitteeDecisionMemo,
 } from "./types";
 import { parseLedger } from "./ledger";
 import ledgerFixture from "./fixtures/ledger_example.json";
@@ -67,6 +68,13 @@ async function fetchJSON<T>(path: string, opts?: RequestInit & { anonymous?: boo
     throw new ApiError(res.status, detail || `Request failed (${res.status})`);
   }
   return res.json() as Promise<T>;
+}
+
+async function fetchPDF(path: string): Promise<Blob> {
+  const token = getToken();
+  const res = await fetch(`${API}${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (!res.ok) throw new ApiError(res.status, detailOf(await res.text()));
+  return res.blob();
 }
 
 export const api = {
@@ -147,6 +155,10 @@ export const api = {
       heldoutReport: () => fetchJSON<HeldoutReport>("/api/fairness/heldout/report"),
       funderMemo: () => fetchJSON<FunderMemo>("/api/fairness/heldout/memo"),
       heldoutReproduce: () => fetchJSON<HeldoutReproducibility>("/api/fairness/heldout/reproduce"),
+  },
+  committee: {
+    decisionMemo: (candidateId: string) => fetchJSON<CommitteeDecisionMemo>(`/api/committee/decision-memo/${encodeURIComponent(candidateId)}`),
+    decisionMemoPdf: (candidateId: string) => fetchPDF(`/api/committee/decision-memo/${encodeURIComponent(candidateId)}/pdf`),
   },
   analysis: {
     detectAI: (id: string) =>
