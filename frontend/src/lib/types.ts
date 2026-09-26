@@ -105,6 +105,36 @@ export interface CounterfactualProbeResult {
   notice: string;
 }
 
+export interface CohortProbeCell {
+  marker: string;
+  competency: string;
+  sampled_candidates: number;
+  robust_count: number;
+  robustness_rate: number;
+  passed: boolean;
+}
+
+export interface CohortProbeReport {
+  status: "live" | "cached" | "fallback";
+  mode: "live" | "cached" | "fallback";
+  sampled_candidates: number;
+  markers: string[];
+  competencies: string[];
+  cells: CohortProbeCell[];
+  failed_cells: CohortProbeCell[];
+  passed: boolean;
+  threshold: number;
+  noise_sd: number;
+  tolerance: number;
+  fixture_hash: string;
+  prompt_id: string;
+  model_id: string;
+  production_invariance: { score_path_changed: boolean; ranking_changed: boolean; recommendation_changed: boolean };
+  live: Record<string, unknown> | null;
+  cached: Record<string, unknown> | null;
+  fallback: Record<string, unknown> | null;
+}
+
 export interface RankedCandidate {
   rank: number;
   candidate: Candidate;

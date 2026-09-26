@@ -3,6 +3,7 @@ import type {
   CandidateLedger,
   CandidateScore,
   CounterfactualProbeResult,
+  CohortProbeReport,
   FairnessAuditReport,
   EvaluationReport,
   ModelCard,
@@ -138,6 +139,7 @@ export const api = {
         { method: "POST" },
       ),
       evaluation: (live = false) => fetchJSON<EvaluationReport>(`/api/fairness/evaluation?live=${live}`),
+      cohortProbe: (live = false) => fetchJSON<CohortProbeReport>(`/api/fairness/cohort-probe?live=${live}`),
       modelCard: () => fetchJSON<ModelCard>("/api/fairness/historical/model-card"),
   },
   analysis: {

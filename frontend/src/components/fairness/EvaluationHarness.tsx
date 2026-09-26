@@ -2,18 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { ApiError, api } from "@/lib/api";
-import type { EvaluationReport } from "@/lib/types";
+import type { CohortProbeReport, EvaluationReport } from "@/lib/types";
 
 const pct = (value: number) => `${Math.round(value * 100)}%`;
 
 export function EvaluationHarness() {
   const [report, setReport] = useState<EvaluationReport | null>(null);
+  const [cohort, setCohort] = useState<CohortProbeReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.fairness.evaluation()
-      .then(setReport)
+    Promise.all([api.fairness.evaluation(), api.fairness.cohortProbe()])
+      .then(([evaluationReport, cohortReport]) => { setReport(evaluationReport); setCohort(cohortReport); })
       .catch((cause) => setError(cause instanceof ApiError && cause.status === 403 ? "Evaluation results are for committee and admin only." : String(cause.message ?? cause)))
       .finally(() => setLoading(false));
   }, []);
@@ -42,6 +43,15 @@ export function EvaluationHarness() {
           <Metric label="Repeat consistency" value={pct(report.repeat_consistency)} note={`${report.repeat_count_per_case} scoring calls per case`} />
           <Metric label="Cross-lingual agreement" value={pct(report.cross_lingual_agreement)} note="kk / ru / en" />
         </section>
+
+        {cohort && <section className="mt-6 border border-[#d7d7d7] bg-white p-5" aria-labelledby="cohort-probe-title">
+          <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#eee] pb-4">
+            <div><h2 id="cohort-probe-title" className="text-sm font-semibold uppercase tracking-wider">FAIR-11 cohort probe</h2><p className="mt-1 text-xs text-[#5d5d5d]">{cohort.sampled_candidates} sampled candidates, reported per marker and competency.</p></div>
+            <span className={`border px-3 py-1 text-xs font-semibold uppercase ${cohort.passed ? "border-[#b8d900] bg-[#eff8b7] text-[#3d4f00]" : "border-[#e0aaaa] bg-[#fff4f4] text-[#8b1e1e]"}`}>{cohort.status}: {cohort.passed ? "pass" : "blocked"}</span>
+          </div>
+          <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[620px] text-left text-xs"><thead className="border-b border-[#eee] uppercase tracking-wider text-[#969696]"><tr><th className="py-2">Marker</th><th>Competency</th><th>Robustness</th><th>Result</th></tr></thead><tbody>{cohort.cells.map((cell) => <tr key={`${cell.marker}-${cell.competency}`} className="border-b border-[#f0f0f0]"><td className="py-2">{cell.marker}</td><td>{cell.competency.replaceAll("_", " ")}</td><td className="font-mono">{Math.round(cell.robustness_rate * 100)}%</td><td className={cell.passed ? "text-[#3d4f00]" : "font-semibold text-[#a32626]"}>{cell.passed ? "PASS" : "BLOCK"}</td></tr>)}</tbody></table></div>
+          <p className="mt-3 text-[11px] text-[#5d5d5d]">Mode: {cohort.mode}. Tolerance +/-{cohort.tolerance.toFixed(1)}; live, cached, and fallback results remain separate. Production score path, ranking, and recommendation are unchanged.</p>
+        </section>}
 
         <section className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="border border-[#d7d7d7] bg-white p-5">

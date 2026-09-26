@@ -67,3 +67,43 @@ def test_live_failure_returns_cached_fallback(client, auth_headers, monkeypatch)
     assert response.status_code == 200
     assert response.json()["status"] == "fallback_demo"
     assert response.json()["model_id"] == "cached-baseline-demo"
+
+
+def test_cohort_probe_reports_marker_by_competency_and_cached_mode(client, auth_headers):
+    response = client.get("/api/fairness/cohort-probe?live=false", headers=auth_headers("committee"))
+    assert response.status_code == 200
+    report = response.json()
+    assert report["status"] == report["mode"] == "cached"
+    assert 30 <= report["sampled_candidates"] <= 50
+    assert report["live"] is None
+    assert report["cached"]["mode"] == "cached"
+    assert {cell["marker"] for cell in report["cells"]} == set(report["markers"])
+    assert all(cell["sampled_candidates"] == report["sampled_candidates"] for cell in report["cells"])
+    assert report["production_invariance"] == {
+        "score_path_changed": False,
+        "ranking_changed": False,
+        "recommendation_changed": False,
+    }
+
+
+def test_cohort_probe_is_staff_only(client, auth_headers):
+    for role in ("applicant", "interviewer"):
+        assert client.get("/api/fairness/cohort-probe", headers=auth_headers(role)).status_code == 403
+
+
+def test_publish_gate_blocks_a_failed_probe_without_audit_entry(client, auth_headers, monkeypatch, db):
+    failed = {
+        "status": "live",
+        "mode": "live",
+        "passed": False,
+        "failed_cells": [{"marker": "region", "competency": "teamwork"}],
+    }
+
+    async def fail_probe(*_args, **_kwargs):
+        return failed
+
+    monkeypatch.setattr("backend.routers.fairness.cohort_probe.run", fail_probe)
+    response = client.post("/api/fairness/scorer-versions/v1/publish", headers=auth_headers("committee"))
+    assert response.status_code == 409
+    with Session(db) as session:
+        assert session.exec(select(AuditLogEntry).where(AuditLogEntry.action == "scorer_version_published")).first() is None

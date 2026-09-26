@@ -20,7 +20,7 @@ import statistics
 from functools import cache
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from sqlmodel import Session
@@ -33,10 +33,12 @@ from backend.db.engine import get_engine
 from backend.db.tables import AuditLogEntry, ModelRunStatus
 from backend.models import Candidate, CandidateScore
 from backend.routers.candidates import get_candidate_or_404
+from backend.routers.candidates import load_candidates
 from backend.routers.guards import require_role
 from backend.scoring.ai_scorer import SCORING_PROMPT, SYSTEM_PROMPT, compute_ai_score
 from backend.scoring.baseline import compute_baseline_score
 from backend.scoring import fairness_audit, synthetic_cohort
+from backend.evals import cohort_probe
 from backend.security import Role
 
 logger = logging.getLogger(__name__)
@@ -128,6 +130,27 @@ class ProbeOut(BaseModel):
     prompt_id: str
     model_id: str
     notice: str
+
+
+class CohortProbeOut(BaseModel):
+    status: Literal["live", "cached", "fallback"]
+    mode: Literal["live", "cached", "fallback"]
+    sampled_candidates: int
+    markers: list[str]
+    competencies: list[str]
+    cells: list[dict[str, Any]]
+    failed_cells: list[dict[str, Any]]
+    passed: bool
+    threshold: float
+    noise_sd: float
+    tolerance: float
+    fixture_hash: str
+    prompt_id: str
+    model_id: str
+    production_invariance: dict[str, bool]
+    live: dict[str, Any] | None
+    cached: dict[str, Any] | None
+    fallback: dict[str, Any] | None
 
 
 PROBE_STAGE = "fairness_probe"
@@ -322,3 +345,45 @@ async def probe(
 
     await run_in_threadpool(_record_probe_audit, user["id"], candidate_id, result)
     return result
+
+
+@router.get("/cohort-probe", response_model=CohortProbeOut)
+async def cohort_probe_report(
+    live: bool = Query(False),
+    _user: dict[str, Any] = Depends(require_role(Role.COMMITTEE, Role.ADMIN)),
+):
+    """Run FAIR-11 over a deterministic 36-candidate sample without scoring writes."""
+    candidates = await run_in_threadpool(load_candidates)
+    return await cohort_probe.run(candidates, live=live)
+
+
+@router.post("/scorer-versions/{version}/publish")
+async def publish_scorer_version(
+    version: str,
+    live: bool = Query(True),
+    user: dict[str, Any] = Depends(require_role(Role.COMMITTEE, Role.ADMIN)),
+):
+    """Publish only after the current cohort probe passes.
+
+    This is a governance record, not a switch in the production scorer.
+    """
+    candidates = await run_in_threadpool(load_candidates)
+    report = await cohort_probe.run(candidates, live=live)
+    if report["status"] == "fallback":
+        raise HTTPException(status_code=503, detail={"message": "Live cohort probe unavailable; scorer version was not published.", "probe": report})
+    if not report["passed"]:
+        raise HTTPException(status_code=409, detail={"message": "Cohort probe failed; scorer version was not published.", "probe": report})
+
+    def record_publish() -> None:
+        with Session(get_engine()) as session:
+            session.add(AuditLogEntry(
+                actor_user_id=user["id"],
+                action="scorer_version_published",
+                object_type="scorer_version",
+                object_id=version,
+                after={"version": version, "probe": report},
+            ))
+            session.commit()
+
+    await run_in_threadpool(record_publish)
+    return {"version": version, "status": "published", "probe": report}
