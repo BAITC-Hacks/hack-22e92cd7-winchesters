@@ -10,16 +10,34 @@ from sqlmodel import Session, col, select
 from backend.db.candidates import applicant_id_for, applicant_ids
 from backend.db.engine import get_engine
 from backend.db.tables import CompetencyScore, EvidenceItemRecord, PromptVersion, Rating, RubricVersion
-from backend.ledger import atola
+from backend.ledger import atola, versions
 from backend.ledger.schema import CandidateLedger
 
 
+def _label_hash(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def unregistered_hash(value: str) -> str:
+    """Stored for a version with no locked content (e.g. the hand-authored example)."""
+    return _label_hash(f"unregistered:{value}")
+
+
 def _version(session: Session, model: type[PromptVersion] | type[RubricVersion], value: str) -> str:
+    """The row for a version, carrying the locked hash of its content (LED-13)."""
+    kind = "rubric" if model is RubricVersion else "prompt"
+    known = versions.known_hash(kind, value)
     row = session.exec(select(model).where(col(model.version) == value)).first()
     if row is None:
-        row = model(version=value, content_hash=hashlib.sha256(value.encode("utf-8")).hexdigest())
+        row = model(version=value, content_hash=known or unregistered_hash(value))
         session.add(row)
         session.flush()
+    elif known and row.content_hash != known:
+        # Rows written before LED-13 hashed the label, not the content.
+        if row.content_hash not in (_label_hash(value), unregistered_hash(value)):
+            raise ValueError(f"{kind} {value} is stored with a different content hash; bump the version")
+        row.content_hash = known
+        session.add(row)
     return row.id
 
 

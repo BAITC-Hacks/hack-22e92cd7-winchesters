@@ -1,9 +1,13 @@
-"""The approved, score-free COM-06 interviewer probe bank.
+"""The score-free COM-06 interviewer probe bank, provisional until LED-13.
 
-The bank is a projection of the extended-methodology P4 contract: canonical
-ATOLA questions are owned by ``backend.ledger.atola`` and the allowed
-competency-specific paraphrases are selected here. It is deliberately kept
-outside the scoring pipeline and its hash covers only the immutable payload.
+The selection mechanism is final: competency x missing ATOLA component, with the
+canonical question from ``backend.ledger.atola`` shown next to each paraphrase.
+The wording is not: it follows our own research proposal (P4), not the client's
+extended methodology, so nothing here is marked approved. When the approved
+bank arrives (LED-13), it replaces ``_PARAPHRASES`` and bumps the version.
+The leak guard against the test bank is CAND-04/CAND-08 and is not built yet.
+It is deliberately kept outside the scoring pipeline and its hash covers only
+the immutable payload.
 """
 
 from __future__ import annotations
@@ -16,7 +20,7 @@ from backend.ledger import atola
 from backend.ledger.rubric import COMPETENCY_ORDER
 from backend.ledger.schema import AtolaComponent, Competency
 
-PROBE_BANK_VERSION = "com-06-extended-1.0"
+PROBE_BANK_VERSION = "com-06-provisional-1.0"
 PROBE_BANK_SOURCE = "docs/research/agent_methodology.md#P4"
 
 _PARAPHRASES: dict[AtolaComponent, tuple[str, str]] = {
@@ -52,11 +56,11 @@ def _payload() -> list[dict[str, Any]]:
             "canonical": atola.PROBE_FOR_MISSING[component],
             "allowed_paraphrases": list(_PARAPHRASES[component]),
             "methodology_source": PROBE_BANK_SOURCE,
-            "approval_status": "approved_for_committee_prebrief",
+            "approval_status": "provisional_pending_extended_methodology",
             "leak_guard": {
                 "candidate_facing": False,
                 "public_item_ids": [],
-                "checks": ["exact_ngram", "embedding_similarity"],
+                "checks": [],  # CAND-04/CAND-08: not implemented yet
             },
         }
         for competency in COMPETENCY_ORDER

@@ -15,12 +15,18 @@ from backend.db.engine import get_engine
 from backend.db.candidates import applicant_id_for
 from backend.db.overrides import list_overrides
 from backend.db.tables import AuditLogEntry
+from backend.ledger import versions
 from backend.ledger.rubric import RUBRIC
 from backend.ledger.schema import CandidateLedger, Level
 
 
 def _hash(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def _content_hash(kind: str, version: str) -> str:
+    """The locked content hash (LED-13); never a hash of the version label."""
+    return versions.known_hash(kind, version) or f"unregistered: {version} has no locked content"
 
 
 def _probe_result(candidate_id: str) -> dict[str, Any]:
@@ -96,7 +102,7 @@ def build_decision_memo(candidate_id: str, ledger: CandidateLedger, *, locale: s
         "test_bands": [{"level": level.value, "label": level.value.replace("_", " ")} for level in (Level.WEAK, Level.NORMAL, Level.HIGH)],
         "overrides": overrides,
         "probe_result": _probe_result(candidate_id),
-        "provenance": {"schema_version": ledger.schema_version, "model": model, "prompt": prompt, "rubric": rubric, "model_hash": _hash(model), "prompt_hash": _hash(prompt), "rubric_hash": _hash(rubric)},
+        "provenance": {"schema_version": ledger.schema_version, "model": model, "prompt": prompt, "rubric": rubric, "model_hash": _hash(model), "prompt_hash": _content_hash("prompt", prompt), "rubric_hash": _content_hash("rubric", rubric)},
         "counts": {"ai_drafted": sum(item["ai_level"] is not None for item in competencies), "items": len(competencies), "committee_changed": len(overrides)},
         "signatures": [{"role": "Committee chair", "name": "", "signed_at": ""}, {"role": "Committee member", "name": "", "signed_at": ""}],
         "generated_at": datetime.now(UTC).isoformat(),

@@ -2,7 +2,7 @@
 
 This module is deliberately a projection: it never calls the scoring pipeline
 and never exposes a level. The probe bank is versioned separately so the
-extended methodology can replace it without changing the response contract.
+extended methodology (LED-13) can replace it without changing the response contract.
 """
 
 from __future__ import annotations

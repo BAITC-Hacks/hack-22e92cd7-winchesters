@@ -10,10 +10,14 @@ interviewer pre-brief withholds them.
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.concurrency import run_in_threadpool
 
 from backend.db import ledger as ledger_store
+from backend.ledger import versions
+from backend.ledger.rubric import COMPETENCY_ORDER, RUBRIC
 from backend.ledger.schema import CandidateLedger
 from backend.routers.candidates import get_candidate_or_404
 from backend.routers.guards import require_role
@@ -25,6 +29,21 @@ router = APIRouter(prefix="/api/ledger", tags=["ledger"], dependencies=[Depends(
 @router.get("")
 async def list_ledgers() -> list[CandidateLedger]:
     return await run_in_threadpool(ledger_store.list_ledgers)
+
+
+@router.get("/rubric")
+def rubric_status() -> dict[str, Any]:
+    """Which rubric the ledgers are built under, and which scales are still drafts (LED-13)."""
+    version, digest = versions.current()["rubric"]
+    return {
+        "version": version,
+        "content_hash": digest,
+        "locked": versions.known_hash("rubric", version) == digest,
+        "competencies": [
+            {"competency": c.value, "label": RUBRIC[c].label, "provisional": RUBRIC[c].provisional, "ai_may_rate": RUBRIC[c].ai_may_rate}
+            for c in COMPETENCY_ORDER
+        ],
+    }
 
 
 @router.get("/{candidate_id}")
