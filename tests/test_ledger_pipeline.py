@@ -225,6 +225,7 @@ async def test_an_application_with_no_documents_is_all_no_evidence(recorder):
     candidate.essay.text = ""
     candidate.interview_transcript = ""
     candidate.recommendation_summary = ""
+    candidate.written_presentation = ""
     candidate.video_transcript = ""
 
     ledger = await pipeline.build_ledger(candidate)

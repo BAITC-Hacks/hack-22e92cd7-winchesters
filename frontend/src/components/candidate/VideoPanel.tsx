@@ -2,67 +2,64 @@ import type { VideoAnalysis } from "@/lib/types";
 import { ScoreBar } from "../ui/ScoreBar";
 import { Section } from "../ui/Section";
 
-const chip = (bg: string, fg: string) => ({
-  display: "inline-block",
-  backgroundColor: bg,
-  color: fg,
-  borderRadius: "8px",
-  padding: "2px 8px",
-  fontSize: "11px",
-  margin: "2px 4px 2px 0",
-});
+// INP-01: a result without a transcript, or without a model, carries no
+// numbers, so it is shown as a neutral notice, never as zeros or "weak".
+const NOTICE: Record<Exclude<VideoAnalysis["status"], "analyzed">, string> = {
+  no_transcript: "No transcript — nothing was scored.",
+  unavailable: "Analysis unavailable — nothing was scored.",
+};
+
+function Chips({ label, items }: { label: string; items: string[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div className="mb-2">
+      <span className="text-xs text-ink-3">{label}: </span>
+      {items.map((item, i) => (
+        <span key={i} className="inline-block rounded-lg bg-muted text-ink-2 text-xs px-2 py-0.5 mr-1 my-0.5">
+          {item}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 export function VideoPanel({ analysis, onRun }: { analysis: VideoAnalysis | null; onRun: () => void }) {
   return (
     <Section title="Video Presentation Analysis">
-      {analysis ? (
-        <div style={{ background: "linear-gradient(180deg, #252525, #0F0F0F)", borderRadius: "16px", padding: "20px", border: "1px solid #333" }}>
-          {analysis.is_mock && (
-            <div style={{ backgroundColor: "rgba(193,241,29,0.1)", borderRadius: "8px", padding: "8px 12px", marginBottom: "12px", fontSize: "12px", color: "#c1f11d" }}>
-              Demo mode — using mock transcript. Add OPENAI_API_KEY for real Whisper transcription.
-            </div>
-          )}
-          <div className="flex items-center gap-3 mb-3">
-            <span style={{ color: "#999", fontSize: "13px" }}>Authenticity Match:</span>
-            <ScoreBar score={analysis.authenticity_match} dark />
-          </div>
-          <div className="flex items-center gap-3 mb-3">
-            <span style={{ color: "#999", fontSize: "13px" }}>Motivation Score:</span>
-            <ScoreBar score={analysis.motivation_score} dark />
-          </div>
-          <p style={{ color: "#ccc", fontSize: "13px", lineHeight: 1.6, marginBottom: "12px" }}>{analysis.summary}</p>
-          {analysis.key_themes.length > 0 && (
-            <div style={{ marginBottom: "8px" }}>
-              <span style={{ color: "#999", fontSize: "12px" }}>Key themes: </span>
-              {analysis.key_themes.map((t, i) => (
-                <span key={i} style={chip("rgba(193,241,29,0.15)", "#c1f11d")}>{t}</span>
-              ))}
-            </div>
-          )}
-          {analysis.growth_signals.length > 0 && (
-            <div style={{ marginBottom: "8px" }}>
-              <span style={{ color: "#999", fontSize: "12px" }}>Growth signals: </span>
-              {analysis.growth_signals.map((g, i) => (
-                <span key={i} style={chip("rgba(16,185,129,0.15)", "#10b981")}>{g}</span>
-              ))}
-            </div>
-          )}
-          {analysis.concerns.length > 0 && (
-            <div>
-              <span style={{ color: "#999", fontSize: "12px" }}>Concerns: </span>
-              {analysis.concerns.map((c, i) => (
-                <span key={i} style={chip("rgba(239,68,68,0.15)", "#ef4444")}>{c}</span>
-              ))}
-            </div>
-          )}
-        </div>
-      ) : (
+      {!analysis ? (
         <button
-          style={{ backgroundColor: "#141414", color: "#c1f11d", border: "none", borderRadius: "12px", padding: "10px 20px", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}
+          className="rounded-xl bg-ink text-accent px-5 py-2.5 text-sm font-semibold hover:opacity-90 transition"
           onClick={onRun}
         >
           Analyze Video Presentation
         </button>
+      ) : analysis.status !== "analyzed" ? (
+        <div data-video-status={analysis.status} className="rounded-2xl border border-line bg-subtle px-5 py-4">
+          <p className="text-sm font-medium text-ink">{NOTICE[analysis.status]}</p>
+          <p className="text-xs text-ink-3 mt-1">
+            The written presentation is the scored input. A video transcript is auxiliary and is only analysed when the
+            applicant&apos;s own transcript exists.
+          </p>
+        </div>
+      ) : (
+        <div data-video-status="analyzed" className="rounded-2xl border border-line bg-surface p-5">
+          {analysis.authenticity_match !== null && (
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-sm text-ink-2 whitespace-nowrap">Authenticity Match:</span>
+              <ScoreBar score={analysis.authenticity_match} />
+            </div>
+          )}
+          {analysis.motivation_score !== null && (
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-sm text-ink-2 whitespace-nowrap">Motivation Score:</span>
+              <ScoreBar score={analysis.motivation_score} />
+            </div>
+          )}
+          <p className="text-sm text-ink-2 leading-relaxed mb-3">{analysis.summary}</p>
+          <Chips label="Key themes" items={analysis.key_themes} />
+          <Chips label="Growth signals" items={analysis.growth_signals} />
+          <Chips label="Concerns" items={analysis.concerns} />
+        </div>
       )}
     </Section>
   );

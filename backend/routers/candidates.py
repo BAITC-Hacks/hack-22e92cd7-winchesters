@@ -7,10 +7,10 @@ their account, and reads only that one.
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from backend.db import candidates as store
-from backend.models import Application, Candidate, Essay
+from backend.models import Application, Candidate, Essay, written_presentation_error
 from backend.routers.guards import ensure_candidate_access, require_role
 from backend.security import ALL_ROLES, STAFF_ROLES, Role
 
@@ -40,8 +40,18 @@ class CandidateCreate(BaseModel):
     essay: Essay
     interview_transcript: str = ""
     recommendation_summary: str = ""
+    # Required for new applications (INP-01): the canonical presentation input.
+    written_presentation: str
     video_link: str = ""
     video_transcript: str = ""
+
+    @field_validator("written_presentation")
+    @classmethod
+    def _written_presentation_in_bounds(cls, value: str) -> str:
+        error = written_presentation_error(value)
+        if error:
+            raise ValueError(error)
+        return value
 
 
 # ── Endpoints ──────────────────────────────────────────────────────

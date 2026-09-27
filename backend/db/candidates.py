@@ -38,6 +38,8 @@ def _artifacts_from(candidate: Candidate) -> list[Artifact]:
         rows.append(Artifact(kind=ArtifactKind.INTERVIEW_TRANSCRIPT.value, content=candidate.interview_transcript))
     if candidate.recommendation_summary:
         rows.append(Artifact(kind=ArtifactKind.RECOMMENDATION.value, content=candidate.recommendation_summary))
+    if candidate.written_presentation:
+        rows.append(Artifact(kind=ArtifactKind.WRITTEN_PRESENTATION.value, content=candidate.written_presentation))
     if candidate.video_transcript or candidate.video_link:
         rows.append(
             Artifact(
@@ -58,6 +60,7 @@ def _to_candidate(applicant: Applicant, artifacts: list[Artifact]) -> Candidate:
     video = latest.get(ArtifactKind.VIDEO_TRANSCRIPT.value)
     interview = latest.get(ArtifactKind.INTERVIEW_TRANSCRIPT.value)
     recommendation = latest.get(ArtifactKind.RECOMMENDATION.value)
+    written = latest.get(ArtifactKind.WRITTEN_PRESENTATION.value)
 
     return Candidate(
         id=applicant.legacy_ref or applicant.id,
@@ -68,6 +71,7 @@ def _to_candidate(applicant: Applicant, artifacts: list[Artifact]) -> Candidate:
         essay=Essay(prompt=essay.prompt or "", text=essay.content) if essay else Essay(prompt="", text=""),
         interview_transcript=interview.content if interview else "",
         recommendation_summary=recommendation.content if recommendation else "",
+        written_presentation=written.content if written else "",
         video_link=(video.uri or "") if video else "",
         video_transcript=video.content if video else "",
     )

@@ -3,8 +3,8 @@
 What these pin: an AI score is stored and survives a restart; a failed run is
 stored as failed (error, no output) and never ranks as a zero; `/all` routes
 are reachable; the override endpoint no longer rewrites anything; a stored
-video analysis is reused, while mock and failed ones are not served as
-results. Everything runs offline: the scorers are replaced with fakes.
+video analysis is reused, while no_transcript and unavailable ones are
+not served as results. Everything runs offline: the scorers are replaced with fakes.
 """
 
 from __future__ import annotations
@@ -250,14 +250,15 @@ def test_video_analysis_is_stored_and_reused(client, db, committee, video):
     assert run.status == "ok"
 
 
-def test_mock_video_analysis_is_not_stored(client, db, committee, video):
-    video.result = video.result.model_copy(update={"is_mock": True})
+def test_no_transcript_video_analysis_is_not_stored(client, db, committee, video):
+    video.result = VideoAnalysisResult(status="no_transcript", summary="No transcript — nothing was scored.")
     assert client.post("/api/analysis/video-analysis/c-001", headers=committee).status_code == 200
     assert _runs(db, analysis.VIDEO_STAGE) == []
 
 
 def test_swallowed_video_failure_is_stored_as_failed(client, db, committee, video):
     video.result = VideoAnalysisResult(
+        status="unavailable",
         transcript="real words",
         language_detected="kazakh",
         summary="Analysis unavailable — the transcript was not assessed.",

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from enum import Enum
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -24,6 +26,35 @@ class Project(BaseModel):
     name: str
     role: str
     impact: str = ""
+
+
+# ── Written presentation (INP-01) ───────────────────────────────────
+# The canonical presentation input: a written version, any language, including
+# mixed Kazakh/Russian/English. The bounds are form validation only. Length is
+# never a scoring input (tests/test_no_demographics_in_scoring.py).
+WRITTEN_PRESENTATION_MIN_WORDS = 150
+WRITTEN_PRESENTATION_MAX_WORDS = 300
+
+
+def count_words(text: str) -> int:
+    """Whitespace-separated words, in any script.
+
+    Splitting on whitespace rather than matching a Latin word pattern counts
+    Kazakh Cyrillic, Russian and code-switched text the same way as English.
+    The form counts the same way (frontend/src/lib/words.ts).
+    """
+    return len(text.split())
+
+
+def written_presentation_error(text: str) -> str | None:
+    """Why a written presentation is out of bounds, or None if it is fine."""
+    words = count_words(text)
+    if WRITTEN_PRESENTATION_MIN_WORDS <= words <= WRITTEN_PRESENTATION_MAX_WORDS:
+        return None
+    return (
+        f"The written presentation must be {WRITTEN_PRESENTATION_MIN_WORDS}–{WRITTEN_PRESENTATION_MAX_WORDS} "
+        f"words in any language; it has {words}."
+    )
 
 
 class Essay(BaseModel):
@@ -52,7 +83,11 @@ class Candidate(BaseModel):
     essay: Essay
     interview_transcript: str = ""
     recommendation_summary: str = ""
+    # Canonical presentation input (INP-01). Empty for applicants who never
+    # submitted one; the ledger then has no evidence from it, not weak evidence.
+    written_presentation: str = ""
     video_link: str = ""
+    # Auxiliary: a source of quotes for the interviewer, never a scoring input.
     video_transcript: str = ""
 
 
@@ -95,17 +130,25 @@ class AIDetectionResult(BaseModel):
     stylometry: StylometryMetrics | None = None
 
 
+VideoAnalysisStatus = Literal["analyzed", "no_transcript", "unavailable"]
+
+
 class VideoAnalysisResult(BaseModel):
-    """Result of analyzing a candidate's video presentation transcript."""
+    """Result of analyzing a candidate's video presentation transcript.
+
+    Only `analyzed` carries numbers. `no_transcript` (nothing to read) and
+    `unavailable` (no model, or the call failed) carry none at all, so neither
+    can be read or ranked as a low score.
+    """
+    status: VideoAnalysisStatus = "analyzed"
     transcript: str = ""
     language_detected: str = ""
-    authenticity_match: float = Field(0, ge=0, le=100, description="How well video voice matches essay voice. 100 = perfect match")
-    motivation_score: float = Field(0, ge=0, le=100)
+    authenticity_match: float | None = Field(None, ge=0, le=100, description="How well video voice matches essay voice. 100 = perfect match")
+    motivation_score: float | None = Field(None, ge=0, le=100)
     key_themes: list[str] = Field(default_factory=list)
     growth_signals: list[str] = Field(default_factory=list)
     concerns: list[str] = Field(default_factory=list)
     summary: str = ""
-    is_mock: bool = False
 
 
 class CandidateScore(BaseModel):

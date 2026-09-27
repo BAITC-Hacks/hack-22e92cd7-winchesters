@@ -16,7 +16,7 @@ def anonymize_candidate(candidate: Candidate) -> Candidate:
     data = candidate.model_dump()
     data["name"] = f"Candidate {candidate.id}"
     # Mask any email-like patterns in text fields
-    for field in ("interview_transcript", "recommendation_summary"):
+    for field in ("interview_transcript", "recommendation_summary", "written_presentation", "video_transcript"):
         if data[field]:
             data[field] = _mask_emails(data[field])
             data[field] = _mask_phone_numbers(data[field])

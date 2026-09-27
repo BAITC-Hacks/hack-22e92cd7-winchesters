@@ -62,10 +62,15 @@ def collect_sources(candidate: Candidate) -> dict[Source, str]:
     The application form's structured fields are not here on purpose. School
     type, GPA and the rest live in `protected_attributes` and never enter this
     pipeline; see task LED-01 for why.
+
+    The written presentation is the canonical presentation input (INP-01). The
+    video transcript is not a source here: it is ASR output, auxiliary quote
+    material for the interviewer, and never scored. An applicant without a
+    written presentation simply has no evidence from it.
     """
     available = {
         Source.ESSAY: candidate.essay.text,
-        Source.WRITTEN_PRESENTATION: candidate.video_transcript,
+        Source.WRITTEN_PRESENTATION: candidate.written_presentation,
         Source.INTERVIEW_NOTES: candidate.interview_transcript,
         Source.RECOMMENDATION_LETTER: candidate.recommendation_summary,
     }

@@ -3,6 +3,12 @@
 import { useState, useEffect, useRef } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/useAuth";
+import {
+  WRITTEN_PRESENTATION_MAX_WORDS,
+  WRITTEN_PRESENTATION_MIN_WORDS,
+  countWords,
+  writtenPresentationError,
+} from "@/lib/words";
 import type {
   Education,
   Extracurricular,
@@ -119,6 +125,9 @@ export default function LandingPage() {
   const [essayPrompt, setEssayPrompt] = useState(ESSAY_PROMPTS[0]);
   const [essayText, setEssayText] = useState("");
 
+  // Written presentation (INP-01): the canonical presentation input.
+  const [writtenPresentation, setWrittenPresentation] = useState("");
+
   // Optional
   const [recommendation, setRecommendation] = useState("");
 
@@ -171,6 +180,13 @@ export default function LandingPage() {
     setSubmitting(true);
 
     try {
+      const presentationError = writtenPresentationError(writtenPresentation);
+      if (presentationError) {
+        setError(presentationError);
+        setCurrentStep(2);
+        return;
+      }
+
       const education: Education = {
         school_type: schoolType,
         gpa: parseFloat(gpa) || 0,
@@ -231,6 +247,7 @@ export default function LandingPage() {
         essay,
         interview_transcript: "",
         recommendation_summary: recommendation,
+        written_presentation: writtenPresentation,
         video_link: videoLink,
         video_transcript: videoTranscript,
       });
@@ -246,6 +263,9 @@ export default function LandingPage() {
   }
 
   const wordCount = essayText.split(/\s+/).filter(Boolean).length;
+  const presentationWords = countWords(writtenPresentation);
+  const presentationInBounds =
+    presentationWords >= WRITTEN_PRESENTATION_MIN_WORDS && presentationWords <= WRITTEN_PRESENTATION_MAX_WORDS;
 
   /* ── Scroll reveal ──────────────────────────────────────────── */
   useEffect(() => {
@@ -324,6 +344,7 @@ export default function LandingPage() {
                 setEssayText("");
                 setEssayPrompt(ESSAY_PROMPTS[0]);
                 setRecommendation("");
+                setWrittenPresentation("");
                 setVideoLink("");
                 setVideoTranscript("");
                 setSelectedProgram("Creative Engineering");
@@ -976,6 +997,41 @@ export default function LandingPage() {
                     </div>
                   </div>
                   <div style={{ marginBottom: "20px" }}>
+                    <Label htmlFor="writtenPresentation" required>Written Presentation</Label>
+                    <p className="text-sm text-ink-2 mb-2">
+                      Write your presentation in {WRITTEN_PRESENTATION_MIN_WORDS}–{WRITTEN_PRESENTATION_MAX_WORDS} words, in any
+                      language — Kazakh, Russian, English, or a mix. This written version is what we read and assess; a video
+                      is optional.
+                    </p>
+                    <textarea
+                      id="writtenPresentation"
+                      className={inputClass}
+                      style={{ minHeight: "200px", resize: "vertical" }}
+                      value={writtenPresentation}
+                      onChange={(e) => setWrittenPresentation(e.target.value)}
+                      aria-describedby="writtenPresentationCount"
+                      aria-invalid={presentationWords > 0 && !presentationInBounds}
+                      placeholder="Who you are, what you have done, and why inVision U. Any language is fine."
+                    />
+                    <div id="writtenPresentationCount" className="mt-1.5 flex justify-between text-xs text-ink-3">
+                      <span data-slot="presentation-word-count">
+                        {presentationWords} / {WRITTEN_PRESENTATION_MIN_WORDS}–{WRITTEN_PRESENTATION_MAX_WORDS} words
+                        {presentationWords > 0 && presentationWords < WRITTEN_PRESENTATION_MIN_WORDS && (
+                          <span className="ml-2 text-warn-ink">
+                            {WRITTEN_PRESENTATION_MIN_WORDS - presentationWords} more needed
+                          </span>
+                        )}
+                        {presentationWords > WRITTEN_PRESENTATION_MAX_WORDS && (
+                          <span className="ml-2 text-danger">
+                            {presentationWords - WRITTEN_PRESENTATION_MAX_WORDS} over the limit
+                          </span>
+                        )}
+                        {presentationInBounds && <span className="ml-2 text-accent-ink">Within range</span>}
+                      </span>
+                      <span>Words are counted by spaces, in any script</span>
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: "20px" }}>
                     <SectionTitle>Recommendation Letter (Optional)</SectionTitle>
                     <p style={{ fontSize: "14px", color: "#888", marginBottom: "8px" }}>
                       If you have a recommendation from a teacher or mentor, paste a summary here.
@@ -1008,7 +1064,7 @@ export default function LandingPage() {
                     <div style={{ marginTop: "20px" }}>
                       <Label htmlFor="videoTranscript">Video Transcript (Optional)</Label>
                       <p style={{ fontSize: "12px", color: "#888", marginBottom: "8px" }}>
-                        Paste what you said in your video. This helps us analyze your presentation even if the video isn&apos;t accessible.
+                        Paste what you said in your video. It is kept as supporting material for the interviewer and is not scored; your written presentation is.
                       </p>
                       <textarea
                         id="videoTranscript"
@@ -1170,6 +1226,12 @@ export default function LandingPage() {
                       <div style={{ marginBottom: "8px" }}><span style={{ color: "#999" }}>Prompt:</span> {essayPrompt}</div>
                       <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{essayText || "— No essay written yet —"}</div>
                       <div style={{ marginTop: "8px", fontSize: "12px", color: "#999" }}>{wordCount} words</div>
+                      <div className="mt-3 pt-3 border-t border-line">
+                        <span className="text-ink-3">Written presentation ({presentationWords} words):</span>
+                        <div className="whitespace-pre-wrap mt-1">
+                          {writtenPresentation || "— Not written yet —"}
+                        </div>
+                      </div>
                       {recommendation && (
                         <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid #e5e5e5" }}>
                           <span style={{ color: "#999" }}>Recommendation:</span>
@@ -1312,6 +1374,7 @@ export default function LandingPage() {
                 { label: "Personal Information", done: !!name },
                 { label: "GPA & Education", done: !!gpa },
                 { label: "Essay (200+ words)", done: wordCount >= 200 },
+                { label: `Written presentation (${WRITTEN_PRESENTATION_MIN_WORDS}–${WRITTEN_PRESENTATION_MAX_WORDS} words)`, done: presentationInBounds },
                 { label: "Video Presentation", done: !!videoLink.trim() },
                 { label: "Achievements", done: achievements.some(a => a.trim()) },
                 { label: "Languages", done: !!languages.trim() },

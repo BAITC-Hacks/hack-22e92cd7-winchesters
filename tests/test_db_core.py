@@ -44,6 +44,8 @@ def _new_application(name: str = "Test Applicant") -> dict:
         "essay": {"prompt": "Why inVision U?", "text": "I started a tutoring circle in my village."},
         "interview_transcript": "",
         "recommendation_summary": "",
+        # 150 words: the lower bound of the written presentation (INP-01).
+        "written_presentation": " ".join(["Мен ауылдағы балаларға математикадан сабақ бердім."] * 25),
     }
 
 

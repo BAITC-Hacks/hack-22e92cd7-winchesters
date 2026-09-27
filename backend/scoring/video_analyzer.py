@@ -1,17 +1,18 @@
-"""Video presentation analysis — transcript extraction + Claude evaluation.
+"""Video presentation analysis: compare a transcript with the essay.
 
-Supports two modes:
-1. Real mode: OpenAI Whisper API transcribes audio → Claude analyzes
-2. Mock mode: Uses candidate's pasted transcript or generates mock data
-3. Text mode: Student pastes transcript directly → Claude analyzes
+The written presentation is the canonical presentation input (INP-01); a video
+transcript is auxiliary. This module only ever analyses a transcript that
+exists. With no transcript it returns `status="no_transcript"`, carries no
+numbers and calls no model: an applicant must never be scored on text that is
+not theirs. There is no mock transcript and no fallback to one.
 
-To enable real Whisper: add OPENAI_API_KEY to .env
+Speech recognition is not run here. If it is ever switched on it is ElevenLabs
+Scribe v2 only, pinned in `backend.settings`; Whisper is barred for Kazakh.
 """
 
 from __future__ import annotations
 
 import logging
-import os
 
 from backend import llm, settings
 from backend.models import Candidate, VideoAnalysisResult
@@ -20,73 +21,32 @@ from backend.scoring.ai_detector import detect_language
 
 logger = logging.getLogger(__name__)
 
-_openai_client = None
+NO_TRANSCRIPT_SUMMARY = "No transcript — nothing was scored."
+UNAVAILABLE_SUMMARY = "Analysis unavailable — the transcript was not assessed."
 
 
-def _get_openai():
-    """Returns OpenAI client if key is available, else None."""
-    global _openai_client
-    if _openai_client is not None:
-        return _openai_client
-    key = os.environ.get("OPENAI_API_KEY")
-    if not key:
-        return None
-    try:
-        from openai import OpenAI
-        _openai_client = OpenAI(api_key=key)
-        return _openai_client
-    except ImportError:
-        return None
+# ── Speech recognition (not run in this build) ─────────────────────
 
 
-def whisper_available() -> bool:
-    """Check if Whisper API is available."""
-    return _get_openai() is not None
+def asr_status() -> dict:
+    """Whether a transcript could be produced from a video, and by what.
 
-
-async def transcribe_audio(file_path: str) -> str:
-    """Transcribe audio/video file using OpenAI Whisper API.
-
-    Returns the transcript text. Only works if OPENAI_API_KEY is set.
+    Needs both the explicit flag and a key. Without them the answer is a plain
+    "unavailable", and applicants' videos are simply not transcribed.
     """
-    client = _get_openai()
-    if client is None:
-        raise RuntimeError("OpenAI API key not configured. Set OPENAI_API_KEY in .env")
-
-    with open(file_path, "rb") as audio_file:
-        transcription = client.audio.transcriptions.create(
-            model="whisper-1",
-            file=audio_file,
-            response_format="text",
-        )
-    return transcription
-
-
-# ── Mock transcript for demo ───────────────────────────────────────
-
-MOCK_TRANSCRIPT = """
-Hello, my name is... well, I'm applying to inVision U because I genuinely believe
-this is where I can grow the most. I come from a small town, and honestly, I didn't
-think university was something people like me could reach.
-
-But last year something changed. I started a project in my community — it was small,
-just helping organize transport for families who couldn't get to the city. And I realized
-that I actually enjoy solving problems that affect real people. Not theoretical problems
-from textbooks, but actual, messy, complicated real-life problems.
-
-My biggest challenge was convincing adults to trust a teenager with their money.
-I had to create a budget, present it at a village meeting, and defend my numbers
-in front of people twice my age. It was terrifying, but when the project actually
-worked, it changed how I see myself.
-
-I want to study at inVision U because I want to learn how to scale what I've started.
-I don't just want to help one village — I want to understand how systems work so I
-can help many communities. I know my grades aren't perfect, but I believe my experience
-and motivation show that I'm ready to work harder than anyone.
-
-My dream is to build things that make life easier for people who don't have many
-advantages. That's what drives me. Thank you.
-""".strip()
+    available = settings.ASR_ENABLED and bool(settings.ELEVENLABS_API_KEY)
+    if available:
+        reason = ""
+    elif not settings.ASR_ENABLED:
+        reason = "ASR unavailable: switched off (set ASR_ENABLED=1 and ELEVENLABS_API_KEY to enable)."
+    else:
+        reason = "ASR unavailable: ELEVENLABS_API_KEY is not set."
+    return {
+        "available": available,
+        "provider": settings.ASR_PROVIDER,
+        "model": settings.ASR_MODEL,
+        "reason": reason,
+    }
 
 
 # ── Claude analysis prompt ─────────────────────────────────────────
@@ -140,58 +100,41 @@ VIDEO_SCHEMA = {
 }
 
 
+def model_for(language: str) -> str:
+    """Kazakh and mixed-language transcripts go to the strongest model."""
+    return settings.MODEL_FOR_LOW_RESOURCE if language != "english" else settings.MODEL_EXTRACT
+
+
 async def analyze_video(candidate: Candidate) -> VideoAnalysisResult:
-    """Analyze a candidate's video presentation.
+    """Analyse the applicant's own transcript, or say plainly there is none."""
+    transcript = candidate.video_transcript.strip()
+    if not transcript:
+        return VideoAnalysisResult(status="no_transcript", summary=NO_TRANSCRIPT_SUMMARY)
 
-    Uses real Whisper transcription if OPENAI_API_KEY is set,
-    otherwise uses the candidate's pasted transcript or mock data.
-    """
-    safe = anonymize_candidate(candidate)
-
-    # Determine transcript source
-    transcript = ""
-    is_mock = False
-
-    if candidate.video_transcript and candidate.video_transcript.strip():
-        # Student pasted their own transcript
-        transcript = candidate.video_transcript.strip()
-    elif whisper_available() and candidate.video_link:
-        # TODO: Download video from link, extract audio, transcribe
-        # For now, this path requires a local file upload
-        transcript = MOCK_TRANSCRIPT
-        is_mock = True
-    else:
-        # No transcript available — use mock for demo
-        transcript = MOCK_TRANSCRIPT
-        is_mock = True
-
-    # Detect language
     lang = detect_language(transcript)
+    if not llm.is_configured():
+        # No key on this server: say so before trying, and score nothing.
+        return VideoAnalysisResult(
+            status="unavailable", transcript=transcript, language_detected=lang, summary=UNAVAILABLE_SUMMARY
+        )
 
+    safe = anonymize_candidate(candidate)
     prompt = VIDEO_ANALYSIS_PROMPT.format(
         essay_document=llm.wrap_document(safe.essay.text, "essay", safe.id),
-        video_document=llm.wrap_document(transcript, "video_transcript", safe.id),
+        video_document=llm.wrap_document(safe.video_transcript.strip(), "video_transcript", safe.id),
     )
-    model = settings.MODEL_FOR_LOW_RESOURCE if lang != "english" else settings.MODEL_EXTRACT
-
     try:
-        payload = await llm.complete_json(
-            prompt=prompt,
-            schema=VIDEO_SCHEMA,
-            model=model,
-        )
+        payload = await llm.complete_json(prompt=prompt, schema=VIDEO_SCHEMA, model=model_for(lang))
     except Exception:
         # Log the cause here; the caller gets a result that is plainly marked as
-        # having no analysis rather than a zero that ranks like a real score.
+        # unavailable, with no number that could rank like a real score.
         logger.exception("video analysis failed for %s", candidate.id)
         return VideoAnalysisResult(
-            transcript=transcript,
-            language_detected=lang,
-            summary="Analysis unavailable — the transcript was not assessed.",
-            is_mock=is_mock,
+            status="unavailable", transcript=transcript, language_detected=lang, summary=UNAVAILABLE_SUMMARY
         )
 
     return VideoAnalysisResult(
+        status="analyzed",
         transcript=transcript,
         language_detected=lang,
         authenticity_match=max(0.0, min(float(payload["authenticity_match"]), 100.0)),
@@ -200,5 +143,4 @@ async def analyze_video(candidate: Candidate) -> VideoAnalysisResult:
         growth_signals=payload["growth_signals"],
         concerns=payload["concerns"],
         summary=payload["summary"],
-        is_mock=is_mock,
     )

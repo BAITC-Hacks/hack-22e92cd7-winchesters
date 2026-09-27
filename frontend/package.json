@@ -8,6 +8,7 @@
     "start": "next start",
     "test:prebrief": "node scripts/test-prebrief.mjs",
     "test:simulation": "node scripts/test-simulation.mjs",
+    "test:written-presentation": "node scripts/test-written-presentation.mjs",
     "lint": "eslint"
   },
   "dependencies": {

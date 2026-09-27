@@ -1,6 +1,7 @@
 import type { Candidate } from "@/lib/types";
 import { Badge } from "../ui/Badge";
 import { Section } from "../ui/Section";
+import { WrittenPresentationSection } from "./WrittenPresentation";
 
 /** What the applicant submitted, as submitted. */
 export function ApplicationProfile({ candidate: c }: { candidate: Candidate }) {
@@ -72,6 +73,8 @@ export function ApplicationProfile({ candidate: c }: { candidate: Candidate }) {
           {c.essay.text}
         </div>
       </Section>
+
+      <WrittenPresentationSection candidate={c} />
 
       {c.interview_transcript && (
         <Section title="Interview Transcript">

@@ -39,7 +39,10 @@ export interface Candidate {
   essay: Essay;
   interview_transcript: string;
   recommendation_summary: string;
+  /** Canonical presentation input (INP-01). Empty when never submitted. */
+  written_presentation: string;
   video_link: string;
+  /** Auxiliary quote material; never scored. */
   video_transcript: string;
 }
 
@@ -187,16 +190,19 @@ export type DemoTranscript = {
   score: FeynmanScore;
 };
 
+/** Only "analyzed" carries numbers; the other two carry none (INP-01). */
+export type VideoAnalysisStatus = "analyzed" | "no_transcript" | "unavailable";
+
 export type VideoAnalysis = {
+  status: VideoAnalysisStatus;
   transcript: string;
   language_detected: string;
-  authenticity_match: number;
-  motivation_score: number;
+  authenticity_match: number | null;
+  motivation_score: number | null;
   key_themes: string[];
   growth_signals: string[];
   concerns: string[];
   summary: string;
-  is_mock: boolean;
 };
 
 // ── Evidence ledger (mirrors backend/ledger/schema.py, LED-03) ──────

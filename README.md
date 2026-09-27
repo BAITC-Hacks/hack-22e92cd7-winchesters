@@ -90,7 +90,7 @@ cd invision-u-winchesters
 
 # Backend
 pip install -r backend/requirements.txt
-cp backend/.env.example backend/.env   # add ANTHROPIC_API_KEY (required), OPENAI_API_KEY (optional)
+cp backend/.env.example backend/.env   # add ANTHROPIC_API_KEY (required for live AI calls)
 python3 -m backend.db init             # create/upgrade the SQLite database and load the demo data
 python3 -m uvicorn backend.main:app --port 8000
 
@@ -137,7 +137,7 @@ Dual scoring proves AI value: rule-based baseline (instant, free) vs Claude AI (
 - LLM may hallucinate justifications → mitigated by requiring exact quote evidence
 - Stylometry may false-positive on strong writers → only 40% weight (60% Claude qualitative)
 - Kazakh stylometry baselines are less established than English/Russian
-- Video analysis uses mock transcript by default — add OPENAI_API_KEY for real Whisper transcription
+- Video analysis runs only on the applicant's own transcript; without one it returns `no_transcript` and scores nothing. ASR is off (ElevenLabs Scribe v2 only, behind `ASR_ENABLED` + `ELEVENLABS_API_KEY`; never Whisper)
 - Candidates and accounts are stored in SQLite; scores, detection results and Feynman sessions are still in memory and reset on restart (moving in FND-04 PR 3/4)
 
 ---

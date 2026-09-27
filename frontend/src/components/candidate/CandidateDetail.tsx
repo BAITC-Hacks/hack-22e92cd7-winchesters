@@ -22,6 +22,7 @@ import { FeynmanPanel } from "./FeynmanPanel";
 import { ScoreBreakdown } from "./ScoreBreakdown";
 import { SourceConsistencyPanel } from "./SourceConsistencyPanel";
 import { VideoPanel } from "./VideoPanel";
+import { WrittenPresentationMissing } from "./WrittenPresentation";
 
 type Tab = "application" | "committee" | "interviewer" | "growth";
 
@@ -101,7 +102,17 @@ export function CandidateDetail(props: CandidateDetailProps) {
 
         <div className="p-8 space-y-8">
           {tab === "application" && <ApplicationTab {...props} />}
-          {tab === "committee" && <LedgerGate {...props} render={(l) => <CommitteeCard ledger={l} overrides={overrides} />} />}
+          {tab === "committee" && (
+            <LedgerGate
+              {...props}
+              render={(l) => (
+                <>
+                  {!c.written_presentation && <WrittenPresentationMissing />}
+                  <CommitteeCard ledger={l} overrides={overrides} />
+                </>
+              )}
+            />
+          )}
           {tab === "interviewer" && <LedgerGate {...props} render={(l) => <InterviewerBrief ledger={l} preBrief={props.preBrief} />} />}
           {tab === "growth" && <LedgerGate {...props} render={(l) => <GrowthMap ledger={l} />} />}
         </div>

@@ -50,10 +50,12 @@ class ArtifactKind(str, Enum):
 
     Must stay aligned with the evidence `source` vocabulary LED-03 defines:
     an evidence quote points at an artifact, and the ledger names its source.
-    New kinds (written_presentation for INP-01, scenario, test) are added here.
+    New kinds (scenario, test) are added here. `kind` is a plain string column
+    with no CHECK constraint, so a new kind needs no migration.
     """
 
     ESSAY = "essay"
+    WRITTEN_PRESENTATION = "written_presentation"
     INTERVIEW_TRANSCRIPT = "interview_transcript"
     VIDEO_TRANSCRIPT = "video_transcript"
     RECOMMENDATION = "recommendation"

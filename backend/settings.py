@@ -69,3 +69,16 @@ CORS_ORIGINS = [
 # ── Teaching challenge (INP-03) ────────────────────────────────────
 # Sessions an applicant may start, counted across their whole application.
 FEYNMAN_MAX_ATTEMPTS = int(os.getenv("FEYNMAN_MAX_ATTEMPTS", "3"))
+
+# ── Speech recognition (INP-01) ────────────────────────────────────
+# The written presentation is the scoring input; ASR would only ever produce
+# quote material for the interviewer. The provider and model are pinned here,
+# not read from the environment: Whisper is barred for Kazakh (77.1% WER in a 2025
+# Kazakh platform survey, docs/research/agent_multilingual.md), and
+# ElevenLabs Scribe v2 is the only engine allowed. ASR runs only when it is
+# switched on explicitly AND a key is present; otherwise it reports itself
+# unavailable and nothing is transcribed.
+ASR_PROVIDER = "elevenlabs"
+ASR_MODEL = "scribe_v2"
+ASR_ENABLED = os.getenv("ASR_ENABLED", "0") == "1"
+ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
