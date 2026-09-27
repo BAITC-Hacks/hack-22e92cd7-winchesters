@@ -434,3 +434,19 @@ def test_a_migration_that_drops_the_triggers_fails(tmp_path):
         assert "extra" not in {c["name"] for c in inspect(connection).get_columns("evidence_items")}
         assert missing_append_only_triggers(connection) == []
     engine.dispose()
+
+
+def test_a_database_already_at_0003_gets_committee_signatures(tmp_path):
+    """COM-05 first added this table by editing 0003, which databases already
+    at 0003 never re-run; the decision memo then failed with "no such table"."""
+    url = f"sqlite:///{(tmp_path / 'at-0003.db').as_posix()}"
+    command.upgrade(alembic_config(url), "0003")
+    engine = make_engine(url)
+    try:
+        assert "committee_signatures" not in inspect(engine).get_table_names()
+        command.upgrade(alembic_config(url), "head")
+        assert "committee_signatures" in inspect(engine).get_table_names()
+        with engine.connect() as connection:
+            assert missing_append_only_triggers(connection) == []
+    finally:
+        engine.dispose()

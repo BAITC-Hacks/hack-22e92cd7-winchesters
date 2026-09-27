@@ -44,11 +44,6 @@ _APPEND_ONLY_TRIGGERS = [
     """CREATE TRIGGER trg_committee_overrides_no_delete BEFORE DELETE ON committee_overrides
     WHEN EXISTS (SELECT 1 FROM applicants WHERE id = OLD.applicant_id)
     BEGIN SELECT RAISE(ABORT, 'committee_overrides is append-only'); END""",
-    """CREATE TRIGGER trg_committee_signatures_no_update BEFORE UPDATE ON committee_signatures
-    BEGIN SELECT RAISE(ABORT, 'committee_signatures is append-only'); END""",
-    """CREATE TRIGGER trg_committee_signatures_no_delete BEFORE DELETE ON committee_signatures
-    WHEN EXISTS (SELECT 1 FROM applicants WHERE id = OLD.applicant_id)
-    BEGIN SELECT RAISE(ABORT, 'committee_signatures is append-only'); END""",
     """CREATE TRIGGER trg_audit_log_no_update BEFORE UPDATE ON audit_log
     BEGIN SELECT RAISE(ABORT, 'audit_log is append-only'); END""",
     """CREATE TRIGGER trg_audit_log_no_delete BEFORE DELETE ON audit_log
@@ -154,20 +149,6 @@ def upgrade() -> None:
     with op.batch_alter_table('committee_overrides', schema=None) as batch_op:
         batch_op.create_index('ix_committee_overrides_applicant_competency', ['applicant_id', 'competency'], unique=False)
 
-    op.create_table('committee_signatures',
-    sa.Column('id', sa.String(length=36), nullable=False),
-    sa.Column('applicant_id', sa.String(length=36), nullable=False),
-    sa.Column('role', sa.String(length=32), nullable=False),
-    sa.Column('signer_user_id', sa.String(length=36), nullable=False),
-    sa.Column('signer_name', sa.Text(), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
-    sa.ForeignKeyConstraint(['applicant_id'], ['applicants.id'], name=op.f('fk_committee_signatures_applicant_id_applicants'), ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['signer_user_id'], ['users.id'], name=op.f('fk_committee_signatures_signer_user_id_users'), ondelete='RESTRICT'),
-    sa.PrimaryKeyConstraint('id', name=op.f('pk_committee_signatures'))
-    )
-    with op.batch_alter_table('committee_signatures', schema=None) as batch_op:
-        batch_op.create_index('ix_committee_signatures_applicant_id', ['applicant_id'], unique=False)
-
     op.create_table('competency_scores',
     sa.Column('id', sa.String(length=36), nullable=False),
     sa.Column('applicant_id', sa.String(length=36), nullable=False),
@@ -255,10 +236,6 @@ def downgrade() -> None:
         batch_op.drop_index('ix_committee_overrides_applicant_competency')
 
     op.drop_table('committee_overrides')
-    with op.batch_alter_table('committee_signatures', schema=None) as batch_op:
-        batch_op.drop_index('ix_committee_signatures_applicant_id')
-
-    op.drop_table('committee_signatures')
     with op.batch_alter_table('audit_log', schema=None) as batch_op:
         batch_op.drop_index('ix_audit_log_object')
 
