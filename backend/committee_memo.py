@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import io
 import os
+import textwrap
 from pathlib import Path
 from datetime import UTC, datetime
 from typing import Any
@@ -15,7 +16,7 @@ from backend.db.engine import get_engine
 from backend.db.candidates import applicant_id_for
 from backend.db.overrides import list_overrides
 from backend.db.tables import AuditLogEntry
-from backend.ledger import versions
+from backend.ledger import provenance, versions
 from backend.ledger.rubric import RUBRIC
 from backend.ledger.schema import CandidateLedger, Level
 
@@ -102,6 +103,8 @@ def build_decision_memo(candidate_id: str, ledger: CandidateLedger, *, locale: s
         "test_bands": [{"level": level.value, "label": level.value.replace("_", " ")} for level in (Level.WEAK, Level.NORMAL, Level.HIGH)],
         "overrides": overrides,
         "probe_result": _probe_result(candidate_id),
+        # Hand-authored example or cached run: the memo says which before anything else.
+        "ledger_provenance": provenance.describe(ledger),
         "provenance": {"schema_version": ledger.schema_version, "model": model, "prompt": prompt, "rubric": rubric, "model_hash": _hash(model), "prompt_hash": _content_hash("prompt", prompt), "rubric_hash": _content_hash("rubric", rubric)},
         "counts": {"ai_drafted": sum(item["ai_level"] is not None for item in competencies), "items": len(competencies), "committee_changed": len(overrides)},
         "signatures": [{"role": "Committee chair", "name": "", "signed_at": ""}, {"role": "Committee member", "name": "", "signed_at": ""}],
@@ -128,29 +131,35 @@ def render_pdf(memo: dict[str, Any], *, locale: str | None = None) -> bytes:
     pdfmetrics.registerFont(TTFont("DecisionMemoUnicode", font_path))
     active_locale = locale or memo.get("locale", "ru")
     labels = {
-        "ru": {"candidate": "Кандидат", "probe": "Вопрос", "summary": "AI подготовил", "changed": "пунктов изменено комитетом", "chair": "Председатель комитета", "member": "Член комитета"},
-        "kk": {"candidate": "Кандидат", "probe": "Сұрақ", "summary": "AI дайындағаны", "changed": "тармақты комитет өзгертті", "chair": "Комитет төрағасы", "member": "Комитет мүшесі"},
-    }.get(active_locale, {"candidate": "Candidate", "probe": "Probe", "summary": "AI drafted", "changed": "committee changes", "chair": "Committee chair", "member": "Committee member"})
-    lines = [memo["title"], f"{labels['candidate']}: {memo['candidate_id']}", ""]
+        "ru": {"candidate": "Кандидат", "probe": "Вопрос", "summary": "AI подготовил", "example": "Уровни примера (не AI)", "changed": "пунктов изменено комитетом", "chair": "Председатель комитета", "member": "Член комитета"},
+        "kk": {"candidate": "Кандидат", "probe": "Сұрақ", "summary": "AI дайындағаны", "example": "Мысал деңгейлері (AI емес)", "changed": "тармақты комитет өзгертті", "chair": "Комитет төрағасы", "member": "Комитет мүшесі"},
+    }.get(active_locale, {"candidate": "Candidate", "probe": "Probe", "summary": "AI drafted", "example": "Example levels (not AI)", "changed": "committee changes", "chair": "Committee chair", "member": "Committee member"})
+    lines = [memo["title"], f"{labels['candidate']}: {memo['candidate_id']}"]
+    source = memo.get("ledger_provenance")
+    if source:
+        lines += [source["label"].upper() if source["illustrative"] else source["label"], source["detail"]]
+    lines.append("")
     for item in memo["competencies"]:
         lines.append(f"{item['label']}: {item['effective_level'] or 'human review'}")
         for indicator in item["indicators"]:
             for quote in indicator["verified_quotes"]:
                 lines.append(f"  [{indicator['indicator_id']}] {quote['quote']}")
         lines.append(f"  {labels['probe']}: {item['probe_question']}")
-    lines += ["", f"{labels['summary']} {memo['counts']['ai_drafted']} / {memo['counts']['items']}; {memo['counts']['committee_changed']} {labels['changed']}.", "", f"{labels['chair']}: ____________________", f"{labels['member']}: ____________________"]
+    summary = labels["summary"] if not (source and source["illustrative"]) else labels["example"]
+    lines += ["", f"{summary} {memo['counts']['ai_drafted']} / {memo['counts']['items']}; {memo['counts']['committee_changed']} {labels['changed']}.", "", f"{labels['chair']}: ____________________", f"{labels['member']}: ____________________"]
     output = io.BytesIO()
     canvas = Canvas(output, pagesize=A4)
     canvas.setTitle(memo["title"])
     canvas.setFont("DecisionMemoUnicode", 9)
     width, height = A4
     y = height - 48
-    for line in lines:
+    # Wrapped, not cut: the provenance line must reach the page whole.
+    for line in (chunk for text in lines for chunk in (textwrap.wrap(text, 120, subsequent_indent="  ") or [""])):
         if y < 48:
             canvas.showPage()
             canvas.setFont("DecisionMemoUnicode", 9)
             y = height - 48
-        canvas.drawString(42, y, line[:160])
+        canvas.drawString(42, y, line)
         y -= 14
     canvas.save()
     return output.getvalue()

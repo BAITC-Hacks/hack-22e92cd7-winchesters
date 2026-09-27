@@ -340,8 +340,23 @@ export interface PreBriefRow {
   discrepancy_alerts: AttentionFlag[];
 }
 
+/** Where a stored ledger came from (backend/ledger/provenance.py, LED-12). */
+export interface LedgerProvenance {
+  kind: "illustrative_example" | "cached_run";
+  illustrative: boolean;
+  label: string;
+  detail: string;
+}
+
+/** GET /api/fairness/historical/status and /heldout/status. */
+export interface IngestStatus {
+  ingested: boolean;
+  detail: string;
+}
+
 export interface InterviewerPreBrief {
   candidate_id: string;
+  ledger_provenance: LedgerProvenance;
   probe_bank: {
     version: string;
     content_hash: string;
@@ -454,6 +469,7 @@ export interface FairnessAuditReport {
 
 export interface EvaluationReport {
   status: "cached_demo" | "fallback_demo" | "live";
+  fallback_reason?: string;
   fixture_version: string;
   fixture_hash: string;
   seed: number;
@@ -563,6 +579,7 @@ export interface CommitteeDecisionMemo {
   test_bands: Array<{ level: Level; label: string }>;
   overrides: OverrideEntry[];
   probe_result: Record<string, unknown>;
+  ledger_provenance: LedgerProvenance;
   provenance: { schema_version: string; model: string; prompt: string; rubric: string; model_hash: string; prompt_hash: string; rubric_hash: string };
   counts: { ai_drafted: number; items: number; committee_changed: number };
   signatures: Array<{ role: "chair" | "member"; name: string; signed_at: string }>;

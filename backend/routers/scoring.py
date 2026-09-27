@@ -17,7 +17,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.concurrency import run_in_threadpool
 
-from backend import settings
+from backend import llm, settings
 from backend.db import model_runs
 from backend.db.candidates import applicant_id_for, applicant_ids
 from backend.db.tables import ModelRunStatus
@@ -32,6 +32,9 @@ from backend.security import Role
 logger = logging.getLogger(__name__)
 
 AI_SCORE_STAGE = "score_ai"
+
+# No key: no call was made, so no run is stored and nothing is ranked (LED-12).
+UNAVAILABLE_DETAIL = "AI scoring unavailable: no model API key on this server. Nothing was scored."
 
 router = APIRouter(
     prefix="/api/scoring",
@@ -116,8 +119,13 @@ async def score_all_ai(weights: ScoringWeights | None = None):
         return_exceptions=True,
     )
 
+    if results and all(isinstance(r, llm.ModelUnavailable) for r in results):
+        raise HTTPException(status_code=503, detail=UNAVAILABLE_DETAIL)
+
     scores = []
     for candidate, result in zip(candidates, results):
+        if isinstance(result, llm.ModelUnavailable):
+            continue
         await run_in_threadpool(_record_ai_score, uuid_of[candidate.id], result)
         if isinstance(result, BaseException):
             logger.error("AI scoring failed for %s: %s", candidate.id, result)
@@ -133,6 +141,8 @@ async def score_ai(candidate_id: str, weights: ScoringWeights | None = None):
     applicant_id = await run_in_threadpool(applicant_id_for, candidate.id)
     try:
         score = await compute_ai_score(candidate, weights)
+    except llm.ModelUnavailable:
+        raise HTTPException(status_code=503, detail=UNAVAILABLE_DETAIL)
     except Exception as e:
         await run_in_threadpool(_record_ai_score, applicant_id, e)
         raise HTTPException(status_code=500, detail=f"AI scoring failed: {str(e)}")

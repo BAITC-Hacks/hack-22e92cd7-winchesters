@@ -4,14 +4,23 @@ import { useEffect, useState } from "react";
 import { ApiError, api } from "@/lib/api";
 import type { FunderMemo } from "@/lib/types";
 import { useAuth } from "@/lib/useAuth";
+import { Unavailable } from "@/components/ui/Unavailable";
 
 export default function FunderMemoPage() {
   const { ready } = useAuth({ requireAuth: true, roles: ["committee", "admin"] });
   const [memo, setMemo] = useState<FunderMemo | null>(null);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => { if (!ready) return; api.fairness.funderMemo().then(setMemo).catch((cause) => setError(cause instanceof ApiError && cause.status === 403 ? "This memo is for committee and admin only." : cause.message)); }, [ready]);
+  const [missing, setMissing] = useState<string | null>(null);
+  useEffect(() => {
+    if (!ready) return;
+    api.fairness
+      .heldoutStatus()
+      .then((status) => (status.ingested ? api.fairness.funderMemo().then(setMemo) : setMissing(status.detail)))
+      .catch((cause) => setError(cause instanceof ApiError && cause.status === 403 ? "This memo is for committee and admin only." : cause.message));
+  }, [ready]);
   if (!ready) return <main className="p-8 text-sm text-ink-2">Checking access...</main>;
   if (error) return <main className="p-8 text-sm text-danger">{error}</main>;
+  if (missing) return <Unavailable title="FAIR-14 / funder memo" detail={`${missing} The memo is projected from a frozen held-out report, so there is nothing to summarise yet.`} />;
   if (!memo) return <main className="p-8 text-sm text-ink-2">Loading funder memo...</main>;
   return <main className="min-h-screen bg-subtle px-5 py-8 text-ink sm:px-10"><div className="mx-auto max-w-6xl">
     <header className="border-b-2 border-ink pb-5"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-2">FAIR-14 / governance</p><div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h1 className="text-3xl font-semibold tracking-tight">{memo.title}</h1><p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-2">A frozen historical holdout summary for {memo.audience}, with no production decision rule attached.</p></div><span className="w-fit border border-accent-strong bg-accent-soft px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-accent-ink">{memo.report_mode}</span></div></header>

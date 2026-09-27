@@ -33,8 +33,13 @@ export function EvaluationHarness() {
               <h1 className="text-3xl font-semibold tracking-tight">Scorer evaluation</h1>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-2">A reproducible synthetic check of level stability, marker invariance, injection handling, and language agreement.</p>
             </div>
-            <span className="w-fit border border-accent-strong bg-accent-soft px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-accent-ink">{report.status.replace("_", " ")}</span>
+            <span data-slot="evaluation-source" className="w-fit border border-accent-strong bg-accent-soft px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-accent-ink">{report.status === "live" ? "live" : `${report.status === "cached_demo" ? "Cached demo" : "Fallback"} · deterministic baseline, no model call`}</span>
           </div>
+          {report.status !== "live" && (
+            <p className="mt-3 text-xs text-ink-2">
+              Figures below come from the deterministic baseline scorer on the synthetic fixture{report.fallback_reason ? ` (${report.fallback_reason})` : ""}. They show the harness, not the AI scorer.
+            </p>
+          )}
         </header>
 
         <section className="grid gap-px bg-line sm:grid-cols-2 lg:grid-cols-4" aria-label="Evaluation metrics">

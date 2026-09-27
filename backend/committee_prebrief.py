@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from backend.committee_probe_bank import PROBE_BANK_PROVENANCE, probe_for
-from backend.ledger import atola
+from backend.ledger import atola, provenance
 from backend.ledger.schema import CandidateLedger, Competency, EvidenceStatus
 
 PROBE_BANK_VERSION = PROBE_BANK_PROVENANCE["version"]
@@ -70,6 +70,7 @@ def build_prebrief(ledger: CandidateLedger) -> dict[str, Any]:
         "probe_bank": PROBE_BANK_PROVENANCE,
         "probe_bank_version": PROBE_BANK_VERSION,
         "score_withheld": True,
+        "ledger_provenance": provenance.describe(ledger),
         "strengths": strengths[:2],
         "rows": rows,
     }

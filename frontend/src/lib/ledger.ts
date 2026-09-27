@@ -174,6 +174,25 @@ export function evidenceState(rating: CompetencyRating | undefined): EvidenceSta
   return verified.some((e) => e.status === "present") ? "demonstrated" : "claimed_only";
 }
 
+// ── Provenance (LED-12) ────────────────────────────────────────────
+
+/** backend/ledger/provenance.py HAND_AUTHORED: the seed marks the LED-03 example with it. */
+export const HAND_AUTHORED = "hand-authored";
+
+export const ILLUSTRATIVE_LABEL = "Illustrative worked example — not from this applicant";
+export const ILLUSTRATIVE_QUOTE_LABEL = "Illustrative, not from this applicant";
+export const CACHED_LEDGER_LABEL = "Cached ledger — built offline, not scored live";
+
+/**
+ * A ledger is either a cached pipeline run or the hand-authored LED-03 example
+ * standing in for c-001. The example describes a fictional applicant, so none
+ * of its levels or quotes may read as this applicant's. Mirrors
+ * backend/ledger/provenance.py; /api/ledger returns the bare ledger.
+ */
+export function isIllustrative(ledger: CandidateLedger): boolean {
+  return ledger.model_judge === HAND_AUTHORED;
+}
+
 export interface LedgerStats {
   ledgers: number;
   competencyStates: Record<CompetencyState, number>;

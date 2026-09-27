@@ -95,7 +95,13 @@ export function CounterfactualProbe({ result, loading, error, onRun }: Counterfa
             </span>
             <span className="font-mono text-ink">signed delta {result.signed_delta > 0 ? "+" : ""}{result.signed_delta.toFixed(1)}</span>
             <span className="font-mono text-ink-2">tolerance +/-{result.tolerance.toFixed(1)} (2 x SD {result.noise_sd.toFixed(1)})</span>
-            <span className="text-ink-2">{result.status.replace("_", " ")}</span>
+            {result.status === "live" ? (
+              <span className="text-ink-2">live</span>
+            ) : (
+              <span data-slot="probe-source" className="rounded-[6px] bg-accent-soft px-2 py-0.5 font-semibold uppercase tracking-wide text-accent-ink">
+                {result.status === "cached_demo" ? "Cached demo" : "Fallback"} · deterministic baseline, no model call
+              </span>
+            )}
           </div>
           <p className="mt-3 text-xs text-ink-2">
             Changed: {result.changed_markers.map((marker) => markerLabels[marker] ?? marker).join(", ")}. Prompt {result.prompt_id}; model {result.model_id}.

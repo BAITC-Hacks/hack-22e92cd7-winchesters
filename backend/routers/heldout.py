@@ -43,6 +43,16 @@ def ingest(payload: HeldoutIngest, user: dict[str, Any] = Depends(require_role(R
     return report
 
 
+@router.get("/status")
+def status() -> dict[str, Any]:
+    """Whether a held-out report exists yet, so a page can say so without a 404 (LED-12)."""
+    ingested = _latest() is not None
+    return {
+        "ingested": ingested,
+        "detail": "" if ingested else "No held-out evaluation has been ingested, so nothing was scored or replayed.",
+    }
+
+
 @router.get("/report")
 def report() -> dict[str, Any]:
     run = _latest()

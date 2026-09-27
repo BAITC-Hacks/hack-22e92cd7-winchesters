@@ -11,6 +11,7 @@ from sqlmodel import Session
 from backend.db import model_runs
 from backend.db.engine import get_engine
 from backend.db.tables import AuditLogEntry, ModelRunStatus
+from backend import llm
 from backend.evals.harness import cached_report, live_report
 from backend.routers.guards import require_role
 from backend.security import Role
@@ -44,10 +45,13 @@ async def evaluation(live: bool = Query(False), user: dict[str, Any] = Depends(r
     if live:
         try:
             report = await live_report()
-        except Exception:
+        except Exception as error:
             report = cached_report()
             report["status"] = "fallback_demo"
             report["model_id"] = "cached-baseline-demo"
+            report["fallback_reason"] = (
+                "no model API key on this server" if isinstance(error, llm.ModelUnavailable) else "the live model call failed"
+            )
     else:
         report = cached_report()
     await run_in_threadpool(_record_provenance, user["id"], report)

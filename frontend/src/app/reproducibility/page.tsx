@@ -4,21 +4,27 @@ import { useEffect, useState } from "react";
 import { ApiError, api } from "@/lib/api";
 import type { HeldoutReproducibility } from "@/lib/types";
 import { useAuth } from "@/lib/useAuth";
+import { Unavailable } from "@/components/ui/Unavailable";
 
 export default function ReproducibilityPage() {
   const { ready } = useAuth({ requireAuth: true, roles: ["committee", "admin"] });
   const [result, setResult] = useState<HeldoutReproducibility | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [missing, setMissing] = useState<string | null>(null);
 
   useEffect(() => {
     if (!ready) return;
-    api.fairness.heldoutReproduce().then(setResult).catch((cause) => {
-      setError(cause instanceof ApiError && cause.status === 403 ? "This reproducibility check is for committee and admin only." : cause.message);
-    });
+    api.fairness
+      .heldoutStatus()
+      .then((status) => (status.ingested ? api.fairness.heldoutReproduce().then(setResult) : setMissing(status.detail)))
+      .catch((cause) => {
+        setError(cause instanceof ApiError && cause.status === 403 ? "This reproducibility check is for committee and admin only." : cause.message);
+      });
   }, [ready]);
 
   if (!ready) return <main className="p-8 text-sm text-ink-2">Checking access...</main>;
   if (error) return <main className="p-8 text-sm text-danger">{error}</main>;
+  if (missing) return <Unavailable title="FAIR-13 / reproducibility" detail={`${missing} There are no saved ratings to replay yet.`} />;
   if (!result) return <main className="p-8 text-sm text-ink-2">Replaying held-out ratings...</main>;
 
   const passed = result.byte_identical;

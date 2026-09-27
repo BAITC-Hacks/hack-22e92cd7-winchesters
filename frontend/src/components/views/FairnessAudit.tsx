@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ledgerStats, type CompetencyState } from "@/lib/ledger";
+import { isIllustrative, ledgerStats, type CompetencyState } from "@/lib/ledger";
 import type { CandidateLedger } from "@/lib/types";
 import { CollapsiblePanel } from "../ui/CollapsiblePanel";
 import { AttributeAudit } from "../fairness/AttributeAudit";
@@ -92,7 +92,22 @@ const STATE_ORDER: CompetencyState[] = [
 ];
 
 function LedgerHealth({ ledgers }: { ledgers: CandidateLedger[] }) {
-  const s = useMemo(() => ledgerStats(ledgers), [ledgers]);
+  // The hand-authored example is about nobody in this cohort: counting it
+  // would print cohort figures with no source (LED-12).
+  const cached = useMemo(() => ledgers.filter((l) => !isIllustrative(l)), [ledgers]);
+  const excluded = ledgers.length - cached.length;
+  const s = useMemo(() => ledgerStats(cached), [cached]);
+  if (cached.length === 0) {
+    return (
+      <section data-slot="ledger-health" data-state="unavailable">
+        <h4 className="text-sm font-semibold text-ink uppercase tracking-wider mb-1">Ledger health</h4>
+        <p className="rounded-2xl border border-line bg-subtle px-4 py-3 text-sm text-ink-2">
+          Unavailable — nothing was scored. No cached ledger run is loaded yet
+          {excluded > 0 ? `; the ${excluded} illustrative worked example is not counted as cohort data` : ""}.
+        </p>
+      </section>
+    );
+  }
   const facts: [string, number, string][] = [
     [
       "Indicators without verified evidence",
@@ -117,8 +132,8 @@ function LedgerHealth({ ledgers }: { ledgers: CandidateLedger[] }) {
         Ledger health
       </h4>
       <p className="text-xs text-ink-3 mb-3">
-        {s.ledgers} ledger{s.ledgers === 1 ? "" : "s"} × 9 competencies. Until
-        LED-11 this is the LED-03 fixture.
+        {s.ledgers} cached ledger{s.ledgers === 1 ? "" : "s"} × 9 competencies, built offline, not scored live
+        {excluded > 0 ? `; ${excluded} illustrative example not counted` : ""}.
       </p>
       <div className="flex flex-wrap gap-3 mb-4">
         {STATE_ORDER.map((state) => (

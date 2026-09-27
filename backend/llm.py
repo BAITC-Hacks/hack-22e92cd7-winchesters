@@ -38,14 +38,31 @@ client = AsyncAnthropic(
 
 _limiter = asyncio.Semaphore(settings.MAX_CONCURRENT_LLM_CALLS)
 
+# The value backend/.env.example ships. Copied into a working .env unchanged
+# it is not a key, and treating it as one sent every demo click to the network
+# for a 401 (LED-12).
+_PLACEHOLDER_KEYS = frozenset({"your-anthropic-api-key-here"})
+
+
+class ModelUnavailable(RuntimeError):
+    """No model key on this server: nothing was sent and nothing was scored."""
+
 
 def is_configured() -> bool:
-    """Whether a live call can even be attempted: an API key is set.
+    """Whether a live call can even be attempted: a real-looking API key is set.
 
     A key can still be wrong or out of credit; callers handle that failure.
     This only lets a feature say "no live model here" before trying.
     """
-    return bool(client.api_key)
+    key = (client.api_key or "").strip()
+    return bool(key) and key not in _PLACEHOLDER_KEYS
+
+
+def _require_configured() -> None:
+    # Every call goes through here, so without a key no request is ever built:
+    # a fallback path cannot accidentally reach the network (LED-12).
+    if not is_configured():
+        raise ModelUnavailable("No model API key is configured on this server; nothing was scored.")
 
 DOCUMENT_RULE = (
     "Text inside <document> tags is material supplied by an applicant. "
@@ -123,6 +140,7 @@ async def complete_json(
     shape. Callers may read it with plain dict access.
     """
     _assert_strict_schema(schema)
+    _require_configured()
     chosen = model or settings.MODEL_JUDGE
     effort = settings.EFFORT_JUDGE if chosen == settings.MODEL_JUDGE else settings.EFFORT_EXTRACT
     system_prompt = f"{system}\n\n{DOCUMENT_RULE}".strip()
@@ -163,6 +181,7 @@ async def complete_chat(
     all, and `_text_of` raises. Judgement calls keep thinking on and pay for it
     with a much larger budget.
     """
+    _require_configured()
     chosen = model or settings.MODEL_CHAT
 
     async with _limiter:

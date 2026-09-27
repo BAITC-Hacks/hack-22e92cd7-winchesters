@@ -4,21 +4,28 @@ import { useEffect, useState } from "react";
 import { ApiError, api } from "@/lib/api";
 import type { ModelCard } from "@/lib/types";
 import { useAuth } from "@/lib/useAuth";
+import { Unavailable } from "@/components/ui/Unavailable";
 
 export default function ModelCardPage() {
   const { ready } = useAuth({ requireAuth: true, roles: ["committee", "admin"] });
   const [card, setCard] = useState<ModelCard | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [missing, setMissing] = useState<string | null>(null);
 
   useEffect(() => {
     if (!ready) return;
-    api.fairness.modelCard().then(setCard).catch((cause) => {
-      setError(cause instanceof ApiError && cause.status === 403 ? "This model card is for committee and admin only." : cause.message);
-    });
+    // Nothing ingested is a state, not an error: ask first, never request the 404.
+    api.fairness
+      .historicalStatus()
+      .then((status) => (status.ingested ? api.fairness.modelCard().then(setCard) : setMissing(status.detail)))
+      .catch((cause) => {
+        setError(cause instanceof ApiError && cause.status === 403 ? "This model card is for committee and admin only." : cause.message);
+      });
   }, [ready]);
 
   if (!ready) return <main className="p-8 text-sm text-ink-2">Checking access...</main>;
   if (error) return <main className="p-8 text-sm text-danger">{error}</main>;
+  if (missing) return <Unavailable title="FAIR-10 / model card" detail={`${missing} Historical data arrives from inVision U; until then there are no agreement or fairness figures to show.`} />;
   if (!card) return <main className="p-8 text-sm text-ink-2">Loading model card...</main>;
 
   return (

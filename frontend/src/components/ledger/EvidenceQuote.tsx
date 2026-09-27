@@ -1,5 +1,8 @@
+"use client";
+
 import type { EvidenceItem } from "@/lib/types";
 import { ATOLA_LABELS, EVIDENCE_STATUS_LABELS, SOURCE_LABELS } from "./labels";
+import { IllustrativeTag, useIllustrative } from "./Provenance";
 
 /** Slot for the indicator id (LED-06 decides how it is shown; never hidden). */
 export function IndicatorId({ id }: { id: string }) {
@@ -17,6 +20,7 @@ export function IndicatorId({ id }: { id: string }) {
  */
 export function EvidenceQuote({ item, showAtola = true }: { item: EvidenceItem; showAtola?: boolean }) {
   const span = item.char_start >= 0 ? ` · ${item.char_start}–${item.char_end}` : "";
+  const illustrative = useIllustrative();
   return (
     <figure data-slot="quote" className="mb-2 last:mb-0">
       <blockquote
@@ -33,6 +37,7 @@ export function EvidenceQuote({ item, showAtola = true }: { item: EvidenceItem; 
         {showAtola && item.atola !== "none" && <span>ATOLA: {ATOLA_LABELS[item.atola]}</span>}
         {item.status !== "present" && <span className="text-ink font-medium">{EVIDENCE_STATUS_LABELS[item.status]}</span>}
         {!item.verified && <span className="text-red-600 font-medium">Not found in source</span>}
+        {illustrative && <IllustrativeTag />}
       </figcaption>
     </figure>
   );

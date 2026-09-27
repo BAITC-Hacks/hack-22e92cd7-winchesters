@@ -1,6 +1,7 @@
 import { ATOLA_SEQUENCE, atolaGaps, demonstratedEvidence, evidenceState, nineRows } from "@/lib/ledger";
 import type { CandidateLedger, Competency, CompetencyRating, InterviewerPreBrief } from "@/lib/types";
 import { EvidenceQuote } from "../ledger/EvidenceQuote";
+import { IllustrativeTag } from "../ledger/Provenance";
 import { ATOLA_LABELS, COMPETENCY_LABELS, EVIDENCE_STATE_LABELS } from "../ledger/labels";
 
 export interface InterviewerBriefProps {
@@ -34,6 +35,11 @@ export function InterviewerBrief({ ledger, preBrief }: InterviewerBriefProps) {
             <div key={i} className="mb-2">
               <p className="text-xs text-ink-3">{COMPETENCY_LABELS[competency]}</p>
               <p className="border-l-4 border-accent pl-3 text-sm italic">&ldquo;{quote}&rdquo;</p>
+              {preBrief.ledger_provenance?.illustrative && (
+                <p className="pl-3 mt-0.5 text-xs">
+                  <IllustrativeTag />
+                </p>
+              )}
             </div>
           ))
         ) : strengths.length > 0 ? (

@@ -12,6 +12,7 @@ import type {
   HeldoutReport,
   FunderMemo,
   HeldoutReproducibility,
+  IngestStatus,
   OverrideEntry,
   OverrideInput,
   RankedCandidate,
@@ -156,6 +157,9 @@ export const api = {
       ),
       evaluation: (live = false) => fetchJSON<EvaluationReport>(`/api/fairness/evaluation?live=${live}`),
       cohortProbe: (live = false) => fetchJSON<CohortProbeReport>(`/api/fairness/cohort-probe?live=${live}`),
+      // Status first: a page with nothing ingested says so without requesting a 404 (LED-12).
+      historicalStatus: () => fetchJSON<IngestStatus>("/api/fairness/historical/status"),
+      heldoutStatus: () => fetchJSON<IngestStatus>("/api/fairness/heldout/status"),
       modelCard: () => fetchJSON<ModelCard>("/api/fairness/historical/model-card"),
       heldoutReport: () => fetchJSON<HeldoutReport>("/api/fairness/heldout/report"),
       funderMemo: () => fetchJSON<FunderMemo>("/api/fairness/heldout/memo"),

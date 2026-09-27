@@ -526,6 +526,12 @@ async def _ask_model(call: Awaitable[T], action: str) -> T:
     """
     try:
         return await call
+    except llm.ModelUnavailable:
+        # No key: nothing was sent. The UI turns this into the cached demo.
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="The live AI student is not available on this server. You can view the cached demo transcript instead.",
+        )
     except anthropic.RateLimitError:
         logger.warning("feynman %s: model rate limited", action)
         raise HTTPException(

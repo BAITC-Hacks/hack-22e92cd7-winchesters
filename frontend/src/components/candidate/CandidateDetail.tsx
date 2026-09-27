@@ -16,6 +16,7 @@ import type {
 import { CommitteeCard } from "../views/CommitteeCard";
 import { CounterfactualProbe } from "./CounterfactualProbe";
 import { GrowthMap } from "../views/GrowthMap";
+import { LedgerProvenanceProvider, LedgerSourceBanner } from "../ledger/Provenance";
 import { InterviewerBrief } from "../views/InterviewerBrief";
 import { ApplicationProfile } from "./ApplicationProfile";
 import { FeynmanPanel } from "./FeynmanPanel";
@@ -148,9 +149,9 @@ function LedgerGate({
 }: CandidateDetailProps & { render: (ledger: CandidateLedger) => ReactNode }) {
   if (ledgerMissing) {
     return (
-      <p className="p-4 bg-gray-500/5 text-ink-2 rounded-2xl text-sm border border-gray-500/20">
-        No evidence ledger has been built for this candidate yet. Nothing is scored live; the committee card appears
-        once a cached run is loaded.
+      <p data-slot="ledger-unavailable" className="p-4 bg-subtle text-ink-2 rounded-2xl text-sm border border-line">
+        Unavailable — nothing was scored. No evidence ledger has been built for this candidate yet, and none is built
+        live; this view appears once a cached run is loaded.
       </p>
     );
   }
@@ -158,5 +159,12 @@ function LedgerGate({
     return <p className="p-4 bg-red-500/10 text-red-600 rounded-2xl text-sm border border-red-500/20">{ledgerError}</p>;
   }
   if (!ledger) return <p className="text-center py-10 text-ink-3">Loading ledger...</p>;
-  return <div className="space-y-4">{render(ledger)}</div>;
+  return (
+    <LedgerProvenanceProvider ledger={ledger}>
+      <div className="space-y-4">
+        <LedgerSourceBanner ledger={ledger} />
+        {render(ledger)}
+      </div>
+    </LedgerProvenanceProvider>
+  );
 }

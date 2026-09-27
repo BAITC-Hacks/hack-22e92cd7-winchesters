@@ -38,6 +38,17 @@ def ingest(payload: HistoricalIngest, user: dict[str, Any] = Depends(require_rol
     return report
 
 
+@router.get("/status")
+def status() -> dict[str, Any]:
+    """Whether a model card exists yet, so a page can say so without a 404 (LED-12)."""
+    with Session(get_engine()) as session:
+        run = session.exec(select(ModelRun.id).where(ModelRun.stage == "historical_ingest")).first()
+    return {
+        "ingested": run is not None,
+        "detail": "" if run is not None else "No historical evaluation has been ingested, so nothing was scored and there is no model card yet.",
+    }
+
+
 @router.get("/report")
 def report() -> dict[str, Any]:
     with Session(get_engine()) as session:

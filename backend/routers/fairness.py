@@ -25,7 +25,7 @@ from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from sqlmodel import Session
 
-from backend import settings
+from backend import llm, settings
 from backend.db import model_runs
 from backend.db.fairness import load_audit_records
 from backend.db.candidates import applicant_id_for
@@ -212,6 +212,7 @@ def _probe_result(
     *,
     status: Literal["live", "cached_demo", "fallback_demo"],
     noise_sd: float,
+    reason: str = "",
 ) -> ProbeOut:
     tolerance = round(2 * noise_sd, 2)
     variants: list[ProbeVariant] = []
@@ -258,7 +259,11 @@ def _probe_result(
         notice=(
             "Live re-score: six variants and five same-text repeats used the same scorer."
             if status == "live"
-            else "Demo result: live model calls were unavailable; baseline fixture is used and no score or ranking was changed."
+            else (
+                f"Not a model result ({reason or 'cached demo'}): the AI scorer was not called. Every variant was "
+                "scored by the deterministic baseline, so this shows the probe mechanism, not the AI's behaviour. "
+                "No score or ranking was changed."
+            )
         ),
     )
 
@@ -340,8 +345,9 @@ async def probe(
         result = _probe_result(candidate_id, baseline, list(variants), status="live", noise_sd=noise_sd)
     except Exception as error:
         logger.warning("Fairness probe fell back for %s: %s", candidate_id, error)
+        reason = "no model API key on this server" if isinstance(error, llm.ModelUnavailable) else "the live model call failed"
         baseline, variants = _demo_probe(candidate)
-        result = _probe_result(candidate_id, baseline, variants, status="fallback_demo", noise_sd=0.0)
+        result = _probe_result(candidate_id, baseline, variants, status="fallback_demo", noise_sd=0.0, reason=reason)
 
     await run_in_threadpool(_record_probe_audit, user["id"], candidate_id, result)
     return result

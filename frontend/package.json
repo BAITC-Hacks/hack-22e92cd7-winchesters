@@ -9,6 +9,7 @@
     "test:prebrief": "node scripts/test-prebrief.mjs",
     "test:simulation": "node scripts/test-simulation.mjs",
     "test:written-presentation": "node scripts/test-written-presentation.mjs",
+    "test:demo-offline": "node scripts/test-demo-offline.mjs",
     "lint": "eslint"
   },
   "dependencies": {

@@ -23,6 +23,7 @@ from backend import settings
 from backend.db.engine import alembic_config, get_engine
 from backend.db import users
 from backend.db.seed import seed, seed_demo_ledger
+from backend.ledger import cache
 from backend.security import STAFF_ROLES, hash_password
 
 
@@ -30,11 +31,16 @@ def init() -> None:
     command.upgrade(alembic_config(), "head")
     result = seed()
     ledgers_saved = seed_demo_ledger() if settings.DEMO_MODE else 0
+    if settings.DEMO_MODE and not cache.cached_refs():
+        # Building the cache needs a live key, so init only says how (LED-12).
+        print("no cached ledgers in backend/ledger/fixtures/cache; c-001 shows the illustrative worked example. "
+              "Build them once with a key: python -m backend.ledger.cache")
     print(
         f"schema at head; applicants: {result.applicants_added} added, "
         f"{result.applicants_total - result.applicants_added} already present"
         + (f"; {ledgers_saved} demo ledgers loaded" if ledgers_saved else "")
         + ("; demo committee account created" if result.demo_user_added else "")
+        + ("; demo committee account repaired (stale password hash or role)" if result.demo_user_repaired else "")
     )
 
 

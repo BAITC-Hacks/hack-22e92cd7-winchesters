@@ -4,7 +4,7 @@
 // out the views. Rendering lives in src/components/.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { api, ApiError } from "@/lib/api";
+import { api } from "@/lib/api";
 import { useAuth } from "@/lib/useAuth";
 import { DEFAULT_WEIGHTS, groupOf, groupsFor, isHiddenGem, reweight, scoreOf, type Scorer } from "@/lib/dashboard";
 import type { AIDetectionResult, CandidateLedger, CounterfactualProbeResult, FeynmanScore, InterviewerPreBrief, RankedCandidate, VideoAnalysis } from "@/lib/types";
@@ -37,11 +37,11 @@ export default function Dashboard() {
   const [counterfactualProbes, setCounterfactualProbes] = useState<Record<string, CounterfactualProbeResult>>({});
   const [probeLoading, setProbeLoading] = useState(false);
   const [probeError, setProbeError] = useState<string | null>(null);
-  const [ledgers, setLedgers] = useState<Record<string, CandidateLedger>>({});
-  const [ledgerErrors, setLedgerErrors] = useState<Record<string, string>>({});
-  const [missingLedgers, setMissingLedgers] = useState<Record<string, true>>({});
   const [preBriefs, setPreBriefs] = useState<Record<string, InterviewerPreBrief>>({});
-  const [cohortLedgers, setCohortLedgers] = useState<CandidateLedger[]>([]);
+  // Every stored snapshot, loaded once. A candidate absent from it has no
+  // ledger: that is known without asking for a 404 (LED-12).
+  const [cohortLedgers, setCohortLedgers] = useState<CandidateLedger[] | null>(null);
+  const [ledgerListError, setLedgerListError] = useState<string | null>(null);
   const [detectLoading, setDetectLoading] = useState(false);
 
   const [filter, setFilter] = useState<string>("all");
@@ -70,7 +70,13 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!ready) return;
-    api.ledger.list().then(setCohortLedgers).catch(() => setCohortLedgers([]));
+    api.ledger
+      .list()
+      .then(setCohortLedgers)
+      .catch((e) => {
+        setCohortLedgers([]);
+        setLedgerListError(message(e, "Failed to load ledgers"));
+      });
   }, [ready]);
 
   const changeScorer = (next: Scorer) => {
@@ -82,6 +88,8 @@ export default function Dashboard() {
 
   const ranked = useMemo(() => reweight(rawRanked, weights, scorer), [rawRanked, weights, scorer]);
   const selected = ranked.find((r) => r.candidate.id === selectedId);
+  const ledgerOf = (id: string) => cohortLedgers?.find((l) => l.applicant_ref === id);
+  const selectedLedger = selectedId ? ledgerOf(selectedId) : undefined;
 
   // Per-candidate data, fetched once on first selection.
   useEffect(() => {
@@ -94,24 +102,15 @@ export default function Dashboard() {
       .catch(() => {});
   }, [selectedId, feynmanScores]);
 
+  // The pre-brief is a projection of a stored ledger: only asked for when one exists.
+  const hasSelectedLedger = Boolean(selectedLedger);
   useEffect(() => {
-    if (!selectedId || ledgers[selectedId] || ledgerErrors[selectedId] || missingLedgers[selectedId]) return;
-    api.ledger
-      .get(selectedId)
-      .then((l) => setLedgers((prev) => ({ ...prev, [selectedId]: l })))
-      .catch((e) => {
-        if (e instanceof ApiError && e.status === 404) setMissingLedgers((prev) => ({ ...prev, [selectedId]: true }));
-        else setLedgerErrors((prev) => ({ ...prev, [selectedId]: message(e, "Failed to load ledger") }));
-      });
-  }, [selectedId, ledgers, ledgerErrors, missingLedgers]);
-
-  useEffect(() => {
-    if (!selectedId || preBriefs[selectedId]) return;
+    if (!selectedId || !hasSelectedLedger || preBriefs[selectedId]) return;
     api.committee
       .preBrief(selectedId)
       .then((brief) => setPreBriefs((prev) => ({ ...prev, [selectedId]: brief })))
       .catch(() => {});
-  }, [selectedId, preBriefs]);
+  }, [selectedId, hasSelectedLedger, preBriefs]);
 
   const handleDetectAI = async () => {
     if (!selectedId) return;
@@ -192,7 +191,7 @@ export default function Dashboard() {
           onChange={(key, value) => setWeights((prev) => ({ ...prev, [key]: value }))}
           onReset={() => setWeights({ ...DEFAULT_WEIGHTS })}
         />
-        <FairnessAudit ledgers={cohortLedgers} />
+        <FairnessAudit ledgers={cohortLedgers ?? []} />
 
         {error && (
           <div className="mb-5 p-4 bg-red-500/10 text-red-400 rounded-2xl text-base border border-red-500/20">{error}</div>
@@ -244,10 +243,10 @@ export default function Dashboard() {
           candidate={selected.candidate}
           scorer={scorer}
           score={scoreOf(selected)}
-          ledger={ledgers[selected.candidate.id]}
+          ledger={selectedLedger}
           preBrief={preBriefs[selected.candidate.id]}
-          ledgerError={ledgerErrors[selected.candidate.id] ?? null}
-          ledgerMissing={Boolean(missingLedgers[selected.candidate.id])}
+          ledgerError={ledgerListError}
+          ledgerMissing={cohortLedgers !== null && !ledgerListError && !selectedLedger}
           aiDetection={aiDetections[selected.candidate.id] || null}
           feynmanScore={feynmanScores[selected.candidate.id] || null}
           videoAnalysis={videoAnalyses[selected.candidate.id] || null}
