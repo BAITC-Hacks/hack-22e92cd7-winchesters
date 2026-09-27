@@ -31,22 +31,22 @@ export function GrowthMap({ ledger }: GrowthMapProps) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border-2 border-dashed border-[#969696] px-4 py-3 text-sm text-[#5d5d5d]">
+      <div className="rounded-xl border-2 border-dashed border-ink-3 px-4 py-3 text-sm text-ink-2">
         Draft from the ledger, not released. The applicant sees nothing until CAND-02 generates the text in
         Kazakh, Russian and English and a committee member approves it. Wounded leadership is never shown.
       </div>
 
       <section data-slot="growth-strengths">
-        <h4 className="text-sm font-semibold text-[#141414] uppercase tracking-wider mb-2">What we saw you do</h4>
+        <h4 className="text-sm font-semibold text-ink uppercase tracking-wider mb-2">What we saw you do</h4>
         {strengths.length > 0 ? (
           strengths.map(({ competency, item }, i) => (
             <div key={i} className="mb-3">
-              <p className="text-xs text-[#969696]">{COMPETENCY_LABELS[competency]}</p>
+              <p className="text-xs text-ink-3">{COMPETENCY_LABELS[competency]}</p>
               <EvidenceQuote item={item} showAtola={false} />
             </div>
           ))
         ) : (
-          <p className="text-sm text-[#969696] italic">Nothing to quote yet.</p>
+          <p className="text-sm text-ink-3 italic">Nothing to quote yet.</p>
         )}
       </section>
 
@@ -80,12 +80,12 @@ function GrowthList({
   if (competencies.length === 0) return null;
   return (
     <section data-slot={slot}>
-      <h4 className="text-sm font-semibold text-[#141414] uppercase tracking-wider mb-2">{title}</h4>
+      <h4 className="text-sm font-semibold text-ink uppercase tracking-wider mb-2">{title}</h4>
       <ul className="space-y-2">
         {competencies.map((c) => (
-          <li key={c} className="rounded-xl bg-[#f5f5f5] px-4 py-3 text-sm">
-            <p className="font-medium text-[#141414]">{COMPETENCY_LABELS[c]}</p>
-            <p className="text-[#969696] italic">{placeholder}</p>
+          <li key={c} className="rounded-xl bg-subtle px-4 py-3 text-sm">
+            <p className="font-medium text-ink">{COMPETENCY_LABELS[c]}</p>
+            <p className="text-ink-3 italic">{placeholder}</p>
           </li>
         ))}
       </ul>

@@ -198,7 +198,7 @@ export default function Dashboard() {
           <div className="mb-5 p-4 bg-red-500/10 text-red-400 rounded-2xl text-base border border-red-500/20">{error}</div>
         )}
 
-        {loading && <div className="text-center py-14 text-gray-400 text-lg">Loading candidates...</div>}
+        {loading && <div className="text-center py-14 text-ink-3 text-lg">Loading candidates...</div>}
 
         <Toolbar
           scorer={scorer}
@@ -223,7 +223,7 @@ export default function Dashboard() {
             {rows.map((row, rowIdx) => (
               <div
                 key={rowIdx}
-                className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-5 ${rowIdx < rows.length - 1 ? "border-b-2 border-[#d7d7d7]" : ""}`}
+                className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-5 ${rowIdx < rows.length - 1 ? "border-b-2 border-line" : ""}`}
               >
                 {row.map((r) => (
                   <CandidateCard key={r.candidate.id} ranked={r} scorer={scorer} onSelect={() => setSelectedId(r.candidate.id)} />
@@ -234,7 +234,7 @@ export default function Dashboard() {
         )}
 
         {filtered.length === 0 && !loading && ranked.length > 0 && (
-          <div className="text-center py-14 text-gray-400 text-lg">No candidates match this filter.</div>
+          <div className="text-center py-14 text-ink-3 text-lg">No candidates match this filter.</div>
         )}
       </div>
 
@@ -272,16 +272,16 @@ function AiCoverageNote({ scored, total }: { scored: number; total: number | nul
   const of = total !== null ? ` of ${total}` : "";
   if (scored === 0) {
     return (
-      <div className="text-center py-14 px-6 rounded-2xl border-2 border-dashed border-[#d7d7d7] mb-4">
-        <p className="text-lg font-semibold text-[#141414]">No candidate has a stored AI score yet</p>
-        <p className="text-sm text-[#969696] mt-1">
+      <div className="text-center py-14 px-6 rounded-2xl border-2 border-dashed border-line mb-4">
+        <p className="text-lg font-semibold text-ink">No candidate has a stored AI score yet</p>
+        <p className="text-sm text-ink-3 mt-1">
           Only successful scoring runs are ranked. Candidates without one are left out rather than shown as zero.
         </p>
       </div>
     );
   }
   return (
-    <p className="mb-2 text-sm text-[#5d5d5d]">
+    <p className="mb-2 text-sm text-ink-2">
       AI score stored for {scored}
       {of} candidates. The rest have no successful run yet and are not ranked; that is not a low score.
     </p>

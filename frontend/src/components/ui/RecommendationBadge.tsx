@@ -9,12 +9,12 @@ import type { CandidateScore } from "@/lib/types";
 import { Badge } from "./Badge";
 
 const TAG_STYLES = {
-  recommend: "bg-[#c1f11d] text-[#141414]",
-  consider: "bg-[#eae9e9] text-[#141414]",
+  recommend: "bg-accent text-ink",
+  consider: "bg-muted text-ink",
   needs_attention: "bg-red-100 text-red-700",
-  complete: "bg-[#eae9e9] text-[#141414]",
-  partial: "bg-[#eae9e9] text-[#141414]",
-  sparse: "bg-[#eae9e9] text-[#141414]",
+  complete: "bg-muted text-ink",
+  partial: "bg-muted text-ink",
+  sparse: "bg-muted text-ink",
 } as const;
 
 /**

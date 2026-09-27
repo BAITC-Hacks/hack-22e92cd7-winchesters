@@ -34,7 +34,7 @@ export function Toolbar({
   const totalPages = Math.ceil(total / pageSize);
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px", backgroundColor: "#fff", borderRadius: "20px", border: "2px solid #d7d7d7", padding: "10px 14px" }}>
-      <div role="radiogroup" aria-label="Scorer" className="flex shrink-0 rounded-[10px] bg-[#eae9e9] p-1 gap-1">
+      <div role="radiogroup" aria-label="Scorer" className="flex shrink-0 rounded-[10px] bg-muted p-1 gap-1">
         {(
           [
             ["baseline", "Completeness"],
@@ -46,7 +46,7 @@ export function Toolbar({
             role="radio"
             aria-checked={scorer === key}
             onClick={() => onScorerChange(key)}
-            className={`px-3 py-1.5 rounded-[8px] text-[13px] font-semibold ${scorer === key ? "bg-[#141414] text-[#c1f11d]" : "text-[#141414]"}`}
+            className={`px-3 py-1.5 rounded-[8px] text-[13px] font-semibold ${scorer === key ? "bg-ink text-accent" : "text-ink"}`}
           >
             {label}
           </button>

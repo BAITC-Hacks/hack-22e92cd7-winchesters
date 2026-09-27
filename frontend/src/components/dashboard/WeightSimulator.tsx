@@ -19,7 +19,7 @@ export function WeightSimulator({
       title="Evaluation Settings"
       badge={
         !isDefault && (
-          <span className="text-xs bg-[#c1f11d] text-[#141414] px-2.5 py-1 rounded-full font-medium">Custom weights active</span>
+          <span className="text-xs bg-accent text-ink px-2.5 py-1 rounded-full font-medium">Custom weights active</span>
         )
       }
     >
@@ -36,7 +36,7 @@ export function WeightSimulator({
               max={50}
               value={Math.round(weights[key] * 100)}
               onChange={(e) => onChange(key, parseInt(e.target.value) / 100)}
-              className="flex-1 h-2 accent-[#c1f11d]"
+              className="flex-1 h-2 accent-accent"
             />
             <span style={{ fontSize: "14px", fontFamily: "monospace", color: "#333", width: "48px", textAlign: "right" }}>
               {Math.round(weights[key] * 100)}%

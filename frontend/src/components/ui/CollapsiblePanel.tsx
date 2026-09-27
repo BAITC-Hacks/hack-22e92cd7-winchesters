@@ -30,7 +30,7 @@ export function CollapsiblePanel({
           <span style={{ fontSize: "18px", fontWeight: 600, color: "#141414" }}>{title}</span>
           {badge}
         </div>
-        <span className="text-gray-400 text-sm">{open ? "−" : "+"}</span>
+        <span className="text-ink-3 text-sm">{open ? "−" : "+"}</span>
       </button>
       {open && <div style={{ padding: "20px 24px 24px", borderTop: "1px solid #ddd" }}>{children}</div>}
     </div>

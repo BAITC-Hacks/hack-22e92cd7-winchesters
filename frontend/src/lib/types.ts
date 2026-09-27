@@ -169,6 +169,14 @@ export type VideoAnalysis = {
 
 export const LEDGER_SCHEMA_VERSION = "led-03.1";
 
+/** GET /api/ledger/rubric: the rubric ledgers are built under (LED-13). */
+export type RubricStatus = {
+  version: string;
+  content_hash: string;
+  locked: boolean;
+  competencies: { competency: string; label: string; provisional: boolean; ai_may_rate: boolean }[];
+};
+
 export const COMPETENCIES = [
   "motivation_university",
   "motivation_major",

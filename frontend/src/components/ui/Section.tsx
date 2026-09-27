@@ -4,8 +4,8 @@ import type { ReactNode } from "react";
 export function Section({ title, children }: { title: ReactNode; children: ReactNode }) {
   return (
     <section>
-      <h3 className="text-base font-semibold text-[#141414] uppercase tracking-wider mb-3 flex items-center gap-3">
-        <span className="w-1.5 h-5 bg-[#c1f11d] rounded-full inline-block" />
+      <h3 className="text-base font-semibold text-ink uppercase tracking-wider mb-3 flex items-center gap-3">
+        <span className="w-1.5 h-5 bg-accent rounded-full inline-block" />
         {title}
       </h3>
       {children}

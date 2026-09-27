@@ -1,30 +1,52 @@
 @import "tailwindcss";
 
+/* Design tokens. Components use these names (text-ink, bg-accent, border-line…),
+   never raw hex, so the palette changes in one place. */
 :root {
-  --background: #f9fafb;
-  --foreground: #111827;
-  --primary: #4f46e5;
-  --primary-light: #818cf8;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
+  --ink: #141414;          /* primary text, dark surfaces */
+  --ink-2: #5d5d5d;        /* secondary text */
+  --ink-3: #969696;        /* tertiary text, captions */
+  --line: #d7d7d7;         /* borders and dividers */
+  --line-soft: #ebebeb;    /* hairlines inside cards */
+  --muted: #eae9e9;        /* neutral fills: chips, tracks, inputs */
+  --subtle: #f6f6f5;       /* quiet panels on white */
+  --surface: #ffffff;
+  --canvas: #f9fafb;       /* page background */
+  --accent: #c1f11d;       /* brand lime: primary action, "high" */
+  --accent-strong: #b8d900;
+  --accent-soft: #eff8b7;
+  --accent-ink: #3d4f00;   /* text on accent-soft */
+  --danger: #8b1e1e;
+  --danger-soft: #fef2f2;
+  --warn-ink: #6b4b00;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --color-primary-light: var(--primary-light);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
+  --color-background: var(--canvas);
+  --color-foreground: var(--ink);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-surface: var(--surface);
+  --color-canvas: var(--canvas);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
   --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warn-ink: var(--warn-ink);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--canvas);
+  color: var(--ink);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 

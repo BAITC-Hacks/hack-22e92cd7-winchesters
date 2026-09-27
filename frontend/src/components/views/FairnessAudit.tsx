@@ -36,14 +36,14 @@ export function FairnessAudit({ ledgers }: FairnessAuditProps) {
       <div className="space-y-6">
         <div className="flex flex-col gap-3 border-b border-[#eee] pb-4 sm:flex-row sm:items-start sm:justify-between" data-mode={mode}>
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#141414]">Committee view</p>
-            <p className="mt-1 text-xs leading-relaxed text-[#5d5d5d]">
+            <p className="text-xs font-semibold uppercase tracking-wider text-ink">Committee view</p>
+            <p className="mt-1 text-xs leading-relaxed text-ink-2">
               {mode === "blind"
                 ? "Candidate context is hidden while reviewing evidence."
                 : "Context is visible for fairness review only; it is excluded from scoring."}
             </p>
           </div>
-          <div className="flex shrink-0 self-start rounded-[10px] bg-[#eae9e9] p-1 gap-1" role="radiogroup" aria-label="Fairness audit view">
+          <div className="flex shrink-0 self-start rounded-[10px] bg-muted p-1 gap-1" role="radiogroup" aria-label="Fairness audit view">
             {(["blind", "informed"] as const).map((viewMode) => (
               <button
                 key={viewMode}
@@ -51,7 +51,7 @@ export function FairnessAudit({ ledgers }: FairnessAuditProps) {
                 role="radio"
                 aria-checked={mode === viewMode}
                 onClick={() => setMode(viewMode)}
-                className={`px-3 py-1.5 rounded-[8px] text-[13px] font-semibold capitalize ${mode === viewMode ? "bg-[#141414] text-[#c1f11d]" : "text-[#141414]"}`}
+                className={`px-3 py-1.5 rounded-[8px] text-[13px] font-semibold capitalize ${mode === viewMode ? "bg-ink text-accent" : "text-ink"}`}
               >
                 {viewMode}
               </button>
@@ -60,7 +60,7 @@ export function FairnessAudit({ ledgers }: FairnessAuditProps) {
         </div>
 
         <div
-          className={`border px-3 py-2.5 text-xs leading-relaxed ${mode === "blind" ? "border-[#d7d7d7] bg-[#f5f5f5] text-[#5d5d5d]" : "border-[#c1f11d] bg-[#f7fbdc] text-[#3d4f00]"}`}
+          className={`border px-3 py-2.5 text-xs leading-relaxed ${mode === "blind" ? "border-line bg-subtle text-ink-2" : "border-accent bg-[#f7fbdc] text-accent-ink"}`}
           data-slot="context-strip"
           role="status"
         >
@@ -113,10 +113,10 @@ function LedgerHealth({ ledgers }: { ledgers: CandidateLedger[] }) {
   ];
   return (
     <section>
-      <h4 className="text-sm font-semibold text-[#141414] uppercase tracking-wider mb-1">
+      <h4 className="text-sm font-semibold text-ink uppercase tracking-wider mb-1">
         Ledger health
       </h4>
-      <p className="text-xs text-[#969696] mb-3">
+      <p className="text-xs text-ink-3 mb-3">
         {s.ledgers} ledger{s.ledgers === 1 ? "" : "s"} × 9 competencies. Until
         LED-11 this is the LED-03 fixture.
       </p>
@@ -124,7 +124,7 @@ function LedgerHealth({ ledgers }: { ledgers: CandidateLedger[] }) {
         {STATE_ORDER.map((state) => (
           <div key={state} className="flex items-center gap-2">
             <LevelChip state={state} small />
-            <span className="font-mono text-sm text-[#141414]">
+            <span className="font-mono text-sm text-ink">
               {s.competencyStates[state]}
             </span>
           </div>
@@ -136,9 +136,9 @@ function LedgerHealth({ ledgers }: { ledgers: CandidateLedger[] }) {
             key={label}
             className="flex justify-between border-b border-[#eee] py-1"
           >
-            <dt className="text-[#5d5d5d]">{label}</dt>
-            <dd className="font-mono text-[#141414]">
-              {value} <span className="text-[#969696]">{of}</span>
+            <dt className="text-ink-2">{label}</dt>
+            <dd className="font-mono text-ink">
+              {value} <span className="text-ink-3">{of}</span>
             </dd>
           </div>
         ))}

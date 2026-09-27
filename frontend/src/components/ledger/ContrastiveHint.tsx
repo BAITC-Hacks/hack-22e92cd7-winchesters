@@ -7,8 +7,8 @@
 export function ContrastiveHint({ text }: { text: string }) {
   if (!text) return null;
   return (
-    <details data-slot="contrastive" className="text-xs text-[#5d5d5d]">
-      <summary className="cursor-pointer select-none text-[#969696] hover:text-[#141414]">Next level?</summary>
+    <details data-slot="contrastive" className="text-xs text-ink-2">
+      <summary className="cursor-pointer select-none text-ink-3 hover:text-ink">Next level?</summary>
       <p className="mt-1 max-w-prose">{text}</p>
     </details>
   );

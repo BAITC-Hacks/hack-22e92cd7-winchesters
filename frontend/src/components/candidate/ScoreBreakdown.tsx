@@ -8,13 +8,13 @@ export function ScoreBreakdown({ score, scorer }: { score: CandidateScore; score
   return (
     <Section title={scorer === "baseline" ? "File Completeness (BASELINE)" : `Score Breakdown (${score.scorer_type.toUpperCase()})`}>
       <div className="flex items-center gap-4 mb-4">
-        <span className="text-4xl font-bold text-[#141414]">{score.overall_score.toFixed(1)}</span>
+        <span className="text-4xl font-bold text-ink">{score.overall_score.toFixed(1)}</span>
         <RecommendationBadge score={score} scorer={scorer} />
       </div>
       {/* The insight compares dimensions as judgements of the applicant; on the
           baseline they only measure how much material exists, so it is AI-only. */}
       {scorer === "ai" && score.dimensions.length > 0 && <AiInsight score={score} />}
-      {score.summary && <p className="text-base text-gray-600 mb-4">{score.summary}</p>}
+      {score.summary && <p className="text-base text-ink-2 mb-4">{score.summary}</p>}
       <div className="space-y-2">
         {score.dimensions.map((d) => (
           <DimensionDetail key={d.dimension} dim={d} weight={DEFAULT_WEIGHTS[d.dimension] ?? 0} />
@@ -39,10 +39,10 @@ function AiInsight({ score }: { score: CandidateScore }) {
   return (
     <DarkPanel className="mb-4">
       <div className="flex items-center gap-2 mb-2">
-        <span className="w-1.5 h-5 bg-[#c1f11d] rounded-full inline-block" />
-        <span className="text-sm font-semibold text-[#c1f11d]">AI Insight</span>
+        <span className="w-1.5 h-5 bg-accent rounded-full inline-block" />
+        <span className="text-sm font-semibold text-accent">AI Insight</span>
       </div>
-      <p className="text-sm text-gray-300 leading-relaxed">
+      <p className="text-sm text-ink-3 leading-relaxed">
         Strong signal in <span className="text-white font-medium">{highLabel}</span> ({highest.score.toFixed(0)}).{" "}
         Traditional screening would miss {missExplanation}.
       </p>

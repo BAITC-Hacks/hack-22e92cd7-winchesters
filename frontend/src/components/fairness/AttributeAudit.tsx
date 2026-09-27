@@ -36,9 +36,9 @@ const STATE_TEXT: Record<AuditState, string> = {
 };
 
 const STATE_BADGE: Record<AuditState, string> = {
-  ok: "bg-[#eef9d0] text-[#3d4f00] border-[#9cc20f]",
+  ok: "bg-[#eef9d0] text-accent-ink border-[#9cc20f]",
   review_needed: "bg-amber-50 text-amber-800 border-amber-400",
-  not_enough_data: "bg-white text-[#5d5d5d] border-dashed border-[#969696]",
+  not_enough_data: "bg-white text-ink-2 border-dashed border-ink-3",
 };
 
 const STATE_MARK: Record<AuditState, string> = {
@@ -88,18 +88,18 @@ export function AttributeAudit() {
   );
   const undeclared = report?.dimensions.find((d) => d.dimension === dimension)?.undeclared ?? 0;
 
-  if (error) return <p className="text-sm text-[#5d5d5d]">{error}</p>;
-  if (!report || !competency) return <p className="text-sm text-[#969696]">Loading the attribute audit…</p>;
+  if (error) return <p className="text-sm text-ink-2">{error}</p>;
+  if (!report || !competency) return <p className="text-sm text-ink-3">Loading the attribute audit…</p>;
 
   const threshold = report.method.review_threshold;
 
   return (
     <section className="space-y-4">
       <div>
-        <h4 className="text-sm font-semibold text-[#141414] uppercase tracking-wider mb-1">
+        <h4 className="text-sm font-semibold text-ink uppercase tracking-wider mb-1">
           Attribute-grouped audit
         </h4>
-        <p className="text-xs text-[#5d5d5d]">
+        <p className="text-xs text-ink-2">
           Share of each group rated <strong>High</strong>, against the best group with enough data. Levels are counted,
           never averaged. {threshold} is a line for human review, not a pass mark or proof of fairness.
         </p>
@@ -128,12 +128,12 @@ export function AttributeAudit() {
       )}
 
       <div className="flex flex-wrap gap-3 items-end">
-        <label className="text-xs text-[#5d5d5d] flex flex-col gap-1">
+        <label className="text-xs text-ink-2 flex flex-col gap-1">
           Competency
           <select
             value={competency}
             onChange={(e) => setCompetency(e.target.value as Competency)}
-            className="border border-[#d7d7d7] rounded-lg px-2 py-1.5 text-sm text-[#141414] bg-white"
+            className="border border-line rounded-lg px-2 py-1.5 text-sm text-ink bg-white"
           >
             {report.competencies.map((c) => (
               <option key={c} value={c}>
@@ -151,8 +151,8 @@ export function AttributeAudit() {
               onClick={() => setDimension(d.dimension)}
               className={`px-3 py-1.5 rounded-full text-xs border ${
                 d.dimension === dimension
-                  ? "bg-[#141414] text-white border-[#141414]"
-                  : "bg-white text-[#5d5d5d] border-[#d7d7d7] hover:border-[#969696]"
+                  ? "bg-ink text-white border-ink"
+                  : "bg-white text-ink-2 border-line hover:border-ink-3"
               }`}
             >
               {DIMENSION_LABELS[d.dimension] ?? d.dimension}
@@ -162,12 +162,12 @@ export function AttributeAudit() {
       </div>
 
       {!cell || cell.groups.length === 0 ? (
-        <p className="text-sm text-[#5d5d5d]">No applicant has both a declared value and a level here yet.</p>
+        <p className="text-sm text-ink-2">No applicant has both a declared value and a level here yet.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[760px]">
             <thead>
-              <tr className="text-left text-xs text-[#969696] uppercase tracking-wider border-b border-[#eee]">
+              <tr className="text-left text-xs text-ink-3 uppercase tracking-wider border-b border-[#eee]">
                 <th className="py-2 pr-3 font-medium">Group</th>
                 <th className="py-2 pr-3 font-medium text-right">n</th>
                 <th className="py-2 pr-3 font-medium w-40">Levels</th>
@@ -186,25 +186,25 @@ export function AttributeAudit() {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#5d5d5d]">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-2">
         {LEVEL_ORDER.map((level) => (
           <span key={level} className="flex items-center gap-1.5">
-            <span className="inline-block w-3 h-3 rounded-sm border border-[#d7d7d7]" style={LEVEL_FILL[level]} />
+            <span className="inline-block w-3 h-3 rounded-sm border border-line" style={LEVEL_FILL[level]} />
             {STATE_LABELS[level]}
           </span>
         ))}
         {undeclared > 0 && <span>· {undeclared} applicant{undeclared === 1 ? "" : "s"} did not declare this</span>}
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-[#eee] pt-3 text-xs text-[#5d5d5d]">
-        <span className="font-semibold text-[#141414]">Impact ratio</span>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-[#eee] pt-3 text-xs text-ink-2">
+        <span className="font-semibold text-ink">Impact ratio</span>
         <span>dot = ratio</span>
         <span>whisker = 95% CI</span>
         <span className="border-l-2 border-dashed border-amber-500 pl-2">review line = {threshold.toFixed(2)}</span>
         <span>axis: 0 to 2.00</span>
       </div>
 
-      <p className="text-xs text-[#969696] leading-relaxed">
+      <p className="text-xs text-ink-3 leading-relaxed">
         Not enough data: n &lt; {report.method.min_group_n} or under {percent(report.method.min_group_share)} of the pool
         (rates still shown). Review needed: ratio below {threshold}, or its interval reaches below it. Interval:{" "}
         {report.method.interval}, seed {report.method.bootstrap_seed}. Input sha256{" "}
@@ -218,15 +218,15 @@ export function AttributeAudit() {
 function GroupRow({ g, label, threshold }: { g: AuditGroup; label: string; threshold: number }) {
   const dimmed = g.state === "not_enough_data";
   return (
-    <tr data-state={g.state} className={`border-b border-[#f3f3f3] ${dimmed ? "text-[#969696]" : "text-[#141414]"}`}>
+    <tr data-state={g.state} className={`border-b border-[#f3f3f3] ${dimmed ? "text-ink-3" : "text-ink"}`}>
       <td className="py-2 pr-3 capitalize">
         {label}
-        {g.is_reference && <span className="ml-1.5 text-[10px] uppercase tracking-wider text-[#969696]">reference</span>}
+        {g.is_reference && <span className="ml-1.5 text-[10px] uppercase tracking-wider text-ink-3">reference</span>}
       </td>
       <td className="py-2 pr-3 text-right font-mono">{g.n}</td>
       <td className="py-2 pr-3">
         <div
-          className="flex h-3 w-36 rounded-sm overflow-hidden border border-[#e5e5e5]"
+          className="flex h-3 w-36 rounded-sm overflow-hidden border border-line-soft"
           title={LEVEL_ORDER.map((l) => `${STATE_LABELS[l]}: ${g.levels[l]}`).join(" · ")}
         >
           {LEVEL_ORDER.map((l) =>
@@ -235,10 +235,10 @@ function GroupRow({ g, label, threshold }: { g: AuditGroup; label: string; thres
         </div>
       </td>
       <td className="py-2 pr-3 text-right font-mono">
-        {percent(g.high_rate)} <span className="text-xs text-[#969696]">(n={g.n})</span>
+        {percent(g.high_rate)} <span className="text-xs text-ink-3">(n={g.n})</span>
       </td>
       <td className="py-2 pr-3 text-right font-mono">
-        {percent(g.no_evidence_rate)} <span className="text-xs text-[#969696]">(n={g.n})</span>
+        {percent(g.no_evidence_rate)} <span className="text-xs text-ink-3">(n={g.n})</span>
       </td>
       <td className="py-2 pr-3">
         <RatioBar g={g} threshold={threshold} />
@@ -248,7 +248,7 @@ function GroupRow({ g, label, threshold }: { g: AuditGroup; label: string; thres
           {STATE_TEXT[g.state]}
         </span>
         {g.review_reason && (
-          <span className="block text-[10px] text-[#969696] mt-0.5">
+          <span className="block text-[10px] text-ink-3 mt-0.5">
             {g.review_reason === "below_threshold" ? `ratio below ${threshold}` : `interval crosses ${threshold}`}
           </span>
         )}
@@ -258,7 +258,7 @@ function GroupRow({ g, label, threshold }: { g: AuditGroup; label: string; thres
 }
 
 function RatioBar({ g, threshold }: { g: AuditGroup; threshold: number }) {
-  if (g.impact_ratio === null) return <span className="text-xs text-[#969696]">—</span>;
+  if (g.impact_ratio === null) return <span className="text-xs text-ink-3">—</span>;
   const color = STATE_MARK[g.state];
   const ci = g.ci_low !== null && g.ci_high !== null ? `${g.ci_low.toFixed(2)}–${g.ci_high.toFixed(2)}` : "—";
   return (
@@ -268,7 +268,7 @@ function RatioBar({ g, threshold }: { g: AuditGroup; threshold: number }) {
         role="img"
         aria-label={`Impact ratio ${g.impact_ratio.toFixed(2)}, 95% confidence interval ${ci}, review line ${threshold.toFixed(2)}`}
       >
-        <div className="absolute inset-y-[7px] inset-x-0 bg-[#f0f0f0] rounded" />
+        <div className="absolute inset-y-[7px] inset-x-0 bg-line-soft rounded" />
         <div className="absolute inset-y-0 w-px bg-[#c9c9c9]" style={{ left: pct(1) }} />
         <div className="absolute inset-y-[-2px] border-l-2 border-dashed border-amber-500" style={{ left: pct(threshold) }} />
         {g.ci_low !== null && g.ci_high !== null && (
@@ -287,7 +287,7 @@ function RatioBar({ g, threshold }: { g: AuditGroup; threshold: number }) {
         />
       </div>
       <span className="font-mono text-xs whitespace-nowrap">
-        {g.impact_ratio.toFixed(2)} <span className="text-[#969696]">[{ci}]</span>
+        {g.impact_ratio.toFixed(2)} <span className="text-ink-3">[{ci}]</span>
       </span>
     </div>
   );

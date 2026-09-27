@@ -11,7 +11,7 @@ import { STATE_LABELS } from "./labels";
 // override cannot be sent without a reason code.
 
 const FIELD =
-  "border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:border-[#c1f11d] focus:ring-1 focus:ring-[#c1f11d] outline-none";
+  "border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:border-accent focus:ring-1 focus:ring-accent outline-none";
 
 /** Inline form on a competency row. Records a new override; never edits one. */
 export function OverrideForm({
@@ -54,16 +54,16 @@ export function OverrideForm({
     <fieldset
       disabled={busy}
       data-slot="override-form"
-      className="mt-3 bg-[#eae9e9] rounded-2xl p-4 space-y-3 disabled:opacity-70"
+      className="mt-3 bg-muted rounded-2xl p-4 space-y-3 disabled:opacity-70"
     >
       <legend className="sr-only">Override level</legend>
       {error && (
-        <p role="alert" className="text-sm text-[#141414] bg-white border-2 border-[#141414] rounded-xl px-3 py-2">
+        <p role="alert" className="text-sm text-ink bg-white border-2 border-ink rounded-xl px-3 py-2">
           {error}
         </p>
       )}
       <div className="flex flex-wrap gap-3">
-        <label className="flex flex-col gap-1 text-xs text-[#5d5d5d]">
+        <label className="flex flex-col gap-1 text-xs text-ink-2">
           New level
           <select className={FIELD} value={toLevel} onChange={(e) => setToLevel(e.target.value as Level | "")}>
             <option value="">Select level...</option>
@@ -75,7 +75,7 @@ export function OverrideForm({
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-xs text-[#5d5d5d] flex-1 min-w-[14rem]">
+        <label className="flex flex-col gap-1 text-xs text-ink-2 flex-1 min-w-[14rem]">
           Reason code (required)
           <select
             className={FIELD}
@@ -92,7 +92,7 @@ export function OverrideForm({
           </select>
         </label>
       </div>
-      <label className="flex flex-col gap-1 text-xs text-[#5d5d5d]">
+      <label className="flex flex-col gap-1 text-xs text-ink-2">
         Note{noteRequired ? " (required for this reason)" : " (optional)"}
         <input
           type="text"
@@ -105,16 +105,16 @@ export function OverrideForm({
       </label>
       <div className="flex gap-2">
         <button
-          className="px-4 py-2 bg-[#c1f11d] text-[#141414] rounded-xl text-sm font-semibold hover:scale-105 transition-transform"
+          className="px-4 py-2 bg-accent text-ink rounded-xl text-sm font-semibold hover:scale-105 transition-transform"
           onClick={submit}
         >
           {busy ? "Recording..." : "Record override"}
         </button>
-        <button className="px-4 py-2 rounded-xl text-sm text-[#5d5d5d] hover:text-[#141414]" onClick={onDone}>
+        <button className="px-4 py-2 rounded-xl text-sm text-ink-2 hover:text-ink" onClick={onDone}>
           Cancel
         </button>
       </div>
-      <p className="text-xs text-[#969696]">
+      <p className="text-xs text-ink-3">
         Overrides are append-only: the AI level stays on the card, and a later change is a new entry.
       </p>
     </fieldset>
@@ -128,21 +128,21 @@ export function OverrideHistory({ entries, reasonCodes }: { entries: OverrideEnt
   const labelOf = (code: string | null) =>
     code ? (reasonCodes.find((r) => r.code === code)?.label ?? code) : "No reason code";
   return (
-    <ol data-slot="override-history" className="mt-3 space-y-2 border-l-2 border-[#d7d7d7] pl-3">
+    <ol data-slot="override-history" className="mt-3 space-y-2 border-l-2 border-line pl-3">
       {entries.map((o) => (
         <li key={o.id} className="text-sm">
           <div className="flex flex-wrap items-center gap-2">
             {o.from_level ? (
               <LevelChip state={o.from_level} small />
             ) : (
-              <span className="text-xs text-[#969696]">No AI level</span>
+              <span className="text-xs text-ink-3">No AI level</span>
             )}
-            <span className="text-[#969696]">→</span>
+            <span className="text-ink-3">→</span>
             <LevelChip state={o.to_level} small />
-            <span className="text-[#141414] font-medium">{labelOf(o.reason_code)}</span>
+            <span className="text-ink font-medium">{labelOf(o.reason_code)}</span>
           </div>
-          {o.note && <p className="text-[#5d5d5d] mt-0.5">“{o.note}”</p>}
-          <p className="text-xs text-[#969696] mt-0.5">
+          {o.note && <p className="text-ink-2 mt-0.5">“{o.note}”</p>}
+          <p className="text-xs text-ink-3 mt-0.5">
             {o.author.full_name || "Unknown user"} ({o.author.role || "?"}) · {when(o.created_at)}
           </p>
         </li>

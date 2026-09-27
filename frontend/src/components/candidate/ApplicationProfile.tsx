@@ -10,10 +10,10 @@ export function ApplicationProfile({ candidate: c }: { candidate: Candidate }) {
       <Section title="Education">
         <div className="grid grid-cols-2 gap-3 text-base">
           <div>
-            <span className="text-gray-500">School:</span> {app.education.school_type}
+            <span className="text-ink-2">School:</span> {app.education.school_type}
           </div>
           <div>
-            <span className="text-gray-500">GPA:</span> {app.education.gpa}/4.0
+            <span className="text-ink-2">GPA:</span> {app.education.gpa}/4.0
           </div>
         </div>
         {app.education.academic_achievements.length > 0 && (
@@ -31,9 +31,9 @@ export function ApplicationProfile({ candidate: c }: { candidate: Candidate }) {
             {app.extracurriculars.map((ec, i) => (
               <div key={i} className="flex justify-between">
                 <span>
-                  {ec.activity} <span className="text-gray-400">({ec.role})</span>
+                  {ec.activity} <span className="text-ink-3">({ec.role})</span>
                 </span>
-                <span className="text-gray-400">{ec.duration_months} mo</span>
+                <span className="text-ink-3">{ec.duration_months} mo</span>
               </div>
             ))}
           </div>
@@ -45,9 +45,9 @@ export function ApplicationProfile({ candidate: c }: { candidate: Candidate }) {
           {app.projects.map((p, i) => (
             <div key={i} className="mb-3 text-base">
               <p className="font-medium">
-                {p.name} <span className="text-gray-400">({p.role})</span>
+                {p.name} <span className="text-ink-3">({p.role})</span>
               </p>
-              {p.impact && <p className="text-gray-500 text-sm">{p.impact}</p>}
+              {p.impact && <p className="text-ink-2 text-sm">{p.impact}</p>}
             </div>
           ))}
         </Section>
@@ -65,17 +65,17 @@ export function ApplicationProfile({ candidate: c }: { candidate: Candidate }) {
       </Section>
 
       <Section title="Essay">
-        <p className="text-sm text-gray-400 mb-2">
+        <p className="text-sm text-ink-3 mb-2">
           Prompt: &ldquo;{c.essay.prompt}&rdquo; &middot; {c.essay.word_count} words
         </p>
-        <div className="bg-[#eae9e9] rounded-2xl p-5 text-base whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto">
+        <div className="bg-muted rounded-2xl p-5 text-base whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto">
           {c.essay.text}
         </div>
       </Section>
 
       {c.interview_transcript && (
         <Section title="Interview Transcript">
-          <div className="bg-[#eae9e9] rounded-2xl p-5 text-base whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
+          <div className="bg-muted rounded-2xl p-5 text-base whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
             {c.interview_transcript}
           </div>
         </Section>
@@ -83,7 +83,7 @@ export function ApplicationProfile({ candidate: c }: { candidate: Candidate }) {
 
       {c.recommendation_summary && (
         <Section title="Recommendation">
-          <div className="bg-[#eae9e9] rounded-2xl p-5 text-base">{c.recommendation_summary}</div>
+          <div className="bg-muted rounded-2xl p-5 text-base">{c.recommendation_summary}</div>
         </Section>
       )}
     </>

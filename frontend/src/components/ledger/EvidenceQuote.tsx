@@ -4,7 +4,7 @@ import { ATOLA_LABELS, EVIDENCE_STATUS_LABELS, SOURCE_LABELS } from "./labels";
 /** Slot for the indicator id (LED-06 decides how it is shown; never hidden). */
 export function IndicatorId({ id }: { id: string }) {
   return (
-    <code data-slot="indicator-id" className="text-xs font-mono text-[#5d5d5d] bg-[#f5f5f5] rounded px-1.5 py-0.5">
+    <code data-slot="indicator-id" className="text-xs font-mono text-ink-2 bg-subtle rounded px-1.5 py-0.5">
       {id}
     </code>
   );
@@ -20,18 +20,18 @@ export function EvidenceQuote({ item, showAtola = true }: { item: EvidenceItem; 
   return (
     <figure data-slot="quote" className="mb-2 last:mb-0">
       <blockquote
-        className={`border-l-2 pl-3 italic ${item.verified ? "border-[#c1f11d] text-gray-700" : "border-red-300 text-gray-400 line-through"}`}
+        className={`border-l-2 pl-3 italic ${item.verified ? "border-accent text-ink" : "border-red-300 text-ink-3 line-through"}`}
       >
         &ldquo;{item.quote}&rdquo;
       </blockquote>
-      <figcaption className="pl-3 mt-0.5 text-xs text-[#969696] flex flex-wrap gap-x-2">
+      <figcaption className="pl-3 mt-0.5 text-xs text-ink-3 flex flex-wrap gap-x-2">
         <span>
           {SOURCE_LABELS[item.source]}
           {item.source_ref && ` · ${item.source_ref}`}
           {span}
         </span>
         {showAtola && item.atola !== "none" && <span>ATOLA: {ATOLA_LABELS[item.atola]}</span>}
-        {item.status !== "present" && <span className="text-[#141414] font-medium">{EVIDENCE_STATUS_LABELS[item.status]}</span>}
+        {item.status !== "present" && <span className="text-ink font-medium">{EVIDENCE_STATUS_LABELS[item.status]}</span>}
         {!item.verified && <span className="text-red-600 font-medium">Not found in source</span>}
       </figcaption>
     </figure>

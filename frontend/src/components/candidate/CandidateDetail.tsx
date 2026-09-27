@@ -67,16 +67,16 @@ export function CandidateDetail(props: CandidateDetailProps) {
         className="relative w-full max-w-4xl max-h-[90vh] bg-white shadow-2xl overflow-y-auto"
         style={{ borderRadius: "20px", border: "2.7px solid #d7d7d7" }}
       >
-        <div className="sticky top-0 bg-white z-10 px-8 pt-5 border-b border-gray-200">
+        <div className="sticky top-0 bg-white z-10 px-8 pt-5 border-b border-line">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-[#141414]">{c.name}</h2>
-              <p className="text-base text-gray-500">
+              <h2 className="text-2xl font-bold text-ink">{c.name}</h2>
+              <p className="text-base text-ink-2">
                 {c.id} &middot; Age {c.age}
               </p>
             </div>
             <button
-              className="w-10 h-10 rounded-full bg-[#eae9e9] hover:bg-[#141414] hover:text-white text-[#141414] flex items-center justify-center text-xl transition-colors"
+              className="w-10 h-10 rounded-full bg-muted hover:bg-ink hover:text-white text-ink flex items-center justify-center text-xl transition-colors"
               onClick={onClose}
             >
               &times;
@@ -90,7 +90,7 @@ export function CandidateDetail(props: CandidateDetailProps) {
                 aria-selected={tab === t.key}
                 onClick={() => setTab(t.key)}
                 className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-[3px] transition-colors ${
-                  tab === t.key ? "border-[#c1f11d] text-[#141414]" : "border-transparent text-[#969696] hover:text-[#141414]"
+                  tab === t.key ? "border-accent text-ink" : "border-transparent text-ink-3 hover:text-ink"
                 }`}
               >
                 {t.label}
@@ -137,7 +137,7 @@ function LedgerGate({
 }: CandidateDetailProps & { render: (ledger: CandidateLedger) => ReactNode }) {
   if (ledgerMissing) {
     return (
-      <p className="p-4 bg-gray-500/5 text-gray-600 rounded-2xl text-sm border border-gray-500/20">
+      <p className="p-4 bg-gray-500/5 text-ink-2 rounded-2xl text-sm border border-gray-500/20">
         No evidence ledger has been built for this candidate yet. Nothing is scored live; the committee card appears
         once a cached run is loaded.
       </p>
@@ -146,6 +146,6 @@ function LedgerGate({
   if (ledgerError) {
     return <p className="p-4 bg-red-500/10 text-red-600 rounded-2xl text-sm border border-red-500/20">{ledgerError}</p>;
   }
-  if (!ledger) return <p className="text-center py-10 text-gray-400">Loading ledger...</p>;
+  if (!ledger) return <p className="text-center py-10 text-ink-3">Loading ledger...</p>;
   return <div className="space-y-4">{render(ledger)}</div>;
 }

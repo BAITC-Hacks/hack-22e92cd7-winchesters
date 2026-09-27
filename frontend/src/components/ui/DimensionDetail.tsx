@@ -10,14 +10,14 @@ import { ScoreBar } from "./ScoreBar";
 export function DimensionDetail({ dim, weight }: { dim: DimensionScore; weight: number }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border-b border-gray-200 last:border-0 py-3">
+    <div className="border-b border-line last:border-0 py-3">
       <button className="w-full flex items-center justify-between text-left" onClick={() => setOpen(!open)}>
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-1">
-            <span className="text-base font-medium text-gray-800">
+            <span className="text-base font-medium text-ink">
               {DIMENSION_LABELS[dim.dimension] || dim.dimension}
             </span>
-            <span className="text-xs text-gray-400">{(weight * 100).toFixed(0)}%</span>
+            <span className="text-xs text-ink-3">{(weight * 100).toFixed(0)}%</span>
             <Badge
               label={dim.confidence}
               color={dim.confidence === "high" ? "green" : dim.confidence === "medium" ? "yellow" : "red"}
@@ -25,16 +25,16 @@ export function DimensionDetail({ dim, weight }: { dim: DimensionScore; weight: 
           </div>
           <ScoreBar score={dim.score} />
         </div>
-        <span className="ml-3 text-gray-400 text-sm">{open ? "−" : "+"}</span>
+        <span className="ml-3 text-ink-3 text-sm">{open ? "−" : "+"}</span>
       </button>
       {open && (
         <div className="mt-3 pl-3 text-sm space-y-3">
-          <p className="text-gray-600">{dim.explanation}</p>
+          <p className="text-ink-2">{dim.explanation}</p>
           {dim.evidence_quotes.length > 0 && (
             <div>
-              <p className="font-medium text-gray-500 mb-1">Evidence:</p>
+              <p className="font-medium text-ink-2 mb-1">Evidence:</p>
               {dim.evidence_quotes.map((q, i) => (
-                <blockquote key={i} className="border-l-2 border-[#c1f11d] pl-3 text-gray-500 italic mb-1">
+                <blockquote key={i} className="border-l-2 border-accent pl-3 text-ink-2 italic mb-1">
                   &ldquo;{q}&rdquo;
                 </blockquote>
               ))}
@@ -42,8 +42,8 @@ export function DimensionDetail({ dim, weight }: { dim: DimensionScore; weight: 
           )}
           {dim.positive_factors.length > 0 && (
             <div>
-              <p className="font-medium text-[#141414] mb-1">Strengths:</p>
-              <ul className="list-disc list-inside text-gray-600">
+              <p className="font-medium text-ink mb-1">Strengths:</p>
+              <ul className="list-disc list-inside text-ink-2">
                 {dim.positive_factors.map((f, i) => (
                   <li key={i}>{f}</li>
                 ))}
@@ -53,7 +53,7 @@ export function DimensionDetail({ dim, weight }: { dim: DimensionScore; weight: 
           {dim.concerns.length > 0 && (
             <div>
               <p className="font-medium text-red-600 mb-1">Concerns:</p>
-              <ul className="list-disc list-inside text-gray-600">
+              <ul className="list-disc list-inside text-ink-2">
                 {dim.concerns.map((c, i) => (
                   <li key={i}>{c}</li>
                 ))}

@@ -16,11 +16,11 @@ export function FeynmanPanel({ score }: { score: FeynmanScore }) {
       <DarkPanel className="space-y-3 text-sm">
         {rows.map(([label, value]) => (
           <div key={label} className="flex items-center gap-3">
-            <span className="text-gray-300 w-28">{label}</span>
+            <span className="text-ink-3 w-28">{label}</span>
             <ScoreBar score={value} dark />
           </div>
         ))}
-        <p className="text-gray-400 mt-3">{score.summary}</p>
+        <p className="text-ink-3 mt-3">{score.summary}</p>
       </DarkPanel>
     </Section>
   );

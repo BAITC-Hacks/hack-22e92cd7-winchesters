@@ -1,11 +1,11 @@
 export type BadgeColor = "green" | "yellow" | "red" | "blue" | "gray";
 
 const COLORS: Record<BadgeColor, string> = {
-  green: "bg-[#c1f11d] text-[#141414]",
-  yellow: "bg-[#eae9e9] text-[#141414]",
-  red: "bg-[#eae9e9] text-[#141414]",
-  blue: "bg-[#141414] text-white",
-  gray: "bg-[#eae9e9] text-[#141414]",
+  green: "bg-accent text-ink",
+  yellow: "bg-muted text-ink",
+  red: "bg-muted text-ink",
+  blue: "bg-ink text-white",
+  gray: "bg-muted text-ink",
 };
 
 export function Badge({ label, color }: { label: string; color: BadgeColor }) {

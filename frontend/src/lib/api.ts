@@ -1,6 +1,7 @@
 import type {
   Candidate,
   CandidateLedger,
+  RubricStatus,
   InterviewerPreBrief,
   CandidateScore,
   CounterfactualProbeResult,
@@ -178,6 +179,7 @@ export const api = {
       parseLedger(await fetchJSON<unknown>(`/api/ledger/${encodeURIComponent(candidateId)}`)),
     list: async (): Promise<CandidateLedger[]> =>
       (await fetchJSON<unknown[]>("/api/ledger")).map(parseLedger),
+    rubric: () => fetchJSON<RubricStatus>("/api/ledger/rubric"),
   },
   feynman: {
     score: <T>(candidateId: string) =>

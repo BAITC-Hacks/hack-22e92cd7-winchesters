@@ -23,34 +23,34 @@ export function InterviewerBrief({ ledger, preBrief }: InterviewerBriefProps) {
 
   return (
     <div className="space-y-6 print:space-y-3">
-      <div className="rounded-xl bg-[#141414] text-white px-4 py-3 text-sm">
+      <div className="rounded-xl bg-ink text-white px-4 py-3 text-sm">
         Do not name the competency aloud. Ask for a situation, then follow the missing parts of the story.
       </div>
 
       <section data-slot="strengths">
-        <h4 className="text-sm font-semibold text-[#141414] uppercase tracking-wider mb-2">Two strengths in their words</h4>
+        <h4 className="text-sm font-semibold text-ink uppercase tracking-wider mb-2">Two strengths in their words</h4>
         {preBrief?.strengths.length ? (
           preBrief.strengths.map(({ competency, quote }, i) => (
             <div key={i} className="mb-2">
-              <p className="text-xs text-[#969696]">{COMPETENCY_LABELS[competency]}</p>
-              <p className="border-l-4 border-[#c1f11d] pl-3 text-sm italic">&ldquo;{quote}&rdquo;</p>
+              <p className="text-xs text-ink-3">{COMPETENCY_LABELS[competency]}</p>
+              <p className="border-l-4 border-accent pl-3 text-sm italic">&ldquo;{quote}&rdquo;</p>
             </div>
           ))
         ) : strengths.length > 0 ? (
           strengths.map(({ competency, item }, i) => (
             <div key={i} className="mb-2">
-              <p className="text-xs text-[#969696]">{COMPETENCY_LABELS[competency]}</p>
+              <p className="text-xs text-ink-3">{COMPETENCY_LABELS[competency]}</p>
               <EvidenceQuote item={item} showAtola={false} />
             </div>
           ))
         ) : (
-          <p className="text-sm text-[#969696] italic">No demonstrated behaviour in the written material yet.</p>
+          <p className="text-sm text-ink-3 italic">No demonstrated behaviour in the written material yet.</p>
         )}
       </section>
 
       <section>
-        <h4 className="text-sm font-semibold text-[#141414] uppercase tracking-wider mb-2">By competency</h4>
-        <div className="rounded-2xl border-2 border-[#d7d7d7] divide-y divide-[#d7d7d7]">
+        <h4 className="text-sm font-semibold text-ink uppercase tracking-wider mb-2">By competency</h4>
+        <div className="rounded-2xl border-2 border-line divide-y divide-line">
           {rows.map(({ competency, rating }) => (
             <BriefRow key={competency} competency={competency} rating={rating} preBrief={preBrief?.rows.find((row) => row.competency === competency)} />
           ))}
@@ -68,8 +68,8 @@ function BriefRow({ competency, rating, preBrief }: { competency: Competency; ra
   return (
     <div className="px-4 py-3 text-sm break-inside-avoid">
       <div className="flex items-center justify-between gap-3">
-        <span className={`font-medium ${rating ? "text-[#141414]" : "text-[#969696]"}`}>{COMPETENCY_LABELS[competency]}</span>
-        <span data-slot="evidence-state" data-state={state} className="text-xs text-[#5d5d5d] whitespace-nowrap">
+        <span className={`font-medium ${rating ? "text-ink" : "text-ink-3"}`}>{COMPETENCY_LABELS[competency]}</span>
+        <span data-slot="evidence-state" data-state={state} className="text-xs text-ink-2 whitespace-nowrap">
           {EVIDENCE_STATE_LABELS[state]}
         </span>
       </div>
@@ -81,7 +81,7 @@ function BriefRow({ competency, rating, preBrief }: { competency: Competency; ra
             return (
               <span
                 key={c}
-                className={`px-1.5 py-0.5 rounded text-xs ${present ? "bg-[#c1f11d] text-[#141414]" : "border border-dashed border-[#969696] text-[#969696]"}`}
+                className={`px-1.5 py-0.5 rounded text-xs ${present ? "bg-accent text-ink" : "border border-dashed border-ink-3 text-ink-3"}`}
                 title={present ? "Covered by the material" : "Missing: probe for this"}
               >
                 {present ? "✓" : "?"} {ATOLA_LABELS[c]}
@@ -93,18 +93,18 @@ function BriefRow({ competency, rating, preBrief }: { competency: Competency; ra
 
       {preBrief?.probe ? (
         <div data-slot="probe" className="mt-2 space-y-1">
-          <p><span className="text-[#969696]">Ask: </span>{preBrief.probe.paraphrase}</p>
-          <p className="text-xs text-[#5d5d5d]"><span className="font-medium">Canonical probe: </span>{preBrief.probe.canonical}</p>
-          <p className="text-xs text-[#5d5d5d]" data-slot="allowed-paraphrases">
+          <p><span className="text-ink-3">Ask: </span>{preBrief.probe.paraphrase}</p>
+          <p className="text-xs text-ink-2"><span className="font-medium">Canonical probe: </span>{preBrief.probe.canonical}</p>
+          <p className="text-xs text-ink-2" data-slot="allowed-paraphrases">
             <span className="font-medium">Allowed wording: </span>{preBrief.probe.allowed_paraphrases.join(" / ")}
           </p>
         </div>
       ) : rating?.probe_question && (
         <p data-slot="probe" className="mt-2">
-          <span className="text-[#969696]">Ask: </span>
-          <span className="text-[#141414]">{rating.probe_question}</span>
+          <span className="text-ink-3">Ask: </span>
+          <span className="text-ink">{rating.probe_question}</span>
           {gaps.length > 0 && !rating.reserved_for_humans && (
-            <span className="text-xs text-[#969696]"> (first gap: {ATOLA_LABELS[gaps[0]]})</span>
+            <span className="text-xs text-ink-3"> (first gap: {ATOLA_LABELS[gaps[0]]})</span>
           )}
         </p>
       )}
@@ -113,8 +113,8 @@ function BriefRow({ competency, rating, preBrief }: { competency: Competency; ra
         <ul data-slot="flags" className="mt-2 space-y-1">
           {(preBrief?.discrepancy_alerts ?? flags).map((f, i) => (
             <li key={i} className="flex gap-2">
-              <span className="shrink-0 mt-0.5 w-4 h-4 border border-[#141414] rounded-sm" aria-hidden />
-              <span className="text-[#5d5d5d]">
+              <span className="shrink-0 mt-0.5 w-4 h-4 border border-ink rounded-sm" aria-hidden />
+              <span className="text-ink-2">
                 {f.quote && <q className="italic">{f.quote}</q>} {f.explanation}
               </span>
             </li>

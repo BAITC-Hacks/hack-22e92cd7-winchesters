@@ -24,7 +24,7 @@ export function ScrollProgress() {
   }, []);
   return (
     <div
-      className="fixed top-0 left-0 h-[3px] bg-[#c1f11d] z-[200] transition-all duration-150"
+      className="fixed top-0 left-0 h-[3px] bg-accent z-[200] transition-all duration-150"
       style={{ width: `${progress}%` }}
     />
   );
@@ -32,44 +32,18 @@ export function ScrollProgress() {
 
 export function DashboardNav() {
   return (
-    <nav
-      style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 100,
-        backgroundColor: "#c1f11d",
-        padding: "18px 60px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-      }}
-    >
-      <img src="/assets/InVision U Dark.png" alt="inVision U" style={{ width: "169.33px", height: "27.86px" }} />
-      <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
+    <nav className="sticky top-0 z-[100] flex items-center justify-between gap-4 bg-accent px-4 py-3 md:px-[60px] md:py-[18px]">
+      <img src="/assets/InVision U Dark.png" alt="inVision U" className="h-[22px] w-auto md:h-[27.86px] shrink-0" />
+      <div className="flex items-center overflow-x-auto">
         {NAV_LINKS.map((link, i) => (
-          <div key={link.label} style={{ display: "flex", alignItems: "center" }}>
-            {i > 0 && <div style={{ width: "1px", height: "40px", backgroundColor: "#141414" }} />}
+          // Below md only the current page is shown, so the bar never scrolls sideways.
+          <div key={link.label} className={`${link.current ? "flex" : "hidden md:flex"} items-center`}>
+            {i > 0 && <div className="hidden md:block h-10 w-px bg-ink" />}
             <a
               href={link.href}
-              style={{
-                padding: "14px 22px",
-                borderRadius: "10px",
-                textDecoration: "none",
-                fontWeight: link.current ? 700 : 500,
-                color: "#141414",
-                fontSize: "18px",
-                whiteSpace: "nowrap",
-                transition: "background-color 0.2s",
-                backgroundColor: link.current ? "#deff70" : "transparent",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.backgroundColor = "#deff70";
-              }}
-              onMouseLeave={(e) => {
-                if (!link.current) {
-                  (e.currentTarget as HTMLElement).style.backgroundColor = "transparent";
-                }
-              }}
+              className={`whitespace-nowrap rounded-[10px] px-3 py-2 text-sm text-ink transition-colors hover:bg-[#deff70] md:px-[22px] md:py-[14px] md:text-lg ${
+                link.current ? "bg-[#deff70] font-bold" : "font-medium"
+              }`}
             >
               {link.label}
             </a>

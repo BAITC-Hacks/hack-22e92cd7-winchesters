@@ -39,9 +39,9 @@ function Label({
 }
 
 const inputClass =
-  "w-full rounded-[16px] border-none bg-[#fafafa] px-5 py-3.5 text-base text-[#676767] outline-none transition focus:ring-2 focus:ring-[#c1f11d]";
+  "w-full rounded-[16px] border-none bg-subtle px-5 py-3.5 text-base text-ink-2 outline-none transition focus:ring-2 focus:ring-accent";
 const btnSecondary =
-  "rounded-[12px] border border-[#d7d7d7] px-4 py-2 text-base font-medium text-[#141414] hover:bg-[#f5f5f5] transition";
+  "rounded-[12px] border border-line px-4 py-2 text-base font-medium text-ink hover:bg-subtle transition";
 
 const SCHOOL_TYPES = [
   { value: "public", label: "Public school" },
@@ -282,11 +282,11 @@ export default function LandingPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Application Submitted!</h1>
-          <p className="text-gray-600" style={{ marginBottom: "8px" }}>
+          <h1 className="text-2xl font-bold text-ink">Application Submitted!</h1>
+          <p className="text-ink-2" style={{ marginBottom: "8px" }}>
             Your application has been received. Now for the final step — let&apos;s see how you explain things!
           </p>
-          <p className="text-gray-500 text-sm" style={{ marginBottom: "24px" }}>
+          <p className="text-ink-2 text-sm" style={{ marginBottom: "24px" }}>
             The Teaching Challenge helps us understand your communication skills, patience, and ability to simplify complex ideas.
           </p>
           <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
