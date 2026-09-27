@@ -1,30 +1,22 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { api } from "@/lib/api";
+import { ApiError, api } from "@/lib/api";
+import type { DemoTranscript, FeynmanScore, FeynmanTopic, SimulationMode } from "@/lib/types";
 import { useAuth } from "@/lib/useAuth";
+import { CachedDemoNotice, ProvisionalChip, SimulationLabel, Transcript } from "@/components/simulation/SimulationLabels";
 
-type Topic = { id: string; title: string; description: string };
+type Topic = FeynmanTopic;
 type Message = { role: "user" | "assistant"; content: string };
-type QuizAnswer = {
-  question: string;
-  answer: string;
-  confident: boolean;
-};
+type Score = FeynmanScore;
 
-type Score = {
-  clarity: number;
-  patience: number;
-  empathy: number;
-  adaptability: number;
-  quiz_transfer_score: number;
-  overall_score: number;
-  summary: string;
-  message_count: number;
-  quiz_answers?: QuizAnswer[];
-};
+// "replay" shows the cached demo transcript: never presented as a live session.
+type Phase = "setup" | "teaching" | "scoring" | "results" | "replay";
 
-type Phase = "setup" | "teaching" | "scoring" | "results";
+// The model is unreachable (no key, rate limit, upstream failure).
+function modelUnavailable(e: unknown): boolean {
+  return e instanceof ApiError && (e.status === 502 || e.status === 503);
+}
 
 function ScoreDimension({ label, score }: { label: string; score: number }) {
   return (
@@ -64,11 +56,28 @@ export default function TeachPage() {
   const [score, setScore] = useState<Score | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [mode, setMode] = useState<SimulationMode | null>(null);
+  const [demo, setDemo] = useState<DemoTranscript | null>(null);
+  const [replayReason, setReplayReason] = useState<string | null>(null);
+  const [offerDemo, setOfferDemo] = useState(false);
 
   useEffect(() => {
     if (!ready) return;
     api.feynman.topics().then(setTopics).catch(() => {});
+    api.feynman.mode().then(setMode).catch(() => {});
   }, [ready]);
+
+  async function showDemo(reason: string | null) {
+    try {
+      setDemo(demo ?? (await api.feynman.demo()));
+      setReplayReason(reason);
+      setError(null);
+      setPhase("replay");
+      window.scrollTo({ top: 0, behavior: "instant" });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not load the cached demo transcript.");
+    }
+  }
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -92,6 +101,10 @@ export default function TeachPage() {
   }, []);
 
   async function handleStart() {
+    if (mode && !mode.live) {
+      await showDemo(mode.reason);
+      return;
+    }
     if (!selectedTopic) return;
     if (!candidateId) {
       setError("Submit your application first: the Teaching Challenge is its final step.");
@@ -108,6 +121,10 @@ export default function TeachPage() {
       // Scroll to top so user sees the chat, not the footer
       window.scrollTo({ top: 0, behavior: "instant" });
     } catch (e) {
+      if (modelUnavailable(e)) {
+        await showDemo(e instanceof Error ? e.message : null);
+        return;
+      }
       setError(e instanceof Error ? e.message : "Failed to start session");
     } finally {
       setSending(false);
@@ -132,6 +149,7 @@ export default function TeachPage() {
         setTimeout(() => handleFinish(), 1500);
       }
     } catch (e) {
+      setOfferDemo(modelUnavailable(e));
       setError(e instanceof Error ? e.message : "Failed to send message");
     } finally {
       setSending(false);
@@ -147,6 +165,7 @@ export default function TeachPage() {
       setPhase("results");
       window.scrollTo({ top: 0, behavior: "instant" });
     } catch (e) {
+      setOfferDemo(modelUnavailable(e));
       setError(e instanceof Error ? e.message : "Scoring failed");
       setPhase("teaching");
     }
@@ -164,9 +183,13 @@ export default function TeachPage() {
     setMessageCount(0);
     setScore(null);
     setError(null);
+    setOfferDemo(false);
+    setReplayReason(null);
   }
 
   const topicObj = topics.find((t) => t.id === selectedTopic);
+  const isScenario = topicObj?.kind === "scenario";
+  const live = mode?.live !== false;
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#ffffff" }}>
@@ -415,12 +438,27 @@ export default function TeachPage() {
                         </span>
                         <div style={{ minWidth: 0, textAlign: "left" }}>
                           <p style={{ fontSize: "18px", fontWeight: 700, color: "#141414", margin: 0 }}>{t.title}</p>
+                          {t.kind === "scenario" && (
+                            <div className="flex flex-wrap gap-1.5 mt-1">
+                              <span className="inline-block px-2 py-0.5 rounded-[6px] bg-ink text-accent text-xs font-semibold">Teamwork scenario</span>
+                              <ProvisionalChip topic={t} />
+                            </div>
+                          )}
                           <p style={{ fontSize: "16px", color: isSelected ? "#333" : "#666", margin: "4px 0 0 0" }}>{t.description}</p>
                         </div>
                       </button>
                     );
                   })}
                 </div>
+
+                {!live && (
+                  <div className="rounded-2xl border border-line bg-subtle px-5 py-4 mb-5 text-ink-2">
+                    <p className="font-semibold text-ink">Live AI student unavailable on this server.</p>
+                    <p className="text-sm mt-1">
+                      {mode?.reason} The button below opens the cached demo transcript, clearly marked as such. It is not a live session and uses no attempt.
+                    </p>
+                  </div>
+                )}
 
                 {error && (
                   <div style={{ borderRadius: "14px", backgroundColor: "#fef2f2", border: "1px solid #fecaca", padding: "14px 20px", fontSize: "16px", color: "#b91c1c", marginBottom: "20px" }}>
@@ -430,7 +468,7 @@ export default function TeachPage() {
 
                 <button
                   onClick={handleStart}
-                  disabled={!selectedTopic || sending}
+                  disabled={(live && !selectedTopic) || sending}
                   style={{
                     width: "100%",
                     borderRadius: "20px",
@@ -440,12 +478,12 @@ export default function TeachPage() {
                     fontSize: "22px",
                     fontWeight: 600,
                     border: "none",
-                    cursor: !selectedTopic || sending ? "not-allowed" : "pointer",
-                    opacity: !selectedTopic || sending ? 0.5 : 1,
+                    cursor: (live && !selectedTopic) || sending ? "not-allowed" : "pointer",
+                    opacity: (live && !selectedTopic) || sending ? 0.5 : 1,
                     transition: "transform 0.2s, box-shadow 0.2s",
                   }}
                   onMouseEnter={(e) => {
-                    if (selectedTopic && !sending) {
+                    if ((selectedTopic || !live) && !sending) {
                       e.currentTarget.style.transform = "scale(1.02)";
                       e.currentTarget.style.boxShadow = "0 0 24px rgba(193,241,29,0.3)";
                     }
@@ -455,7 +493,7 @@ export default function TeachPage() {
                     e.currentTarget.style.boxShadow = "none";
                   }}
                 >
-                  {sending ? "Starting..." : "Start Teaching Session"}
+                  {sending ? "Starting..." : !live ? "View cached demo transcript" : isScenario ? "Start Scenario" : "Start Teaching Session"}
                 </button>
               </div>
             </div>
@@ -476,7 +514,7 @@ export default function TeachPage() {
           <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
             <div>
               <h2 style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 700, color: "#141414", margin: 0 }}>
-                Teaching:{" "}
+                {isScenario ? "Scenario:" : "Teaching:"}{" "}
                 <span style={{ position: "relative", display: "inline" }}>
                   <span style={{ position: "absolute", left: "-6px", right: "-6px", top: "-2px", bottom: "-2px", backgroundColor: "#c1f11d", zIndex: 0, borderRadius: "4px" }} />
                   <span style={{ position: "relative", zIndex: 1 }}>{topicObj?.title}</span>
@@ -588,7 +626,7 @@ export default function TeachPage() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-                  placeholder={mustFinish ? "Session complete — scoring..." : "Teach Arman..."}
+                  placeholder={mustFinish ? "Session complete — scoring..." : isScenario ? "Tell Arman what you would do..." : "Teach Arman..."}
                   disabled={sending || mustFinish}
                 />
                 <button
@@ -617,6 +655,15 @@ export default function TeachPage() {
           {error && (
             <div style={{ borderRadius: "14px", backgroundColor: "#fef2f2", border: "1px solid #fecaca", padding: "14px 20px", fontSize: "16px", color: "#b91c1c", marginTop: "20px" }}>
               {error}
+              {offerDemo && (
+                <button
+                  type="button"
+                  onClick={() => showDemo(error)}
+                  className="block mt-3 px-4 py-2 rounded-[10px] bg-ink text-accent text-sm font-semibold"
+                >
+                  View cached demo transcript instead
+                </button>
+              )}
             </div>
           )}
           </div>
@@ -659,7 +706,10 @@ export default function TeachPage() {
         <div style={{ maxWidth: "900px", margin: "0 auto", padding: "48px 32px 68px" }}>
           {/* Overall score */}
           <div style={{ textAlign: "center", marginBottom: "40px" }}>
-            <h2 style={{ fontSize: "34px", fontWeight: 700, color: "#141414", marginBottom: "20px" }}>Teaching Score</h2>
+            <h2 style={{ fontSize: "34px", fontWeight: 700, color: "#141414", marginBottom: "12px" }}>
+              {score.kind === "scenario" ? "Scenario Result" : "Teaching Score"}
+            </h2>
+            <SimulationLabel cached={score.source === "cached_demo"} className="justify-center mb-5" />
             <div
               style={{
                 display: "inline-flex",
@@ -805,6 +855,61 @@ export default function TeachPage() {
             >
               Go to Dashboard
             </a>
+          </div>
+        </div>
+      )}
+
+      {/* ── Replay Phase: cached demo transcript ───────────── */}
+      {phase === "replay" && demo && (
+        <div className="max-w-[900px] mx-auto px-4 sm:px-8 pt-12 pb-16 space-y-6">
+          <div className="text-center space-y-3">
+            <h2 className="text-3xl font-bold text-ink">{demo.topic.title}</h2>
+            <div className="flex justify-center"><ProvisionalChip topic={demo.topic} /></div>
+            <SimulationLabel cached className="justify-center" />
+          </div>
+          <CachedDemoNotice demo={demo} reason={replayReason} />
+          <div className="rounded-[20px] border-2 border-line bg-surface p-4 sm:p-7">
+            <Transcript messages={demo.messages} />
+          </div>
+          <div className="rounded-[20px] border-2 border-line bg-surface p-4 sm:p-7 space-y-4">
+            <div className="flex items-baseline justify-between gap-3 flex-wrap">
+              <h3 className="text-lg font-semibold text-ink">Result of the cached session</h3>
+              <span className="text-ink text-2xl font-bold">
+                {demo.score.overall_score}
+                <span className="text-ink-3 text-base font-medium"> / 100</span>
+              </span>
+            </div>
+            <SimulationLabel cached />
+            <dl className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-sm">
+              {(
+                [
+                  ["Clarity", demo.score.clarity],
+                  ["Patience", demo.score.patience],
+                  ["Empathy", demo.score.empathy],
+                  ["Adaptability", demo.score.adaptability],
+                  ["Quiz transfer", demo.score.quiz_transfer_score],
+                ] as [string, number][]
+              ).map(([label, value]) => (
+                <div key={label} className="rounded-xl bg-subtle border border-line px-3 py-2">
+                  <dt className="text-ink-3 text-xs">{label}</dt>
+                  <dd className="text-ink font-semibold">{value}</dd>
+                </div>
+              ))}
+            </dl>
+            <p className="text-sm text-ink-2 leading-relaxed">{demo.score.summary}</p>
+            <div className="space-y-2">
+              {demo.score.quiz_answers.map((qa, i) => (
+                <div key={i} className="rounded-xl bg-subtle border border-line px-3 py-2 text-sm">
+                  <p className="text-ink-3 text-xs">Q{i + 1}: {qa.question}</p>
+                  <p className="text-ink">Arman: {qa.answer}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="flex justify-center">
+            <button type="button" onClick={handleReset} className="px-6 py-3 rounded-[14px] bg-ink text-accent font-semibold">
+              Back to topics
+            </button>
           </div>
         </div>
       )}

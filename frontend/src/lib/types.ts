@@ -142,7 +142,25 @@ export interface RankedCandidate {
   baseline_score: CandidateScore | null;
 }
 
+export type FeynmanTopic = {
+  id: string;
+  title: string;
+  description: string;
+  kind: "teaching" | "scenario";
+  // Scenario only: our wording until the Talent Craft methodology arrives.
+  competency?: string;
+  status?: "provisional";
+  status_note?: string;
+  content_hash?: string;
+};
+
+export type FeynmanQuizAnswer = { question: string; answer: string; confident: boolean };
+
+// A simulation result. `weight` is always 0: it feeds no score or ranking.
 export type FeynmanScore = {
+  session_id: string;
+  candidate_id: string;
+  topic_id: string;
   clarity: number;
   patience: number;
   empathy: number;
@@ -150,6 +168,23 @@ export type FeynmanScore = {
   quiz_transfer_score: number;
   overall_score: number;
   summary: string;
+  message_count: number;
+  quiz_answers: FeynmanQuizAnswer[];
+  kind: "teaching" | "scenario";
+  weight: 0;
+  label: string;
+  source: "live" | "cached_demo";
+};
+
+export type SimulationMode = { live: boolean; reason: string | null; cached_label: string };
+
+export type DemoTranscript = {
+  source: "cached_demo";
+  label: string;
+  provenance: string;
+  topic: FeynmanTopic;
+  messages: { role: "user" | "assistant"; content: string }[];
+  score: FeynmanScore;
 };
 
 export type VideoAnalysis = {

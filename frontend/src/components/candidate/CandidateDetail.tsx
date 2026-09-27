@@ -124,7 +124,7 @@ function ApplicationTab(props: CandidateDetailProps) {
       />
       <SourceConsistencyPanel result={props.aiDetection} loading={props.detectLoading} onRun={props.onDetectAI} />
       <VideoPanel analysis={props.videoAnalysis} onRun={props.onAnalyzeVideo} />
-      {props.feynmanScore && <FeynmanPanel score={props.feynmanScore} />}
+      <FeynmanPanel key={candidate.id} score={props.feynmanScore} />
     </>
   );
 }

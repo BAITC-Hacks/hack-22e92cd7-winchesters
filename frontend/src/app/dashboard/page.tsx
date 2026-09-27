@@ -87,7 +87,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (!selectedId || feynmanScores[selectedId]) return;
     api.feynman
-      .score<FeynmanScore>(selectedId)
+      .score(selectedId)
       .then((data) => {
         if (data) setFeynmanScores((prev) => ({ ...prev, [selectedId]: data }));
       })

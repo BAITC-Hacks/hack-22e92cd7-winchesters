@@ -72,6 +72,8 @@ def model(monkeypatch) -> FakeModel:
     fake = FakeModel()
     monkeypatch.setattr(llm, "complete_chat", fake.complete_chat)
     monkeypatch.setattr(llm, "complete_json", fake.complete_json)
+    # A key is "configured" so start goes live; the no-key path has its own tests.
+    monkeypatch.setattr(llm, "is_configured", lambda: True)
     return fake
 
 

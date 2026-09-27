@@ -20,7 +20,11 @@ export function CandidateCard({
   const missingInterview = !c.interview_transcript || c.interview_transcript.trim() === "";
   const missingRec = !c.recommendation_summary || c.recommendation_summary.trim() === "";
   const missingExtras = c.application.extracurriculars.length === 0;
-  const isSparse = missingInterview || missingRec || missingExtras;
+  const missing = [
+    missingInterview && "interview transcript",
+    missingRec && "recommendation",
+    missingExtras && "extracurriculars",
+  ].filter(Boolean) as string[];
 
   return (
     <div
@@ -81,11 +85,13 @@ export function CandidateCard({
         </>
       )}
 
-      {/* Sparse Profile badge */}
-      {isSparse && (
-        <div className="mt-3 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200">
-          <span className="text-xs font-semibold text-amber-700">Sparse Profile</span>
-          <p className="text-xs text-amber-600 mt-0.5">Weight shifted to Essay &amp; Teaching Challenge</p>
+      {/* Missing materials: stated as-is. No weight moves to other sections. */}
+      {missing.length > 0 && (
+        <div className="mt-3 px-3 py-2 rounded-xl bg-subtle border border-line">
+          <span className="text-xs font-semibold text-ink">Incomplete file</span>
+          <p className="text-xs text-ink-2 mt-0.5">
+            Not submitted: {missing.join(", ")}. Scores use only what is in the file.
+          </p>
         </div>
       )}
 
