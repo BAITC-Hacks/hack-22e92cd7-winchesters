@@ -29,11 +29,11 @@ from backend.security import STAFF_ROLES, hash_password
 def init() -> None:
     command.upgrade(alembic_config(), "head")
     result = seed()
-    if settings.DEMO_MODE:
-        seed_demo_ledger()
+    ledgers_saved = seed_demo_ledger() if settings.DEMO_MODE else 0
     print(
         f"schema at head; applicants: {result.applicants_added} added, "
         f"{result.applicants_total - result.applicants_added} already present"
+        + (f"; {ledgers_saved} demo ledgers loaded" if ledgers_saved else "")
         + ("; demo committee account created" if result.demo_user_added else "")
     )
 

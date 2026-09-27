@@ -40,6 +40,8 @@ export interface CandidateDetailProps {
   ledger: CandidateLedger | undefined;
   preBrief: InterviewerPreBrief | undefined;
   ledgerError: string | null;
+  /** No stored snapshot for this candidate (404); the API never builds one live. */
+  ledgerMissing: boolean;
   aiDetection: AIDetectionResult | null;
   feynmanScore: FeynmanScore | null;
   videoAnalysis: VideoAnalysis | null;
@@ -130,18 +132,20 @@ function ApplicationTab(props: CandidateDetailProps) {
 function LedgerGate({
   ledger,
   ledgerError,
+  ledgerMissing,
   render,
 }: CandidateDetailProps & { render: (ledger: CandidateLedger) => ReactNode }) {
+  if (ledgerMissing) {
+    return (
+      <p className="p-4 bg-gray-500/5 text-gray-600 rounded-2xl text-sm border border-gray-500/20">
+        No evidence ledger has been built for this candidate yet. Nothing is scored live; the committee card appears
+        once a cached run is loaded.
+      </p>
+    );
+  }
   if (ledgerError) {
     return <p className="p-4 bg-red-500/10 text-red-600 rounded-2xl text-sm border border-red-500/20">{ledgerError}</p>;
   }
   if (!ledger) return <p className="text-center py-10 text-gray-400">Loading ledger...</p>;
-  return (
-    <div className="space-y-4">
-      <p className="text-xs text-[#969696]">
-        Rendered from the LED-03 fixture ({ledger.applicant_ref}), the same for every candidate until LED-11.
-      </p>
-      {render(ledger)}
-    </div>
-  );
+  return <div className="space-y-4">{render(ledger)}</div>;
 }

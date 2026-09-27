@@ -165,8 +165,7 @@ export type VideoAnalysis = {
 };
 
 // ── Evidence ledger (mirrors backend/ledger/schema.py, LED-03) ──────
-// Change these only together with schema.py; the fixture copy in
-// lib/fixtures/ is checked against the backend one by `npm run lint`.
+// Change these only together with schema.py; /api/ledger serves this shape.
 
 export const LEDGER_SCHEMA_VERSION = "led-03.1";
 

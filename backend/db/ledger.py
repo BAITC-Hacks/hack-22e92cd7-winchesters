@@ -7,9 +7,10 @@ from typing import Any
 
 from sqlmodel import Session, col, select
 
-from backend.db.candidates import applicant_id_for
+from backend.db.candidates import applicant_id_for, applicant_ids
 from backend.db.engine import get_engine
 from backend.db.tables import CompetencyScore, EvidenceItemRecord, PromptVersion, Rating, RubricVersion
+from backend.ledger import atola
 from backend.ledger.schema import CandidateLedger
 
 
@@ -105,9 +106,29 @@ def load_ledger(candidate_ref: str) -> CandidateLedger | None:
                 "reserved_for_humans": score.reserved_for_humans, "contrastive": score.contrastive,
                 "probe_question": score.probe_question, "flags": score.flags, "atola_present": [],
             })
-        return CandidateLedger(
+        ledger = CandidateLedger(
             applicant_ref=candidate_ref, schema_version=first.schema_version,
             rubric_version=rubric.version if rubric else "unknown", model_judge=first.model_judge,
             model_extract=first.model_extract, prompt_version=prompt.version if prompt else "unknown",
             competencies=competencies,
         )
+    # atola_present and capped_reason are derived, not stored: recompute them
+    # here so the loaded ledger matches the one the pipeline produced.
+    ledger.competencies = [atola.hydrate(rating) for rating in ledger.competencies]
+    return ledger
+
+
+def has_ledger(candidate_ref: str) -> bool:
+    applicant_id = applicant_id_for(candidate_ref)
+    if applicant_id is None:
+        return False
+    with Session(get_engine()) as session:
+        return session.exec(select(CompetencyScore.id).where(col(CompetencyScore.applicant_id) == applicant_id)).first() is not None
+
+
+def list_ledgers() -> list[CandidateLedger]:
+    """The latest snapshot of every applicant that has one, in ref order."""
+    with Session(get_engine()) as session:
+        with_scores = set(session.exec(select(CompetencyScore.applicant_id).distinct()).all())
+    refs = sorted(ref for ref, applicant_id in applicant_ids().items() if applicant_id in with_scores)
+    return [ledger for ledger in (load_ledger(ref) for ref in refs) if ledger is not None]

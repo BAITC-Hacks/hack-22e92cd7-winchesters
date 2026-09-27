@@ -20,7 +20,6 @@ import type {
   CommitteeDecisionMemo,
 } from "./types";
 import { parseLedger } from "./ledger";
-import ledgerFixture from "./fixtures/ledger_example.json";
 import { clearSession, getToken, redirectToLogin, type User } from "./session";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -173,15 +172,12 @@ export const api = {
         method: "POST",
       }),
   },
-  // Until LED-11 there is no ledger API: every candidate gets the LED-03
-  // worked example. The async signature is the one LED-11 keeps, so only these
-  // two bodies change when `routers/ledger.py` lands.
+  // Stored snapshots only (LED-11/12): a candidate without one is a 404, never a live model call.
   ledger: {
-    get: async (candidateId: string): Promise<CandidateLedger> => {
-      void candidateId; // the fixture is one pseudonymous applicant, shown for everyone
-      return parseLedger(ledgerFixture);
-    },
-    list: async (): Promise<CandidateLedger[]> => [parseLedger(ledgerFixture)],
+    get: async (candidateId: string): Promise<CandidateLedger> =>
+      parseLedger(await fetchJSON<unknown>(`/api/ledger/${encodeURIComponent(candidateId)}`)),
+    list: async (): Promise<CandidateLedger[]> =>
+      (await fetchJSON<unknown[]>("/api/ledger")).map(parseLedger),
   },
   feynman: {
     score: <T>(candidateId: string) =>

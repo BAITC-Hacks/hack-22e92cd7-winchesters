@@ -9,7 +9,7 @@ from backend.db.ledger import save_ledger
 from backend.ledger.schema import CandidateLedger
 
 
-FIXTURE = Path(__file__).resolve().parents[1] / "frontend" / "src" / "lib" / "fixtures" / "ledger_example.json"
+FIXTURE = Path(__file__).resolve().parents[1] / "backend" / "ledger" / "fixtures" / "ledger_example.json"
 
 
 def _ledger() -> CandidateLedger:

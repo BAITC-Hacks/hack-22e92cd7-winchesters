@@ -7,8 +7,7 @@
     "build": "next build",
     "start": "next start",
     "test:prebrief": "node scripts/test-prebrief.mjs",
-    "lint": "eslint && node scripts/check-ledger-fixture.mjs",
-    "check:fixture": "node scripts/check-ledger-fixture.mjs"
+    "lint": "eslint"
   },
   "dependencies": {
     "next": "^16.2.1",

@@ -8,7 +8,7 @@ from backend.db.ledger import save_ledger
 from backend.ledger.schema import CandidateLedger
 
 
-FIXTURE = pathlib.Path(__file__).resolve().parents[1] / "frontend" / "src" / "lib" / "fixtures" / "ledger_example.json"
+FIXTURE = pathlib.Path(__file__).resolve().parents[1] / "backend" / "ledger" / "fixtures" / "ledger_example.json"
 
 
 def test_decision_memo_contains_evidence_bands_hashes_and_signature_lines(db):

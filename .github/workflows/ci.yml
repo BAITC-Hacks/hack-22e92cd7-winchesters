@@ -61,8 +61,6 @@ jobs:
       - name: Build
         run: npm run build
 
-      # Blocking. Warnings are allowed; errors fail the job. Also checks that the
-      # frontend copy of the LED-03 ledger fixture matches the backend one
-      # (scripts/check-ledger-fixture.mjs), since the views render from it until LED-11.
+      # Blocking. Warnings are allowed; errors fail the job.
       - name: Lint
         run: npm run lint

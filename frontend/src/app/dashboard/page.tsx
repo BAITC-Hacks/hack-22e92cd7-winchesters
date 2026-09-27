@@ -4,7 +4,7 @@
 // out the views. Rendering lives in src/components/.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/useAuth";
 import { DEFAULT_WEIGHTS, groupOf, groupsFor, isHiddenGem, reweight, scoreOf, type Scorer } from "@/lib/dashboard";
 import type { AIDetectionResult, CandidateLedger, CounterfactualProbeResult, FeynmanScore, InterviewerPreBrief, RankedCandidate, VideoAnalysis } from "@/lib/types";
@@ -39,6 +39,7 @@ export default function Dashboard() {
   const [probeError, setProbeError] = useState<string | null>(null);
   const [ledgers, setLedgers] = useState<Record<string, CandidateLedger>>({});
   const [ledgerErrors, setLedgerErrors] = useState<Record<string, string>>({});
+  const [missingLedgers, setMissingLedgers] = useState<Record<string, true>>({});
   const [preBriefs, setPreBriefs] = useState<Record<string, InterviewerPreBrief>>({});
   const [cohortLedgers, setCohortLedgers] = useState<CandidateLedger[]>([]);
   const [detectLoading, setDetectLoading] = useState(false);
@@ -94,12 +95,15 @@ export default function Dashboard() {
   }, [selectedId, feynmanScores]);
 
   useEffect(() => {
-    if (!selectedId || ledgers[selectedId] || ledgerErrors[selectedId]) return;
+    if (!selectedId || ledgers[selectedId] || ledgerErrors[selectedId] || missingLedgers[selectedId]) return;
     api.ledger
       .get(selectedId)
       .then((l) => setLedgers((prev) => ({ ...prev, [selectedId]: l })))
-      .catch((e) => setLedgerErrors((prev) => ({ ...prev, [selectedId]: message(e, "Failed to load ledger") })));
-  }, [selectedId, ledgers, ledgerErrors]);
+      .catch((e) => {
+        if (e instanceof ApiError && e.status === 404) setMissingLedgers((prev) => ({ ...prev, [selectedId]: true }));
+        else setLedgerErrors((prev) => ({ ...prev, [selectedId]: message(e, "Failed to load ledger") }));
+      });
+  }, [selectedId, ledgers, ledgerErrors, missingLedgers]);
 
   useEffect(() => {
     if (!selectedId || preBriefs[selectedId]) return;
@@ -243,6 +247,7 @@ export default function Dashboard() {
           ledger={ledgers[selected.candidate.id]}
           preBrief={preBriefs[selected.candidate.id]}
           ledgerError={ledgerErrors[selected.candidate.id] ?? null}
+          ledgerMissing={Boolean(missingLedgers[selected.candidate.id])}
           aiDetection={aiDetections[selected.candidate.id] || null}
           feynmanScore={feynmanScores[selected.candidate.id] || null}
           videoAnalysis={videoAnalyses[selected.candidate.id] || null}
