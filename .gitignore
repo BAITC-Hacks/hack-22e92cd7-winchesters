@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+venv/
+.venv/
+
+# Environment
+.env
+
+# Local database (created by `python -m backend.db init`)
+*.db
+*.db-wal
+*.db-shm
+
+# Node
+node_modules/
+.next/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Notebooks
+.ipynb_checkpoints/
+
+.claude/

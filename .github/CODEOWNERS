@@ -1,0 +1,44 @@
+# Who reviews what. See docs/OWNERSHIP.md for the full split.
+# @m4rk1sov — Almas: platform (DB, auth, API, infra, frontend)
+# @raursq   — AI engineer: judgment (pipeline, prompts, rubric, eval, fairness)
+#
+# The LAST matching pattern wins, so the general rules come first.
+
+# Everything else: either of you can review.
+*                                   @m4rk1sov @raursq
+
+# ── Almas: platform ────────────────────────────────────────────────
+/backend/db/                        @m4rk1sov
+/backend/migrations/                @m4rk1sov
+/alembic.ini                        @m4rk1sov
+/backend/main.py                    @m4rk1sov
+/backend/routers/                   @m4rk1sov
+/backend/privacy.py                 @m4rk1sov
+/backend/requirements.txt           @m4rk1sov
+/backend/data/                      @m4rk1sov
+/frontend/                          @m4rk1sov
+/.github/                           @m4rk1sov
+/docker-compose*.yml                @m4rk1sov
+**/Dockerfile                       @m4rk1sov
+/.dockerignore                      @m4rk1sov
+
+# ── AI engineer: judgment ──────────────────────────────────────────
+/backend/scoring/                   @raursq
+/backend/llm.py                     @raursq
+/backend/ledger/                    @raursq
+/backend/prompts/                   @raursq
+/backend/eval/                      @raursq
+/backend/routers/fairness.py        @raursq
+/backend/routers/eval.py            @raursq
+/notebooks/                         @raursq
+
+# ── Shared contracts: a change here needs BOTH of you ─────────────
+/backend/ledger/schema.py           @m4rk1sov @raursq
+/backend/ledger/fixtures/           @m4rk1sov @raursq
+/backend/models.py                  @m4rk1sov @raursq
+/backend/settings.py                @m4rk1sov @raursq
+/backend/routers/feynman.py         @m4rk1sov @raursq
+/tests/                             @m4rk1sov @raursq
+/docs/research/task_board_source.json  @m4rk1sov @raursq
+/docs/OWNERSHIP.md                  @m4rk1sov @raursq
+/.github/CODEOWNERS                 @m4rk1sov @raursq

@@ -1,0 +1,56 @@
+# Borda votes (15..1 points for each voter's top 15). Totals in docs/STAGE2_IMPROVEMENT_PLAN.md §5.
+
+## hackathon_judge
+C01 15
+C10 14
+C29 13
+C12 12
+C05 11
+C07 10
+C15 9
+C33 8
+C04 7
+C11 6
+C03 5
+C30 4
+C23 3
+C17 2
+C25 1
+DEMOTE: C22 C14 C09 C35 C21
+DEMO5: C01 C10 C12 C05 C15
+
+## methodology_owner
+C01 15
+C10 14
+C33 13
+C05 12
+C04 11
+C30 10
+C03 9
+C19 8
+C08 7
+C23 6
+C02 5
+C25 4
+C18 3
+C20 2
+C07 1
+DEMOTE: C22 C14 C15 C35 C09
+
+## engineering_lead
+C29 15
+C01 14
+C02 13
+C10 12
+C30 11
+C33 10
+C11 9
+C05 8
+C07 7
+C17 6
+C12 5
+C03 4
+C26 3
+C25 2
+C04 1
+DEMOTE: C14 C22 C15 C35 C18

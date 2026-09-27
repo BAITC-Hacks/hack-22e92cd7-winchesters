@@ -1,0 +1,36 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { ApiError, api } from "@/lib/api";
+import type { FunderMemo } from "@/lib/types";
+import { useAuth } from "@/lib/useAuth";
+import { Unavailable } from "@/components/ui/Unavailable";
+
+export default function FunderMemoPage() {
+  const { ready } = useAuth({ requireAuth: true, roles: ["committee", "admin"] });
+  const [memo, setMemo] = useState<FunderMemo | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [missing, setMissing] = useState<string | null>(null);
+  useEffect(() => {
+    if (!ready) return;
+    api.fairness
+      .heldoutStatus()
+      .then((status) => (status.ingested ? api.fairness.funderMemo().then(setMemo) : setMissing(status.detail)))
+      .catch((cause) => setError(cause instanceof ApiError && cause.status === 403 ? "This memo is for committee and admin only." : cause.message));
+  }, [ready]);
+  if (!ready) return <main className="p-8 text-sm text-ink-2">Checking access...</main>;
+  if (error) return <main className="p-8 text-sm text-danger">{error}</main>;
+  if (missing) return <Unavailable title="FAIR-14 / funder memo" detail={`${missing} The memo is projected from a frozen held-out report, so there is nothing to summarise yet.`} />;
+  if (!memo) return <main className="p-8 text-sm text-ink-2">Loading funder memo...</main>;
+  return <main className="min-h-screen bg-subtle px-5 py-8 text-ink sm:px-10"><div className="mx-auto max-w-6xl">
+    <header className="border-b-2 border-ink pb-5"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-2">FAIR-14 / governance</p><div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h1 className="text-3xl font-semibold tracking-tight">{memo.title}</h1><p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-2">A frozen historical holdout summary for {memo.audience}, with no production decision rule attached.</p></div><span className="w-fit border border-accent-strong bg-accent-soft px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-accent-ink">{memo.report_mode}</span></div></header>
+    <section className="mt-6 grid gap-px bg-line sm:grid-cols-3"><Stat label="Holdout ratings" value={String(memo.abstention.ratings)} /><Stat label="Abstention rate" value={`${Math.round(memo.abstention.abstention_rate * 100)}%`} /><Stat label="Admitted in lowest band" value={String(memo.holdout.screening_safety.admitted_in_lowest_band)} /></section>
+    <section className="mt-6 border border-line bg-white p-5"><h2 className="text-sm font-semibold uppercase tracking-wider">Calibration and abstention</h2><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[620px] text-left text-sm"><thead className="border-b border-[#eee] text-xs uppercase tracking-wider text-ink-3"><tr><th className="py-2">Competency</th><th>n</th><th>QWK</th><th>ICC</th><th>Abstention</th></tr></thead><tbody>{memo.calibration.map((row) => { const abstention = memo.abstention.by_competency.find((item) => item.competency === row.competency); return <tr key={row.competency} className="border-b border-line-soft"><td className="py-3">{row.competency}</td><td className="font-mono">{row.n}</td><td className="font-mono">{row.qwk?.toFixed(2) ?? "n/a"}</td><td className="font-mono">{row.icc?.toFixed(2) ?? "n/a"}</td><td className="font-mono">{abstention ? `${Math.round(abstention.abstention_rate * 100)}%` : "n/a"}</td></tr>; })}</tbody></table></div><p className="mt-3 text-xs text-ink-2">{memo.abstention.definition}</p></section>
+    <section className="mt-6 border border-line bg-white p-5"><h2 className="text-sm font-semibold uppercase tracking-wider">Impact ratios and confidence intervals</h2><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[720px] text-left text-sm"><thead className="border-b border-[#eee] text-xs uppercase tracking-wider text-ink-3"><tr><th className="py-2">Dimension</th><th>Group</th><th>n</th><th>Rate</th><th>Ratio</th><th>95% CI</th><th>State</th></tr></thead><tbody>{memo.impact_ratios.flatMap((dimension) => dimension.groups.map((group) => <tr key={`${dimension.dimension}-${group.group}`} className="border-b border-line-soft"><td className="py-3">{dimension.dimension}</td><td>{group.group}{group.group === dimension.reference_group ? " (reference)" : ""}</td><td className="font-mono">{group.n}</td><td className="font-mono">{Math.round(group.high_rate * 100)}%</td><td className="font-mono">{group.impact_ratio?.toFixed(2) ?? "n/a"}</td><td className="font-mono">{group.ci_low == null ? "n/a" : `${group.ci_low.toFixed(2)} - ${group.ci_high?.toFixed(2)}`}</td><td>{group.state.replaceAll("_", " ")}</td></tr>))}</tbody></table></div></section>
+    <section className="mt-6 grid gap-6 lg:grid-cols-2"><Panel title="Frozen provenance"><Info label="Registration" value={memo.provenance.registration_id} /><Info label="Report hash" value={memo.provenance.report_hash} /><Info label="Data hash" value={memo.provenance.evaluation_data_hash} /><Info label="Seeds" value={`${memo.provenance.split_seed} / ${memo.provenance.bootstrap_seed}`} /></Panel><Panel title="Production invariance"><Invariant label="Score path" changed={memo.production_invariance.score_path_changed} /><Invariant label="Ranking" changed={memo.production_invariance.ranking_changed} /><Invariant label="Recommendations" changed={memo.production_invariance.recommendation_changed} /></Panel></section>
+  </div></main>;
+}
+function Stat({ label, value }: { label: string; value: string }) { return <div className="bg-white p-5"><p className="text-xs uppercase tracking-wider text-ink-2">{label}</p><p className="mt-2 font-mono text-3xl">{value}</p></div>; }
+function Panel({ title, children }: { title: string; children: React.ReactNode }) { return <section className="border border-line bg-white p-5"><h2 className="text-sm font-semibold uppercase tracking-wider">{title}</h2><div className="mt-4 space-y-3 text-xs">{children}</div></section>; }
+function Info({ label, value }: { label: string; value: string }) { return <div><dt className="text-ink-3">{label}</dt><dd className="break-all font-mono">{value}</dd></div>; }
+function Invariant({ label, changed }: { label: string; changed: boolean }) { return <div className="flex items-center justify-between border-b border-[#eee] py-2 text-sm"><span>{label}</span><strong className={changed ? "text-danger" : "text-accent-ink"}>{changed ? "changed" : "unchanged"}</strong></div>; }
