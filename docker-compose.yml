@@ -1,0 +1,49 @@
+# InVision U: the whole demo stack with only Docker Desktop installed.
+#
+#   docker compose up --build        then open http://localhost:3000
+#   login: committee@invisionu.edu / demo2026   (seeded while DEMO_MODE=1)
+#
+# No API key is needed: every demo click answers from the database, a labelled
+# cache or a deterministic baseline. To use a key, put it in backend/.env
+# (copy backend/.env.example); it is read at run time, never baked into an image.
+#
+# SQLite lives on the `backend-data` volume. `docker compose down -v` wipes it;
+# the next `up` re-creates and re-seeds it.
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file:
+      - path: backend/.env
+        required: false
+    environment:
+      # These win over backend/.env: the container's DB path and the dev secret
+      # (accepted only with DEMO_MODE=1) must not come from a host file.
+      DATABASE_URL: sqlite:////app/var/invision.db
+      DEMO_MODE: ${DEMO_MODE:-1}
+      AUTH_SECRET: ${AUTH_SECRET:-dev-only-invisionu-local-secret-not-for-production}
+      CORS_ORIGINS: http://localhost:${FRONTEND_PORT:-3000},http://127.0.0.1:${FRONTEND_PORT:-3000}
+    volumes:
+      - backend-data:/app/var
+    ports:
+      # Only for Swagger at http://localhost:8000/docs; the browser goes through the frontend.
+      - "${BACKEND_PORT:-8000}:8000"
+    restart: unless-stopped
+    # Keep a single uvicorn worker: in-process caches would diverge across workers.
+
+  frontend:
+    build:
+      context: frontend
+      args:
+        BACKEND_INTERNAL_URL: http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    restart: unless-stopped
+
+volumes:
+  backend-data:

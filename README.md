@@ -125,6 +125,23 @@ Applicant Portal            Teaching Challenge           Admissions Dashboard
 
 ## Quick Start
 
+### Docker (only Docker Desktop needed)
+
+```bash
+docker compose up --build
+```
+
+Open [http://localhost:3000](http://localhost:3000) and sign in with
+`committee@invisionu.edu` / `demo2026`. The database is created and seeded
+on first start (the `backend-data` volume); `docker compose down -v` wipes it.
+No API key is needed. To add one, copy `backend/.env.example` to
+`backend/.env`: compose reads it at run time. Ports can be changed with
+`FRONTEND_PORT` / `BACKEND_PORT`. The browser only talks to the frontend,
+which proxies `/api` to the backend, so the same stack also works from a
+phone on the LAN at `http://<laptop-ip>:3000`.
+
+### Local dev (hot reload)
+
 ```bash
 # Clone
 git clone https://github.com/raursq/invision-u-winchesters.git

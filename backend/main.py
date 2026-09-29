@@ -56,6 +56,12 @@ app.include_router(historical.router)
 app.include_router(heldout.router)
 
 
+@app.get("/healthz", include_in_schema=False)
+def healthz():
+    # Process is up. Startup already refused an outdated schema or bad auth config.
+    return {"status": "ok"}
+
+
 @app.get("/")
 def root():
     return {

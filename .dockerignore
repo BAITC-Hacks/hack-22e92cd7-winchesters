@@ -1,0 +1,18 @@
+# Build context for backend/Dockerfile is the repo root; keep it small.
+.git
+.github
+.venv
+venv
+.claude
+.idea
+.vscode
+**/__pycache__
+**/*.py[cod]
+**/.env
+**/*.db
+**/*.db-wal
+**/*.db-shm
+frontend
+notebooks
+docs
+tests

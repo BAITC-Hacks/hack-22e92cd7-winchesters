@@ -28,7 +28,8 @@ import type {
 import { parseLedger } from "./ledger";
 import { clearSession, getToken, redirectToLogin, type User } from "./session";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// An empty value means same-origin: the Docker image proxies /api to the backend.
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {

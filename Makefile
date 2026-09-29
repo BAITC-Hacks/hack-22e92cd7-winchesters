@@ -4,15 +4,15 @@
 # to activate it first. Works from Git Bash, PowerShell and Linux/macOS.
 
 ifeq ($(OS),Windows_NT)
-    PY := .venv\Scripts\python.exe
+    PY := .venv\bin\python.exe
     SYSTEM_PY := python
 else
     PY := .venv/bin/python
     SYSTEM_PY := python3
 endif
 
-BACKEND_PORT  ?= 8000
-FRONTEND_PORT ?= 3000
+BACKEND_PORT  ?= 8081
+FRONTEND_PORT ?= 3011
 
 .DEFAULT_GOAL := help
 .PHONY: help venv install install-backend install-frontend env db-init db-reset \
