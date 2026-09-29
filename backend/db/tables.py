@@ -148,7 +148,10 @@ class FeynmanSession(SQLModel, table=True):
     )
     # Who started it; only they may continue or finish it.
     user_id: str = Field(sa_column=Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False))
+    # The scenario id (INP-04); teaching topic ids on rows from before it.
     topic_id: str = Field(sa_column=Column(String(32), nullable=False))
+    # en / ru / kk: the language the conversation partner spoke.
+    language: str = Field(default="en", sa_column=Column(String(8), nullable=False, server_default="en"))
     # The conversation as sent to the model: [{"role", "content"}, ...].
     messages: list[dict[str, str]] = Field(sa_column=Column(JSON, nullable=False))
     exchange_count: int = Field(default=0, nullable=False)
@@ -158,7 +161,8 @@ class FeynmanSession(SQLModel, table=True):
 
 
 class FeynmanScoreRecord(SQLModel, table=True):
-    """The scorer's verdict on one finished session. Written once, never edited."""
+    """Legacy: the 0-100 teaching verdicts from before scenarios (INP-04).
+    Kept so no stored row is lost; nothing reads or writes it any more."""
 
     __tablename__ = "feynman_scores"
     __table_args__ = (Index("ix_feynman_scores_applicant_id", "applicant_id"),)
@@ -188,6 +192,31 @@ class FeynmanScoreRecord(SQLModel, table=True):
 
 # ── Versions (FND-04, PR 2) ────────────────────────────────────────
 
+
+
+class ScenarioResult(SQLModel, table=True):
+    """One finished scenario, rated on the rubric like the essays (INP-04).
+
+    `rating` is a ledger `CompetencyRating` for the scenario's competency,
+    built from the applicant's own replies. Written once, never edited.
+    """
+
+    __tablename__ = "scenario_results"
+    __table_args__ = (Index("ix_scenario_results_applicant_id", "applicant_id"),)
+
+    id: str = Field(default_factory=_uuid, sa_column=Column(String(36), primary_key=True))
+    session_id: str = Field(
+        sa_column=Column(String(36), ForeignKey("feynman_sessions.id", ondelete="CASCADE"), unique=True, nullable=False)
+    )
+    applicant_id: str = Field(
+        sa_column=Column(String(36), ForeignKey("applicants.id", ondelete="CASCADE"), nullable=False)
+    )
+    competency: str = Field(sa_column=Column(String(64), nullable=False))
+    rating: dict[str, Any] = Field(sa_column=Column(JSON, nullable=False))
+    # "live" (a model read the replies) or "demo" (the rule-based stand-in).
+    source: str = Field(sa_column=Column(String(16), nullable=False))
+    model: str = Field(sa_column=Column(String(64), nullable=False))
+    created_at: datetime = _created_at()
 
 class RubricVersion(SQLModel, table=True):
     """A rubric a score was computed under (`CandidateLedger.rubric_version`).

@@ -1,14 +1,11 @@
 "use client";
 
+import Link from "next/link";
+import { SiteNav } from "@/components/site/SiteNav";
+import { SiteFooter } from "@/components/site/SiteFooter";
 import { useState, useEffect, useRef } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/useAuth";
-import {
-  WRITTEN_PRESENTATION_MAX_WORDS,
-  WRITTEN_PRESENTATION_MIN_WORDS,
-  countWords,
-  writtenPresentationError,
-} from "@/lib/words";
 import type {
   Education,
   Extracurricular,
@@ -19,11 +16,12 @@ import type {
 
 /* ── Shared helpers ────────────────────────────────────────────────── */
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function SectionTitle({ children, hint }: { children: React.ReactNode; hint?: string }) {
   return (
-    <h2 style={{ fontSize: "22px", fontWeight: 400, color: "#141414", lineHeight: "45px", marginBottom: "16px" }}>
-      {children}
-    </h2>
+    <div className="mb-6">
+      <h3 className="text-[clamp(20px,1.2vw,23.04px)] font-normal text-ink">{children}</h3>
+      {hint && <p className="mt-1 text-sm text-ink-2">{hint}</p>}
+    </div>
   );
 }
 
@@ -37,17 +35,67 @@ function Label({
   required?: boolean;
 }) {
   return (
-    <label htmlFor={htmlFor} style={{ display: "block", fontSize: "18px", fontWeight: 600, color: "#141414", lineHeight: "45px", marginBottom: "4px" }}>
+    <label htmlFor={htmlFor} className="mb-2 block text-[clamp(14.4px,0.79vw,14.4px)] font-semibold text-ink">
       {children}
-      {required && <span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>}
+      {required && <span className="ml-0.5 text-danger" aria-hidden>*</span>}
     </label>
   );
 }
 
+function FieldIcon({ src }: { src: string }) {
+  return <img src={src} alt="" className="pointer-events-none absolute left-5 top-1/2 size-6 -translate-y-1/2" />;
+}
+
+function Hint({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return <p className={`mt-1.5 text-xs text-ink-3 ${className}`}>{children}</p>;
+}
+
+function RemoveButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-line text-lg text-ink-2 transition-colors hover:border-danger hover:text-danger"
+    >
+      &times;
+    </button>
+  );
+}
+
+function ReviewSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="mb-6 space-y-4">
+      <h4 className="text-[clamp(17px,1.2vw,23.04px)] text-ink">{title}</h4>
+      {children}
+    </section>
+  );
+}
+
+/** One answer shown the way it was typed: a read-only field. Empty answers show a dash. */
+function ReviewField({ label, icon, children }: { label: string; icon?: string; children: React.ReactNode }) {
+  const empty = children === "" || children === false || children === null || children === undefined;
+  return (
+    <div>
+      <p className="mb-2 text-sm font-semibold text-ink">{label}</p>
+      <div className="relative flex min-h-11 items-center gap-4 break-words rounded-[16px] bg-field px-5 py-3 text-sm text-ink-muted">
+        {icon && <img src={icon} alt="" className="size-5 shrink-0" />}
+        <span className="min-w-0">{empty ? "–" : children}</span>
+      </div>
+    </div>
+  );
+}
+
+const STEPS = ["Personal Information", "Education", "Essay & Motivation", "Extracurriculars & Projects", "Review & Submit"];
+
+// One white card holds the whole step; its sections are separated by a hairline.
+const cardClass = "";
 const inputClass =
-  "w-full rounded-[16px] border-none bg-subtle px-5 py-3.5 text-base text-ink-2 outline-none transition focus:ring-2 focus:ring-accent";
+  "w-full rounded-[16px] border border-transparent bg-field px-5 py-3 text-[clamp(14.4px,0.79vw,14.4px)] text-ink outline-none transition placeholder:text-ink-muted hover:border-line focus:border-ink focus:bg-white focus:ring-4 focus:ring-accent/40 aria-[invalid=true]:border-danger aria-[invalid=true]:focus:ring-danger/15";
+/** A field with the Figma icon inside on the left. */
+const iconInputClass = `${inputClass} pl-14`;
 const btnSecondary =
-  "rounded-[12px] border border-line px-4 py-2 text-base font-medium text-ink hover:bg-subtle transition";
+  "rounded-full border border-line bg-white px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:border-ink";
 
 const SCHOOL_TYPES = [
   { value: "public", label: "Public school" },
@@ -80,13 +128,14 @@ const PROGRAMS = [
 /* ── Main page ─────────────────────────────────────────────────────── */
 
 export default function LandingPage() {
-  const { user, logout, updateUser } = useAuth();
+  const { user, updateUser } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   // Multi-step form
   const [currentStep, setCurrentStep] = useState(0);
+  const [sideTab, setSideTab] = useState<"dates" | "documents">("dates");
   const [selectedProgram, setSelectedProgram] = useState("Creative Engineering");
   const [videoLink, setVideoLink] = useState("");
   const [videoTranscript, setVideoTranscript] = useState("");
@@ -125,8 +174,6 @@ export default function LandingPage() {
   const [essayPrompt, setEssayPrompt] = useState(ESSAY_PROMPTS[0]);
   const [essayText, setEssayText] = useState("");
 
-  // Written presentation (INP-01): the canonical presentation input.
-  const [writtenPresentation, setWrittenPresentation] = useState("");
 
   // Optional
   const [recommendation, setRecommendation] = useState("");
@@ -180,13 +227,6 @@ export default function LandingPage() {
     setSubmitting(true);
 
     try {
-      const presentationError = writtenPresentationError(writtenPresentation);
-      if (presentationError) {
-        setError(presentationError);
-        setCurrentStep(2);
-        return;
-      }
-
       const education: Education = {
         school_type: schoolType,
         gpa: parseFloat(gpa) || 0,
@@ -247,7 +287,6 @@ export default function LandingPage() {
         essay,
         interview_transcript: "",
         recommendation_summary: recommendation,
-        written_presentation: writtenPresentation,
         video_link: videoLink,
         video_transcript: videoTranscript,
       });
@@ -263,9 +302,6 @@ export default function LandingPage() {
   }
 
   const wordCount = essayText.split(/\s+/).filter(Boolean).length;
-  const presentationWords = countWords(writtenPresentation);
-  const presentationInBounds =
-    presentationWords >= WRITTEN_PRESENTATION_MIN_WORDS && presentationWords <= WRITTEN_PRESENTATION_MAX_WORDS;
 
   /* ── Scroll reveal ──────────────────────────────────────────── */
   useEffect(() => {
@@ -295,67 +331,43 @@ export default function LandingPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white px-4">
-        <div className="max-w-md w-full text-center space-y-4">
-          <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
-            <svg className="w-8 h-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
+      <div className="flex min-h-screen flex-col bg-canvas">
+        <SiteNav />
+        <main className="flex flex-1 items-center justify-center px-4 py-16">
+          <div className="w-full max-w-lg rounded-3xl border border-line bg-white p-8 text-center md:p-10">
+            <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-accent">
+              <svg className="size-7 text-ink" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+            </span>
+            <h1 className="mt-5 text-2xl font-bold text-ink">Application submitted</h1>
+            <p className="mt-2 text-ink-2">Thank you. The admissions committee now has your application.</p>
+            <ol className="mt-6 space-y-3 text-left text-sm">
+              {[
+                "The committee reads your application, with your own words as the evidence.",
+                "You are invited to an interview about the experiences you described.",
+                "The committee decides and sends you an offer of admission.",
+              ].map((text, i) => (
+                <li key={text} className="flex gap-3">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-ink text-xs font-bold text-accent">{i + 1}</span>
+                  <span className="pt-0.5 text-ink">{text}</span>
+                </li>
+              ))}
+            </ol>
+            <div className="mt-8 rounded-2xl bg-subtle p-4 text-left text-sm text-ink-2">
+              <strong className="text-ink">Next: scenarios.</strong> Talk a real situation through with a conversation
+              partner, in English, Russian or Kazakh. It takes about ten minutes.
+            </div>
+            <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+              <Link href="/scenarios" className="whitespace-nowrap rounded-full bg-ink px-6 py-3 font-semibold text-accent transition-opacity hover:opacity-90">
+                Start the scenarios
+              </Link>
+              <Link href="/" className="whitespace-nowrap rounded-full border border-line px-6 py-3 font-semibold text-ink transition-colors hover:border-ink">
+                Back to home
+              </Link>
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-ink">Application Submitted!</h1>
-          <p className="text-ink-2" style={{ marginBottom: "8px" }}>
-            Your application has been received. Now for the final step — let&apos;s see how you explain things!
-          </p>
-          <p className="text-ink-2 text-sm" style={{ marginBottom: "24px" }}>
-            The Teaching Challenge helps us understand your communication skills, patience, and ability to simplify complex ideas.
-          </p>
-          <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
-            <a
-              href="/teach"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: "#141414",
-                color: "#c1f11d",
-                borderRadius: "12px",
-                padding: "14px 32px",
-                fontSize: "16px",
-                fontWeight: 600,
-                textDecoration: "none",
-                transition: "transform 0.2s, box-shadow 0.2s",
-              }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = "scale(1.03)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 0 20px rgba(193,241,29,0.3)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = "scale(1)"; (e.currentTarget as HTMLElement).style.boxShadow = "none"; }}
-            >
-              Start Teaching Challenge
-            </a>
-            <button
-              onClick={() => {
-                setSuccess(false);
-                setName("");
-                setAge(17);
-                setGpa("");
-                setAchievements([""]);
-                setExtracurriculars([{ activity: "", duration_months: "", role: "" }]);
-                setProjects([{ name: "", role: "", impact: "" }]);
-                setLanguages("");
-                setSkills("");
-                setEssayText("");
-                setEssayPrompt(ESSAY_PROMPTS[0]);
-                setRecommendation("");
-                setWrittenPresentation("");
-                setVideoLink("");
-                setVideoTranscript("");
-                setSelectedProgram("Creative Engineering");
-                setCurrentStep(0);
-              }}
-              style={{ backgroundColor: "#eae9e9", color: "#141414", borderRadius: "12px", padding: "14px 24px", fontSize: "14px", fontWeight: 500, border: "none", cursor: "pointer" }}
-            >
-              Submit Another
-            </button>
-          </div>
-        </div>
+        </main>
       </div>
     );
   }
@@ -379,252 +391,43 @@ export default function LandingPage() {
         }}
       />
 
-      {/* ══════ NAV ══════ */}
-      <nav
-        style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 100,
-          backgroundColor: "#c1f11d",
-          padding: "18px 60px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <img
-          src="/assets/InVision U Dark.png"
-          alt="inVision U"
-          style={{ width: "169.33px", height: "27.86px" }}
-        />
-        <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
-          {[
-            { href: "/", label: "Home" },
-            { href: "/#apply", label: "Applicant Portal" },
-            { href: "/teach", label: "Teaching Challenge" },
-            { href: "/dashboard", label: "Admissions Dashboard" },
-          ].map((link, i) => (
-            <div key={link.label} style={{ display: "flex", alignItems: "center" }}>
-              {i > 0 && (
-                <div style={{ width: "1px", height: "40px", backgroundColor: "#141414" }} />
-              )}
-              <a
-                href={link.href}
-                style={{
-                  padding: "14px 22px",
-                  borderRadius: "10px",
-                  textDecoration: "none",
-                  fontWeight: 500,
-                  color: "#141414",
-                  fontSize: "18px",
-                  whiteSpace: "nowrap",
-                  transition: "background-color 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.backgroundColor = "#deff70";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.backgroundColor = "transparent";
-                }}
-              >
-                {link.label}
-              </a>
-            </div>
-          ))}
-          {user && (
-            <>
-              <div style={{ width: "1px", height: "40px", backgroundColor: "#141414" }} />
-              <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "0 16px" }}>
-                <span style={{ fontSize: "14px", fontWeight: 600, color: "#141414" }}>{user.full_name}</span>
-                <button
-                  onClick={logout}
-                  style={{ background: "none", border: "none", cursor: "pointer", fontSize: "13px", color: "#555", textDecoration: "underline" }}
-                >
-                  Logout
-                </button>
-              </div>
-            </>
-          )}
-          {!user && (
-            <>
-              <div style={{ width: "1px", height: "40px", backgroundColor: "#141414" }} />
-              <a
-                href="/auth?next=%2F%23apply"
-                style={{ padding: "0 16px", fontSize: "14px", fontWeight: 600, color: "#141414", textDecoration: "underline" }}
-              >
-                Sign in
-              </a>
-            </>
-          )}
-        </div>
-      </nav>
+      <SiteNav signInNext="/#apply" />
 
       {/* ══════ HERO ══════ */}
-      <section style={{ background: "linear-gradient(180deg, #ffffff 0%, #f8f8f4 50%, #f0f4e8 100%)", position: "relative", overflow: "hidden" }}>
-        <div
-          style={{
-            maxWidth: "1400px",
-            margin: "0 auto",
-            padding: "80px 80px 0",
-            display: "flex",
-            alignItems: "flex-start",
-            gap: "40px",
-            flexWrap: "wrap",
-          }}
-        >
-          {/* Left column */}
-          <div style={{ flex: "1 1 58%", minWidth: "320px" }}>
-            {/* Heading image */}
-            <img
-              className="reveal reveal-up"
-              src="/assets/Heading Text.png"
-              alt="Empowering those who are ready to change the world"
-              style={{
-                width: "clamp(400px, 60vw, 900px)",
-                maxWidth: "100%",
-                height: "auto",
-                display: "block",
-                marginBottom: "24px",
-              }}
-            />
-
-            {/* Subtitle */}
-            <p
-              className="reveal reveal-up delay-1"
-              style={{
-                maxWidth: "800px",
-                fontSize: "clamp(18px, 2vw, 24px)",
-                color: "#555",
-                lineHeight: 1.6,
-                marginBottom: "40px",
-              }}
-            >
-              Join a global network of future leaders at <strong style={{ color: "#141414" }}>inVision U</strong> — where ideas meet action, and education drives real change.
+      {/* Sizes follow the 1920px Figma frame and scale with the viewport. */}
+      <section className="relative overflow-hidden bg-white">
+        <img src="/assets/hero/BG.png" alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover object-right" />
+        <div className="relative mx-auto flex max-w-[1728px] flex-col items-center gap-10 px-4 pt-12 md:px-[2.9vw] lg:min-h-[clamp(560px,36.5vw,701.28px)] lg:flex-row lg:items-end lg:justify-between lg:gap-[3.89vw] lg:pt-[2.23vw]">
+          <div className="w-full lg:w-[27vw] lg:max-w-[517.68px] lg:shrink-0 lg:self-center lg:pb-[2.88vw]">
+            <h1 className="max-w-[7.9em] text-[clamp(40px,3.26vw,62.64px)] font-semibold leading-[1.23] text-ink">
+              Empowering those who are ready to <span className="box-decoration-clone bg-accent px-[0.1em] py-[0.02em]">change the world.</span>
+            </h1>
+            <p className="mt-[clamp(24px,2.23vw,43.2px)] text-justify text-[clamp(16px,0.97vw,18.72px)] leading-normal text-ink">
+              Join a global network of future leaders at <strong className="font-bold">inVision U</strong> - where ideas meet action, and
+              education drives real change.
             </p>
-
-            {/* Buttons — left aligned */}
-            <div
-              className="reveal reveal-up delay-2"
-              style={{
-                display: "flex",
-                justifyContent: "flex-start",
-                gap: "12px",
-                marginBottom: "32px",
-              }}
-            >
+            <div className="mt-[clamp(24px,2.23vw,43.2px)] flex gap-[clamp(8px,0.49vw,9.36px)]">
               <a
                 href="#apply"
-                style={{
-                  position: "relative",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: "#141414",
-                  color: "#ffffff",
-                  borderRadius: "20px",
-                  padding: "18px 40px",
-                  fontSize: "20px",
-                  fontWeight: 500,
-                  textDecoration: "none",
-                  overflow: "hidden",
-                  transition: "transform 0.2s, box-shadow 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.transform = "scale(1.04)";
-                  (e.currentTarget as HTMLElement).style.boxShadow =
-                    "0 0 30px rgba(193, 241, 29, 0.3), 0 8px 25px rgba(0,0,0,0.2)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.transform = "scale(1)";
-                  (e.currentTarget as HTMLElement).style.boxShadow = "none";
-                }}
+                className="relative flex h-[clamp(52px,3.26vw,62.64px)] w-[clamp(140px,9.18vw,176.4px)] items-center justify-center overflow-hidden rounded-[20px] bg-ink text-[clamp(20px,1.49vw,28.8px)] text-white transition-transform hover:scale-[1.03]"
               >
-                <img
-                  src="/assets/Brush Grey.png"
-                  alt=""
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                    opacity: 0.35,
-                    pointerEvents: "none",
-                  }}
-                />
-                <span style={{ position: "relative", zIndex: 1 }}>Start your journey</span>
+                <img src="/assets/icons/grey-brush.svg" alt="" className="pointer-events-none absolute left-1/2 top-1/2 h-[150%] w-auto -translate-x-1/2 -translate-y-1/2" />
+                <span className="relative">Start</span>
               </a>
               <a
                 href="#about"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: "#eae9e9",
-                  color: "#141414",
-                  borderRadius: "20px",
-                  padding: "18px 40px",
-                  fontSize: "20px",
-                  fontWeight: 500,
-                  textDecoration: "none",
-                  transition: "background-color 0.2s, transform 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.backgroundColor = "#ddd";
-                  (e.currentTarget as HTMLElement).style.transform = "scale(1.03)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.backgroundColor = "#eae9e9";
-                  (e.currentTarget as HTMLElement).style.transform = "scale(1)";
-                }}
+                className="flex h-[clamp(52px,3.26vw,62.64px)] flex-1 items-center justify-center rounded-[20px] bg-muted text-[clamp(20px,1.49vw,28.8px)] text-ink transition-colors hover:bg-line lg:w-[17.28vw] lg:max-w-[331.92px] lg:flex-none"
               >
                 Learn More
               </a>
             </div>
-
-            {/* Powered by */}
-            <div
-              className="reveal reveal-up delay-2"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                opacity: 0.4,
-                marginBottom: "40px",
-              }}
-            >
-              <span style={{ fontSize: "16px", color: "#141414" }}>Powered by</span>
-              <img
-                src="/assets/InDrive LOGO.svg"
-                alt="inDrive"
-                style={{ width: "100px", height: "auto" }}
-              />
-            </div>
           </div>
-
-          {/* Right column — hero photo */}
-          <div style={{ flex: "1 1 38%", minWidth: "280px", display: "flex", justifyContent: "flex-end", alignItems: "flex-start" }}>
-            <img
-              className="reveal reveal-up delay-1"
-              src="/assets/Photo for Hero.png"
-              alt="Students"
-              style={{
-                width: "clamp(350px, 40vw, 700px)",
-                height: "auto",
-                objectFit: "cover",
-                display: "block",
-                marginTop: "-10px",
-              }}
-            />
-          </div>
+          <img
+            src="/assets/hero/Girl.png"
+            alt="An inVision U student"
+            className="w-full max-w-[560px] lg:w-[36.65vw] lg:max-w-[703.44px]"
+          />
         </div>
-
-        {/* Brush Lime — full width */}
-        <img
-          src="/assets/Brush Lime.png"
-          alt=""
-          style={{ width: "100%", display: "block" }}
-        />
       </section>
 
       {/* ══════ MARQUEE ══════ */}
@@ -638,7 +441,7 @@ export default function LandingPage() {
               <div key={i} style={{ display: "contents" }}>
                 <img src="/assets/InVision U white.png" alt="inVision U" style={{ width: "169.33px", height: "27.86px", flexShrink: 0 }} />
                 <img src="/assets/InDrive.png" alt="iD" style={{ width: "48px", height: "48px", flexShrink: 0 }} />
-                <span style={{ fontWeight: 600, color: "#ffffff", fontSize: "clamp(24px, 3vw, 39px)", whiteSpace: "nowrap", flexShrink: 0 }}>Grow with us</span>
+                <span style={{ fontWeight: 600, color: "#ffffff", fontSize: "clamp(24px,2.16vw,28.08px)", whiteSpace: "nowrap", flexShrink: 0 }}>Grow with us</span>
                 <img src="/assets/InDrive.png" alt="iD" style={{ width: "48px", height: "48px", flexShrink: 0 }} />
               </div>
             ))}
@@ -651,7 +454,7 @@ export default function LandingPage() {
         <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "0 30px" }}>
           {/* Dark banner with title + fanned cards */}
           <div
-            className="reveal reveal-up"
+            className="reveal reveal-up max-lg:flex-col max-lg:pb-10"
             style={{
               position: "relative",
               borderRadius: "24px",
@@ -671,12 +474,12 @@ export default function LandingPage() {
               style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.5, pointerEvents: "none", borderRadius: "24px" }}
             />
             {/* Title */}
-            <p style={{ position: "relative", zIndex: 1, fontWeight: 700, color: "#ffffff", fontSize: "clamp(24px, 3vw, 40px)", lineHeight: 1.2, maxWidth: "650px", padding: "40px", whiteSpace: "nowrap" }}>
+            <p className="lg:whitespace-nowrap" style={{ position: "relative", zIndex: 1, fontWeight: 700, color: "#ffffff", fontSize: "clamp(24px,2.16vw,28.8px)", lineHeight: 1.2, maxWidth: "650px", padding: "40px" }}>
               Explore your academic path<br />and find what fits you
             </p>
             {/* Fanned cards — animate on scroll, spread on hover */}
             <div
-              className="card-fan"
+              className="card-fan max-lg:!mr-0 max-lg:!w-[290px]"
               style={{
                 position: "relative",
                 width: "360px",
@@ -738,724 +541,376 @@ export default function LandingPage() {
       </section>
 
       {/* ══════ APPLICATION FORM ══════ */}
-      <section id="apply" style={{ backgroundColor: "#ffffff", paddingBottom: "60px" }}>
-        {/* Application header group — same style as dashboard */}
-        <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "12px 40px 0", position: "relative" }}>
-          {/* Dark banner with dots */}
-          <div style={{ backgroundColor: "#141414", borderRadius: "24px", overflow: "hidden", position: "relative", padding: "36px 40px 70px", textAlign: "center" }}>
-            <img src="/assets/Dots.png" alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.3, pointerEvents: "none" }} />
-            <h2 style={{ position: "relative", zIndex: 1, fontSize: "36px", fontWeight: 700, color: "#c1f11d", margin: 0, textTransform: "uppercase", letterSpacing: "2px" }}>Application</h2>
-          </div>
-          {/* Navigation bar — overlapping bottom of dark banner, full width */}
-          <div style={{ position: "relative", zIndex: 2, marginTop: "-36px", padding: "0 20px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px 16px", backgroundColor: "#ffffff", borderRadius: "20px", border: "2px solid #d7d7d7" }}>
-              {["Personal Information", "Education", "Essay & Motivation", "Extracurriculars & Projects", "Review & Submit"].map((tab, i) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setCurrentStep(i)}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    padding: "10px 16px",
-                    fontSize: "15px",
-                    fontWeight: 700,
-                    color: currentStep === i ? "#c1f11d" : "#141414",
-                    backgroundColor: currentStep === i ? "#141414" : (currentStep > i ? "#e8f5d0" : "#eae9e9"),
-                    border: "none",
-                    borderRadius: "16px",
-                    cursor: "pointer",
-                    transition: "all 0.2s ease",
-                    whiteSpace: "nowrap",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (currentStep !== i) (e.currentTarget as HTMLElement).style.backgroundColor = "#ddd";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (currentStep !== i) (e.currentTarget as HTMLElement).style.backgroundColor = "#eae9e9";
-                  }}
-                >
-                  <span style={{
-                    display: "inline-flex", alignItems: "center", justifyContent: "center",
-                    width: "36px", height: "36px", borderRadius: "50%", flexShrink: 0,
-                    backgroundColor: currentStep === i ? "#c1f11d" : (currentStep > i ? "#c1f11d" : "#141414"),
-                    color: currentStep === i ? "#141414" : (currentStep > i ? "#141414" : "#fff"),
-                    fontSize: currentStep > i ? "18px" : "16px", fontWeight: 700,
-                  }}>{currentStep > i ? "\u2713" : i + 1}</span>
-                  {tab}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+      <section id="apply" className="relative scroll-mt-16 overflow-hidden rounded-t-[clamp(24px,1.39vw,26.64px)] bg-ink pb-[clamp(48px,5.1vw,97.92px)] pt-[clamp(28px,1.8vw,34.56px)]">
+        <img src="/assets/icons/app-glow.svg" alt="" className="pointer-events-none absolute left-[62.4%] top-[-67vw] w-[103.3%] max-w-none" />
+        <div className="relative mx-auto max-w-[1728px] px-4 md:px-[4.2vw]">
+          <h2 className="text-center text-[clamp(32px,2.78vw,53.28px)] font-bold uppercase leading-none text-accent">Application</h2>
+          <ol className="mx-auto mb-[clamp(24px,1.87vw,36px)] mt-[clamp(14px,1.08vw,19.8px)] flex w-fit max-w-full items-center gap-[clamp(6px,0.38vw,7.2px)] overflow-x-auto rounded-[clamp(24px,1.39vw,26.64px)] border-2 border-line bg-white p-[clamp(10px,0.77vw,14.4px)]">
+            {STEPS.map((step, i) => {
+              const state = currentStep === i ? "current" : currentStep > i ? "done" : "todo";
+              return (
+                <li key={step} className="shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(i)}
+                    aria-current={state === "current" ? "step" : undefined}
+                    className={`flex items-center gap-[clamp(8px,0.56vw,10.8px)] whitespace-nowrap rounded-[clamp(12px,0.63vw,12.24px)] px-[clamp(8px,0.69vw,12.96px)] py-[clamp(6px,0.41vw,7.92px)] text-[clamp(14px,1.03vw,19.44px)] font-bold transition-colors ${
+                      state === "current" ? "bg-ink text-accent" : state === "done" ? "bg-accent-soft text-ink hover:bg-muted" : "bg-muted text-ink hover:bg-line"
+                    }`}
+                  >
+                    <span
+                      className={`flex size-[clamp(28px,1.8vw,34.56px)] shrink-0 items-center justify-center rounded-full font-bold ${
+                        state === "todo" ? "bg-ink text-white" : "bg-accent text-ink"
+                      }`}
+                    >
+                      {state === "done" ? "✓" : i + 1}
+                    </span>
+                    <span className={state === "current" ? "" : "hidden md:inline"}>{step}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
 
-        {/* Two-column layout */}
-        <div style={{ maxWidth: "1200px", margin: "24px auto 0", padding: "0 40px", display: "flex", gap: "24px", alignItems: "flex-start" }}>
-
-          {/* Main form area (~70%) */}
-          <div style={{ flex: "1 1 70%", minWidth: 0 }}>
-            <form onSubmit={handleSubmit}>
+          <div className="grid items-start gap-6 lg:grid-cols-2">
+            <form onSubmit={handleSubmit} className="min-w-0 rounded-[20px] border-[2.5px] border-line bg-white p-[clamp(20px,1.58vw,30.24px)]">
               {error && (
-                <div style={{ borderRadius: "12px", backgroundColor: "#fef2f2", border: "1px solid #fecaca", padding: "12px 16px", fontSize: "14px", color: "#b91c1c", marginBottom: "16px" }}>
+                <div role="alert" className="mb-4 rounded-xl border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-danger">
                   {error}
                 </div>
               )}
 
               {/* Step 1: Personal Information */}
-              <div style={{ display: currentStep === 0 ? "block" : "none" }}>
-                <div style={{ backgroundColor: "#ffffff", borderRadius: "20px", border: "2.7px solid #d7d7d7", padding: "36px", marginBottom: "16px" }}>
+              <div hidden={currentStep !== 0}>
+                <div className={cardClass}>
                   <SectionTitle>Personal Information</SectionTitle>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
+                  <div className="space-y-6">
                     <div>
                       <Label htmlFor="name" required>Full Name</Label>
-                      <input
-                        id="name"
-                        className={inputClass}
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="Aigerim Tastanova"
-                        required
-                      />
+                      <div className="relative">
+                        <FieldIcon src="/assets/icons/user.svg" />
+                        <input id="name" className={iconInputClass} value={name} onChange={(e) => setName(e.target.value)} placeholder="John Doe" autoComplete="name" required />
+                      </div>
                     </div>
                     <div>
                       <Label htmlFor="age">Age</Label>
-                      <input
-                        id="age"
-                        type="number"
-                        className={inputClass}
-                        value={age}
-                        onChange={(e) => setAge(parseInt(e.target.value) || 17)}
-                        min={14}
-                        max={25}
-                      />
+                      <div className="relative">
+                        <FieldIcon src="/assets/icons/user.svg" />
+                        <input id="age" type="number" className={iconInputClass} value={age} onChange={(e) => setAge(parseInt(e.target.value) || 17)} min={14} max={25} />
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="program" required>Program</Label>
-                    <select
-                      id="program"
-                      className={inputClass}
-                      value={selectedProgram}
-                      onChange={(e) => setSelectedProgram(e.target.value)}
-                    >
-                      {PROGRAMS.map((p) => (
-                        <option key={p.title} value={p.title}>{p.title}</option>
-                      ))}
-                    </select>
+                    <div>
+                      <Label htmlFor="program" required>Program</Label>
+                      <div className="relative">
+                        <FieldIcon src="/assets/icons/search.svg" />
+                        <select id="program" className={iconInputClass} value={selectedProgram} onChange={(e) => setSelectedProgram(e.target.value)}>
+                          {PROGRAMS.map((p) => (
+                            <option key={p.title} value={p.title}>{p.title}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Step 2: Education */}
-              <div style={{ display: currentStep === 1 ? "block" : "none" }}>
-                <div style={{ backgroundColor: "#ffffff", borderRadius: "20px", border: "2.7px solid #d7d7d7", padding: "36px", marginBottom: "16px" }}>
-                  <SectionTitle>Education</SectionTitle>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px", marginBottom: "20px" }}>
+              <div hidden={currentStep !== 1}>
+                <div className={cardClass}>
+                  <SectionTitle hint="Used only to check fairness across groups. It never moves a score.">Education</SectionTitle>
+                  <div className="grid gap-5 sm:grid-cols-3">
                     <div>
-                      <Label htmlFor="schoolType" required>School Type</Label>
-                      <select
-                        id="schoolType"
-                        className={inputClass}
-                        value={schoolType}
-                        onChange={(e) => setSchoolType(e.target.value)}
-                      >
+                      <Label htmlFor="schoolType" required>School type</Label>
+                      <select id="schoolType" className={inputClass} value={schoolType} onChange={(e) => setSchoolType(e.target.value)}>
                         {SCHOOL_TYPES.map((st) => (
                           <option key={st.value} value={st.value}>{st.label}</option>
                         ))}
                       </select>
                     </div>
                     <div>
-                      <Label htmlFor="gpa" required>GPA (0-4.0)</Label>
-                      <input
-                        id="gpa"
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        max="4.0"
-                        className={inputClass}
-                        value={gpa}
-                        onChange={(e) => setGpa(e.target.value)}
-                        placeholder="3.8"
-                        required
-                      />
+                      <Label htmlFor="gpa" required>GPA (0–4.0)</Label>
+                      <input id="gpa" type="number" step="0.1" min="0" max="4.0" className={inputClass} value={gpa} onChange={(e) => setGpa(e.target.value)} placeholder="e.g. 3.8" required />
                     </div>
                     <div>
-                      <Label htmlFor="years">Years of Study</Label>
-                      <input
-                        id="years"
-                        type="number"
-                        className={inputClass}
-                        value={yearsOfStudy}
-                        onChange={(e) => setYearsOfStudy(parseInt(e.target.value) || 11)}
-                        min={9}
-                        max={13}
-                      />
+                      <Label htmlFor="years">Years of study</Label>
+                      <input id="years" type="number" className={inputClass} value={yearsOfStudy} onChange={(e) => setYearsOfStudy(parseInt(e.target.value) || 11)} min={9} max={13} />
                     </div>
                   </div>
-
-                  <div style={{ marginBottom: "20px" }}>
-                    <Label htmlFor="schoolName">School Name</Label>
-                    <input
-                      id="schoolName"
-                      className={inputClass}
-                      value={schoolName}
-                      onChange={(e) => setSchoolName(e.target.value)}
-                      placeholder="e.g. Nazarbayev Intellectual School of Almaty"
-                    />
+                  <div className="mt-5">
+                    <Label htmlFor="schoolName">School name</Label>
+                    <input id="schoolName" className={inputClass} value={schoolName} onChange={(e) => setSchoolName(e.target.value)} placeholder="e.g. School-lyceum No. 12, Taraz" />
                   </div>
-
-                  <div style={{ marginBottom: "20px" }}>
-                    <Label htmlFor="ach-0">Academic Achievements</Label>
-                    {achievements.map((ach, i) => (
-                      <div key={i} style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
-                        <input
-                          id={`ach-${i}`}
-                          className={inputClass}
-                          value={ach}
-                          onChange={(e) => updateAchievement(i, e.target.value)}
-                          placeholder="e.g. National Math Olympiad - 2nd place"
-                        />
-                        {achievements.length > 1 && (
-                          <button type="button" onClick={() => removeAchievement(i)} style={{ color: "#f87171", background: "none", border: "none", fontSize: "20px", cursor: "pointer", padding: "0 4px" }}>&times;</button>
-                        )}
-                      </div>
-                    ))}
-                    <button type="button" onClick={addAchievement} className={`${btnSecondary}`} style={{ marginTop: "4px" }}>
-                      + Add Achievement
+                  <div className="mt-5">
+                    <Label htmlFor="ach-0">Academic achievements</Label>
+                    <div className="space-y-2">
+                      {achievements.map((ach, i) => (
+                        <div key={i} className="flex gap-2">
+                          <input id={`ach-${i}`} className={inputClass} value={ach} onChange={(e) => updateAchievement(i, e.target.value)} placeholder="e.g. Regional maths olympiad, 2nd place" />
+                          {achievements.length > 1 && <RemoveButton label="Remove achievement" onClick={() => removeAchievement(i)} />}
+                        </div>
+                      ))}
+                    </div>
+                    <button type="button" onClick={addAchievement} className={`${btnSecondary} mt-3`}>
+                      + Add achievement
                     </button>
                   </div>
-
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div className="mt-5 grid gap-5 sm:grid-cols-2">
                     <div>
-                      <Label htmlFor="languages" required>Languages (comma-separated)</Label>
-                      <input
-                        id="languages"
-                        className={inputClass}
-                        value={languages}
-                        onChange={(e) => setLanguages(e.target.value)}
-                        placeholder="Kazakh, Russian, English"
-                        required
-                      />
+                      <Label htmlFor="languages" required>Languages</Label>
+                      <input id="languages" className={inputClass} value={languages} onChange={(e) => setLanguages(e.target.value)} placeholder="Kazakh, Russian, English" required />
+                      <Hint>Separate with commas.</Hint>
                     </div>
                     <div>
-                      <Label htmlFor="skills">Skills (comma-separated)</Label>
-                      <input
-                        id="skills"
-                        className={inputClass}
-                        value={skills}
-                        onChange={(e) => setSkills(e.target.value)}
-                        placeholder="public speaking, mathematics, writing"
-                      />
+                      <Label htmlFor="skills">Skills</Label>
+                      <input id="skills" className={inputClass} value={skills} onChange={(e) => setSkills(e.target.value)} placeholder="public speaking, mathematics, writing" />
+                      <Hint>Separate with commas.</Hint>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Step 3: Essay & Motivation */}
-              <div style={{ display: currentStep === 2 ? "block" : "none" }}>
-                <div style={{ backgroundColor: "#ffffff", borderRadius: "20px", border: "2.7px solid #d7d7d7", padding: "36px", marginBottom: "16px" }}>
-                  <SectionTitle>Essay &amp; Motivation</SectionTitle>
-                  <div style={{ marginBottom: "20px" }}>
-                    <Label htmlFor="essayPrompt" required>Essay Prompt</Label>
-                    <select
-                      id="essayPrompt"
-                      className={inputClass}
-                      value={essayPrompt}
-                      onChange={(e) => setEssayPrompt(e.target.value)}
-                    >
+              <div hidden={currentStep !== 2}>
+                <div className={cardClass}>
+                  <SectionTitle hint="Tell us what you did, why, and what came of it. Real situations matter more than polished words.">
+                    Essay &amp; motivation
+                  </SectionTitle>
+                  <div>
+                    <Label htmlFor="essayPrompt" required>Essay prompt</Label>
+                    <select id="essayPrompt" className={inputClass} value={essayPrompt} onChange={(e) => setEssayPrompt(e.target.value)}>
                       {ESSAY_PROMPTS.map((p) => (
                         <option key={p} value={p}>{p}</option>
                       ))}
                     </select>
                   </div>
-                  <div style={{ marginBottom: "20px" }}>
-                    <Label htmlFor="essayText" required>Your Essay</Label>
-                    <textarea
-                      id="essayText"
-                      className={inputClass}
-                      style={{ minHeight: "220px", resize: "vertical" }}
-                      value={essayText}
-                      onChange={(e) => setEssayText(e.target.value)}
-                      placeholder="Write your essay here. Be authentic — we value your real voice and story..."
-                      required
-                    />
-                    <div style={{ marginTop: "6px", display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#999" }}>
+                  <div className="mt-5">
+                    <Label htmlFor="essayText" required>Your essay</Label>
+                    <textarea id="essayText" className={`${inputClass} min-h-[220px] resize-y leading-relaxed`} value={essayText} onChange={(e) => setEssayText(e.target.value)} placeholder="Write in your own voice. A specific story beats a general one." required />
+                    <div className="mt-1.5 flex flex-wrap justify-between gap-2 text-xs text-ink-3">
                       <span>
                         {wordCount} word{wordCount !== 1 ? "s" : ""}
-                        {wordCount > 0 && wordCount < 200 && (
-                          <span style={{ color: "#d97706", marginLeft: "8px" }}>Aim for at least 200 words</span>
-                        )}
-                        {wordCount >= 200 && wordCount <= 1000 && (
-                          <span style={{ color: "#059669", marginLeft: "8px" }}>Good length</span>
-                        )}
-                        {wordCount > 1000 && (
-                          <span style={{ color: "#d97706", marginLeft: "8px" }}>Consider trimming to under 1000 words</span>
-                        )}
+                        {wordCount > 0 && wordCount < 200 && <span className="ml-2 text-warn-ink">Aim for at least 200 words</span>}
+                        {wordCount >= 200 && wordCount <= 1000 && <span className="ml-2 text-accent-ink">Good length</span>}
+                        {wordCount > 1000 && <span className="ml-2 text-warn-ink">Consider trimming to under 1000 words</span>}
                       </span>
-                      <span>Recommended: 300-800 words</span>
+                      <span>Recommended: 300–800 words</span>
                     </div>
                   </div>
-                  <div style={{ marginBottom: "20px" }}>
-                    <Label htmlFor="writtenPresentation" required>Written Presentation</Label>
-                    <p className="text-sm text-ink-2 mb-2">
-                      Write your presentation in {WRITTEN_PRESENTATION_MIN_WORDS}–{WRITTEN_PRESENTATION_MAX_WORDS} words, in any
-                      language — Kazakh, Russian, English, or a mix. This written version is what we read and assess; a video
-                      is optional.
-                    </p>
-                    <textarea
-                      id="writtenPresentation"
-                      className={inputClass}
-                      style={{ minHeight: "200px", resize: "vertical" }}
-                      value={writtenPresentation}
-                      onChange={(e) => setWrittenPresentation(e.target.value)}
-                      aria-describedby="writtenPresentationCount"
-                      aria-invalid={presentationWords > 0 && !presentationInBounds}
-                      placeholder="Who you are, what you have done, and why inVision U. Any language is fine."
-                    />
-                    <div id="writtenPresentationCount" className="mt-1.5 flex justify-between text-xs text-ink-3">
-                      <span data-slot="presentation-word-count">
-                        {presentationWords} / {WRITTEN_PRESENTATION_MIN_WORDS}–{WRITTEN_PRESENTATION_MAX_WORDS} words
-                        {presentationWords > 0 && presentationWords < WRITTEN_PRESENTATION_MIN_WORDS && (
-                          <span className="ml-2 text-warn-ink">
-                            {WRITTEN_PRESENTATION_MIN_WORDS - presentationWords} more needed
-                          </span>
-                        )}
-                        {presentationWords > WRITTEN_PRESENTATION_MAX_WORDS && (
-                          <span className="ml-2 text-danger">
-                            {presentationWords - WRITTEN_PRESENTATION_MAX_WORDS} over the limit
-                          </span>
-                        )}
-                        {presentationInBounds && <span className="ml-2 text-accent-ink">Within range</span>}
-                      </span>
-                      <span>Words are counted by spaces, in any script</span>
-                    </div>
-                  </div>
-                  <div style={{ marginBottom: "20px" }}>
-                    <SectionTitle>Recommendation Letter (Optional)</SectionTitle>
-                    <p style={{ fontSize: "14px", color: "#888", marginBottom: "8px" }}>
-                      If you have a recommendation from a teacher or mentor, paste a summary here.
-                    </p>
-                    <textarea
-                      id="recommendation"
-                      className={inputClass}
-                      style={{ minHeight: "120px", resize: "vertical" }}
-                      value={recommendation}
-                      onChange={(e) => setRecommendation(e.target.value)}
-                      placeholder="Paste your recommendation summary here..."
-                    />
-                  </div>
+                </div>
+
+                <div className={`${cardClass} mt-8 border-t-2 border-line pt-8`}>
+                  <SectionTitle hint="Both are optional.">Recommendation &amp; video</SectionTitle>
                   <div>
-                    <SectionTitle>Video Presentation (Optional)</SectionTitle>
-                    <p style={{ fontSize: "14px", color: "#888", marginBottom: "16px", lineHeight: 1.6 }}>
-                      Submit a link to your video presentation (up to 5 minutes).
-                    </p>
-                    <Label htmlFor="videoLink">Link to your video</Label>
-                    <input
-                      id="videoLink"
-                      className={inputClass}
-                      value={videoLink}
-                      onChange={(e) => setVideoLink(e.target.value)}
-                      placeholder="https://youtube.com/watch?v=... or Google Drive link"
-                    />
-                    <p style={{ fontSize: "12px", color: "#999", marginTop: "6px" }}>
-                      Upload to YouTube (unlisted) or Google Drive and paste the link here.
-                    </p>
-                    <div style={{ marginTop: "20px" }}>
-                      <Label htmlFor="videoTranscript">Video Transcript (Optional)</Label>
-                      <p style={{ fontSize: "12px", color: "#888", marginBottom: "8px" }}>
-                        Paste what you said in your video. It is kept as supporting material for the interviewer and is not scored; your written presentation is.
-                      </p>
-                      <textarea
-                        id="videoTranscript"
-                        className={inputClass}
-                        style={{ minHeight: "140px", resize: "vertical" }}
-                        value={videoTranscript}
-                        onChange={(e) => setVideoTranscript(e.target.value)}
-                        placeholder="Paste the text of what you said in your video presentation..."
-                      />
-                    </div>
+                    <Label htmlFor="recommendation">Recommendation</Label>
+                    <textarea id="recommendation" className={`${inputClass} min-h-[110px] resize-y`} value={recommendation} onChange={(e) => setRecommendation(e.target.value)} placeholder="A summary of a recommendation from a teacher or mentor" />
+                  </div>
+                  <div className="mt-5">
+                    <Label htmlFor="videoLink">Link to your video presentation</Label>
+                    <input id="videoLink" className={inputClass} value={videoLink} onChange={(e) => setVideoLink(e.target.value)} placeholder="YouTube (unlisted) or Google Drive link" />
+                    <Hint>Up to 5 minutes. The committee watches it themselves.</Hint>
+                  </div>
+                  <div className="mt-5">
+                    <Label htmlFor="videoTranscript">Video transcript</Label>
+                    <textarea id="videoTranscript" className={`${inputClass} min-h-[110px] resize-y`} value={videoTranscript} onChange={(e) => setVideoTranscript(e.target.value)} placeholder="What you said in the video, if you have it written down" />
+                    <Hint>Kept as supporting material for the interviewer. Your essay is what is assessed.</Hint>
                   </div>
                 </div>
               </div>
 
               {/* Step 4: Extracurriculars & Projects */}
-              <div style={{ display: currentStep === 3 ? "block" : "none" }}>
-                <div style={{ backgroundColor: "#ffffff", borderRadius: "20px", border: "2.7px solid #d7d7d7", padding: "36px", marginBottom: "16px" }}>
-                  <SectionTitle>Extracurricular Activities</SectionTitle>
-                  {extracurriculars.map((ec, i) => (
-                    <div key={i} style={{ display: "grid", gridTemplateColumns: "5fr 3fr 3fr auto", gap: "12px", alignItems: "end", paddingBottom: "12px", borderBottom: i < extracurriculars.length - 1 ? "1px solid #f0f0f0" : "none", marginBottom: "12px" }}>
-                      <div>
-                        <Label htmlFor={`ec-act-${i}`}>Activity</Label>
-                        <input
-                          id={`ec-act-${i}`}
-                          className={inputClass}
-                          value={ec.activity}
-                          onChange={(e) => updateEC(i, "activity", e.target.value)}
-                          placeholder="Debate Club"
-                        />
+              <div hidden={currentStep !== 3}>
+                <div className={cardClass}>
+                  <SectionTitle hint="Clubs, work, volunteering, anything you kept doing.">Activities</SectionTitle>
+                  <div className="space-y-4">
+                    {extracurriculars.map((ec, i) => (
+                      <div key={i} className="grid items-end gap-3 border-b border-line-soft pb-4 last:border-b-0 last:pb-0 md:grid-cols-[5fr_3fr_3fr_auto]">
+                        <div>
+                          <Label htmlFor={`ec-act-${i}`}>Activity</Label>
+                          <input id={`ec-act-${i}`} className={inputClass} value={ec.activity} onChange={(e) => updateEC(i, "activity", e.target.value)} placeholder="e.g. Debate club" />
+                        </div>
+                        <div>
+                          <Label htmlFor={`ec-role-${i}`}>Role</Label>
+                          <input id={`ec-role-${i}`} className={inputClass} value={ec.role} onChange={(e) => updateEC(i, "role", e.target.value)} placeholder="e.g. Captain" />
+                        </div>
+                        <div>
+                          <Label htmlFor={`ec-dur-${i}`}>Months</Label>
+                          <input id={`ec-dur-${i}`} type="number" className={inputClass} value={ec.duration_months} onChange={(e) => updateEC(i, "duration_months", e.target.value)} placeholder="e.g. 24" />
+                        </div>
+                        {extracurriculars.length > 1 ? <RemoveButton label="Remove activity" onClick={() => removeEC(i)} /> : <span />}
                       </div>
-                      <div>
-                        <Label htmlFor={`ec-role-${i}`}>Role</Label>
-                        <input
-                          id={`ec-role-${i}`}
-                          className={inputClass}
-                          value={ec.role}
-                          onChange={(e) => updateEC(i, "role", e.target.value)}
-                          placeholder="president"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor={`ec-dur-${i}`}>Duration (months)</Label>
-                        <input
-                          id={`ec-dur-${i}`}
-                          type="number"
-                          className={inputClass}
-                          value={ec.duration_months}
-                          onChange={(e) => updateEC(i, "duration_months", e.target.value)}
-                          placeholder="24"
-                        />
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", paddingBottom: "2px" }}>
-                        {extracurriculars.length > 1 && (
-                          <button type="button" onClick={() => removeEC(i)} style={{ color: "#f87171", background: "none", border: "none", fontSize: "20px", cursor: "pointer" }}>&times;</button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  <button type="button" onClick={addExtracurricular} className={btnSecondary}>
-                    + Add Activity
+                    ))}
+                  </div>
+                  <button type="button" onClick={addExtracurricular} className={`${btnSecondary} mt-4`}>
+                    + Add activity
                   </button>
                 </div>
 
-                <div style={{ backgroundColor: "#ffffff", borderRadius: "20px", border: "2.7px solid #d7d7d7", padding: "36px" }}>
-                  <SectionTitle>Projects</SectionTitle>
-                  {projects.map((proj, i) => (
-                    <div key={i} style={{ display: "grid", gridTemplateColumns: "4fr 3fr 4fr auto", gap: "12px", alignItems: "end", paddingBottom: "12px", borderBottom: i < projects.length - 1 ? "1px solid #f0f0f0" : "none", marginBottom: "12px" }}>
-                      <div>
-                        <Label htmlFor={`proj-name-${i}`}>Project Name</Label>
-                        <input
-                          id={`proj-name-${i}`}
-                          className={inputClass}
-                          value={proj.name}
-                          onChange={(e) => updateProject(i, "name", e.target.value)}
-                          placeholder="Free tutoring program"
-                        />
+                <div className={`${cardClass} mt-8 border-t-2 border-line pt-8`}>
+                  <SectionTitle hint="Something you started or built, and what changed because of it.">Projects</SectionTitle>
+                  <div className="space-y-4">
+                    {projects.map((proj, i) => (
+                      <div key={i} className="grid items-end gap-3 border-b border-line-soft pb-4 last:border-b-0 last:pb-0 md:grid-cols-[4fr_3fr_4fr_auto]">
+                        <div>
+                          <Label htmlFor={`proj-name-${i}`}>Project</Label>
+                          <input id={`proj-name-${i}`} className={inputClass} value={proj.name} onChange={(e) => updateProject(i, "name", e.target.value)} placeholder="e.g. Free tutoring program" />
+                        </div>
+                        <div>
+                          <Label htmlFor={`proj-role-${i}`}>Your role</Label>
+                          <input id={`proj-role-${i}`} className={inputClass} value={proj.role} onChange={(e) => updateProject(i, "role", e.target.value)} placeholder="e.g. Founder" />
+                        </div>
+                        <div>
+                          <Label htmlFor={`proj-imp-${i}`}>Impact</Label>
+                          <input id={`proj-imp-${i}`} className={inputClass} value={proj.impact} onChange={(e) => updateProject(i, "impact", e.target.value)} placeholder="e.g. 40 students every week" />
+                        </div>
+                        {projects.length > 1 ? <RemoveButton label="Remove project" onClick={() => removeProject(i)} /> : <span />}
                       </div>
-                      <div>
-                        <Label htmlFor={`proj-role-${i}`}>Your Role</Label>
-                        <input
-                          id={`proj-role-${i}`}
-                          className={inputClass}
-                          value={proj.role}
-                          onChange={(e) => updateProject(i, "role", e.target.value)}
-                          placeholder="founder"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor={`proj-imp-${i}`}>Impact</Label>
-                        <input
-                          id={`proj-imp-${i}`}
-                          className={inputClass}
-                          value={proj.impact}
-                          onChange={(e) => updateProject(i, "impact", e.target.value)}
-                          placeholder="Reached 150+ students"
-                        />
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", paddingBottom: "2px" }}>
-                        {projects.length > 1 && (
-                          <button type="button" onClick={() => removeProject(i)} style={{ color: "#f87171", background: "none", border: "none", fontSize: "20px", cursor: "pointer" }}>&times;</button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  <button type="button" onClick={addProject} className={btnSecondary}>
-                    + Add Project
+                    ))}
+                  </div>
+                  <button type="button" onClick={addProject} className={`${btnSecondary} mt-4`}>
+                    + Add project
                   </button>
                 </div>
               </div>
 
               {/* Step 5: Review & Submit */}
-              <div style={{ display: currentStep === 4 ? "block" : "none" }}>
-                <div style={{ backgroundColor: "#ffffff", borderRadius: "20px", border: "2.7px solid #d7d7d7", padding: "36px" }}>
+              <div hidden={currentStep !== 4}>
+                <div className={cardClass}>
                   <SectionTitle>Review Your Application</SectionTitle>
-                  <p style={{ fontSize: "14px", color: "#888", marginBottom: "24px" }}>
+                  <p className="-mt-3 mb-6 border-b-2 border-line pb-4 text-xs text-ink-muted">
                     Please review all information before submitting. You can click any tab above to make changes.
                   </p>
-
-                  {/* Personal */}
-                  <div style={{ marginBottom: "24px" }}>
-                    <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#141414", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>Personal Information</h3>
-                    <div style={{ backgroundColor: "#f9f9f9", borderRadius: "12px", padding: "16px", fontSize: "14px", color: "#333" }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
-                        <div><span style={{ color: "#999" }}>Name:</span> {name || "—"}</div>
-                        <div><span style={{ color: "#999" }}>Age:</span> {age}</div>
-                        <div><span style={{ color: "#999" }}>Program:</span> {selectedProgram}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Education */}
-                  <div style={{ marginBottom: "24px" }}>
-                    <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#141414", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>Education</h3>
-                    <div style={{ backgroundColor: "#f9f9f9", borderRadius: "12px", padding: "16px", fontSize: "14px", color: "#333" }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginBottom: "12px" }}>
-                        <div><span style={{ color: "#999" }}>School Type:</span> {SCHOOL_TYPES.find(s => s.value === schoolType)?.label || schoolType}</div>
-                        <div><span style={{ color: "#999" }}>GPA:</span> {gpa || "—"}</div>
-                        <div><span style={{ color: "#999" }}>Years:</span> {yearsOfStudy}</div>
-                      </div>
-                      {achievements.filter(a => a.trim()).length > 0 && (
-                        <div style={{ marginBottom: "8px" }}>
-                          <span style={{ color: "#999" }}>Achievements:</span>
-                          <ul style={{ margin: "4px 0 0 16px", padding: 0 }}>
-                            {achievements.filter(a => a.trim()).map((a, i) => <li key={i}>{a}</li>)}
-                          </ul>
-                        </div>
-                      )}
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                        <div><span style={{ color: "#999" }}>Languages:</span> {languages || "—"}</div>
-                        <div><span style={{ color: "#999" }}>Skills:</span> {skills || "—"}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Essay */}
-                  <div style={{ marginBottom: "24px" }}>
-                    <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#141414", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>Essay &amp; Motivation</h3>
-                    <div style={{ backgroundColor: "#f9f9f9", borderRadius: "12px", padding: "16px", fontSize: "14px", color: "#333" }}>
-                      <div style={{ marginBottom: "8px" }}><span style={{ color: "#999" }}>Prompt:</span> {essayPrompt}</div>
-                      <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{essayText || "— No essay written yet —"}</div>
-                      <div style={{ marginTop: "8px", fontSize: "12px", color: "#999" }}>{wordCount} words</div>
-                      <div className="mt-3 pt-3 border-t border-line">
-                        <span className="text-ink-3">Written presentation ({presentationWords} words):</span>
-                        <div className="whitespace-pre-wrap mt-1">
-                          {writtenPresentation || "— Not written yet —"}
-                        </div>
-                      </div>
-                      {recommendation && (
-                        <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid #e5e5e5" }}>
-                          <span style={{ color: "#999" }}>Recommendation:</span>
-                          <div style={{ whiteSpace: "pre-wrap", marginTop: "4px" }}>{recommendation}</div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Extracurriculars */}
-                  {extracurriculars.filter(ec => ec.activity.trim()).length > 0 && (
-                    <div style={{ marginBottom: "24px" }}>
-                      <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#141414", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>Extracurriculars</h3>
-                      <div style={{ backgroundColor: "#f9f9f9", borderRadius: "12px", padding: "16px", fontSize: "14px", color: "#333" }}>
-                        {extracurriculars.filter(ec => ec.activity.trim()).map((ec, i) => (
-                          <div key={i} style={{ marginBottom: i < extracurriculars.filter(e => e.activity.trim()).length - 1 ? "8px" : 0 }}>
-                            <strong>{ec.activity}</strong> — {ec.role || "N/A"} ({ec.duration_months || "?"} months)
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                  <ReviewSection title="Personal information">
+                    <ReviewField label="Name" icon="/assets/icons/user.svg">{name}</ReviewField>
+                    <ReviewField label="Age" icon="/assets/icons/user.svg">{age}</ReviewField>
+                    <ReviewField label="Program" icon="/assets/icons/search.svg">{selectedProgram}</ReviewField>
+                  </ReviewSection>
+                  <ReviewSection title="Education">
+                    <ReviewField label="School Type">{SCHOOL_TYPES.find((s) => s.value === schoolType)?.label || schoolType}</ReviewField>
+                    <ReviewField label="GPA">{gpa}</ReviewField>
+                    <ReviewField label="Languages">{languages}</ReviewField>
+                    <ReviewField label="Skills">{skills}</ReviewField>
+                    <ReviewField label="Years">{yearsOfStudy}</ReviewField>
+                    {achievements.some((a) => a.trim()) && (
+                      <ReviewField label="Achievements">{achievements.filter((a) => a.trim()).join("; ")}</ReviewField>
+                    )}
+                  </ReviewSection>
+                  <ReviewSection title="Essay">
+                    <ReviewField label={essayPrompt}>
+                      {essayText && <span className="line-clamp-4 whitespace-pre-wrap">{essayText}</span>}
+                    </ReviewField>
+                    <p className="text-xs text-ink-muted">{wordCount} words{recommendation && " · recommendation added"}</p>
+                    <ReviewField label="Video presentation">{videoLink}</ReviewField>
+                  </ReviewSection>
+                  {(extracurriculars.some((ec) => ec.activity.trim()) || projects.some((p) => p.name.trim())) && (
+                    <ReviewSection title="Activities & projects">
+                      {extracurriculars.filter((ec) => ec.activity.trim()).map((ec, i) => (
+                        <ReviewField key={`ec-${i}`} label={ec.activity}>
+                          {ec.role || "no role given"} · {ec.duration_months || "?"} months
+                        </ReviewField>
+                      ))}
+                      {projects.filter((p) => p.name.trim()).map((p, i) => (
+                        <ReviewField key={`p-${i}`} label={p.name}>
+                          {p.role || "no role given"} · {p.impact || "no impact described"}
+                        </ReviewField>
+                      ))}
+                    </ReviewSection>
                   )}
-
-                  {/* Projects */}
-                  {projects.filter(p => p.name.trim()).length > 0 && (
-                    <div style={{ marginBottom: "24px" }}>
-                      <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#141414", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>Projects</h3>
-                      <div style={{ backgroundColor: "#f9f9f9", borderRadius: "12px", padding: "16px", fontSize: "14px", color: "#333" }}>
-                        {projects.filter(p => p.name.trim()).map((p, i) => (
-                          <div key={i} style={{ marginBottom: i < projects.filter(pr => pr.name.trim()).length - 1 ? "8px" : 0 }}>
-                            <strong>{p.name}</strong> — {p.role || "N/A"} | {p.impact || "No impact described"}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Video */}
-                  <div style={{ marginBottom: "24px" }}>
-                    <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#141414", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>Video Presentation</h3>
-                    <div style={{ backgroundColor: "#f9f9f9", borderRadius: "12px", padding: "16px", fontSize: "14px", color: "#333" }}>
-                      {videoLink ? (
-                        <a href={videoLink} target="_blank" rel="noopener noreferrer" style={{ color: "#c1f11d", textDecoration: "underline" }}>{videoLink}</a>
-                      ) : (
-                        <span style={{ color: "#999" }}>No video link provided</span>
-                      )}
-                    </div>
-                  </div>
                 </div>
               </div>
 
-              {/* Navigation buttons */}
-              <div style={{ marginTop: "32px", display: "flex", flexDirection: "column", gap: "12px" }}>
+              {/* Navigation. Distinct keys: reusing one DOM button would let the
+                  click that reaches the last step also submit the form. */}
+              <div className="mt-8 flex items-center gap-3 border-t-2 border-line pt-8">
+                {currentStep > 0 && (
+                  <button type="button" onClick={() => setCurrentStep(currentStep - 1)} className="rounded-[15px] bg-muted px-6 py-3 text-[clamp(14.4px,0.79vw,14.4px)] font-semibold text-ink transition-colors hover:bg-line">
+                    Back
+                  </button>
+                )}
                 {currentStep < 4 ? (
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep(currentStep + 1)}
-                    style={{
-                      width: "100%",
-                      backgroundColor: "#c1f11d",
-                      color: "#141414",
-                      border: "none",
-                      borderRadius: "15px",
-                      padding: "16px",
-                      fontSize: "17px",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      transition: "all 0.2s ease",
-                    }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = "#b0e010"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = "#c1f11d"; }}
-                  >
+                  <button key="next" type="button" onClick={() => setCurrentStep(currentStep + 1)} className="flex-1 rounded-[15px] bg-accent py-3 text-[clamp(14.4px,0.79vw,14.4px)] font-semibold text-ink transition-colors hover:bg-accent-strong">
                     Next Step
                   </button>
                 ) : (
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    style={{
-                      width: "100%",
-                      backgroundColor: "#141414",
-                      color: "#c1f11d",
-                      border: "none",
-                      borderRadius: "15px",
-                      padding: "16px",
-                      fontSize: "17px",
-                      fontWeight: 600,
-                      cursor: submitting ? "not-allowed" : "pointer",
-                      opacity: submitting ? 0.5 : 1,
-                      transition: "all 0.2s ease",
-                    }}
-                    onMouseEnter={(e) => { if (!submitting) (e.currentTarget as HTMLElement).style.backgroundColor = "#2a2a2a"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = "#141414"; }}
-                  >
-                    {submitting ? "Submitting..." : "Submit Application"}
-                  </button>
-                )}
-                {currentStep > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep(currentStep - 1)}
-                    style={{ background: "none", border: "none", color: "#666", fontSize: "15px", fontWeight: 500, cursor: "pointer", padding: "8px 0", textAlign: "center" }}
-                  >
-                    &larr; Previous Step
+                  <button key="submit" type="submit" disabled={submitting} className="flex-1 rounded-[15px] bg-ink py-3 text-[clamp(14.4px,0.79vw,14.4px)] font-semibold text-accent transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">
+                    {submitting ? "Submitting…" : "Submit Application"}
                   </button>
                 )}
               </div>
             </form>
-          </div>
 
-          {/* Sidebar */}
-          <div style={{ flex: "0 0 340px" }}>
-            {/* Important Dates */}
-            <div style={{ backgroundColor: "#ffffff", borderRadius: "20px", border: "2.7px solid #d7d7d7", padding: "32px", marginBottom: "14px" }}>
-              <h3 style={{ fontSize: "20px", fontWeight: 700, color: "#141414", margin: "0 0 20px 0" }}>Important Dates</h3>
-              <div style={{ fontSize: "16px", color: "#676767", lineHeight: 2.2 }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span>Application Opens</span>
-                  <span style={{ fontWeight: 700, color: "#141414" }}>Apr 1, 2026</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span>Early Decision</span>
-                  <span style={{ fontWeight: 700, color: "#141414" }}>May 15, 2026</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span>Final Deadline</span>
-                  <span style={{ fontWeight: 700, color: "#f1791d" }}>Jun 30, 2026</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span>Results Announced</span>
-                  <span style={{ fontWeight: 700, color: "#141414" }}>Jul 20, 2026</span>
-                </div>
+            {/* Sidebar: below the form on small screens, beside it on large ones */}
+            <aside className="rounded-[20px] border-[2.5px] border-line bg-white p-[clamp(20px,1.58vw,30.24px)] lg:sticky lg:top-24">
+              <div role="tablist" aria-label="Application info" className="mb-7 grid grid-cols-2 gap-3 rounded-[16px] bg-field p-[11px]">
+                {(
+                  [
+                    ["dates", "Important Dates"],
+                    ["documents", "Required Documents"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    role="tab"
+                    aria-selected={sideTab === key}
+                    onClick={() => setSideTab(key)}
+                    className={`whitespace-nowrap rounded-[14px] px-2 py-3 text-[clamp(14px,0.84vw,15.84px)] font-semibold transition-colors ${sideTab === key ? "bg-accent text-ink" : "text-ink-muted hover:text-ink"}`}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
-            </div>
-
-            {/* Required Documents */}
-            <div style={{ backgroundColor: "#ffffff", borderRadius: "20px", border: "2.7px solid #d7d7d7", padding: "32px" }}>
-              <h3 style={{ fontSize: "20px", fontWeight: 700, color: "#141414", margin: "0 0 20px 0" }}>Required Documents</h3>
-              {[
-                { label: "Personal Information", done: !!name },
-                { label: "GPA & Education", done: !!gpa },
-                { label: "Essay (200+ words)", done: wordCount >= 200 },
-                { label: `Written presentation (${WRITTEN_PRESENTATION_MIN_WORDS}–${WRITTEN_PRESENTATION_MAX_WORDS} words)`, done: presentationInBounds },
-                { label: "Video Presentation", done: !!videoLink.trim() },
-                { label: "Achievements", done: achievements.some(a => a.trim()) },
-                { label: "Languages", done: !!languages.trim() },
-              ].map((item) => (
-                <div key={item.label} style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "12px", fontSize: "16px" }}>
-                  <span style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: "24px",
-                    height: "24px",
-                    borderRadius: "4px",
-                    border: item.done ? "none" : "2px solid #676767",
-                    backgroundColor: item.done ? "#c1f11d" : "transparent",
-                    fontSize: "14px",
-                    color: "#141414",
-                    flexShrink: 0,
-                  }}>
-                    {item.done && "\u2713"}
-                  </span>
-                  <span style={{ color: item.done ? "#141414" : "#999" }}>{item.label}</span>
-                </div>
-              ))}
-            </div>
+              {sideTab === "dates" ? (
+                // Fall 2026 intake, quoted from invisionu.education/undergraduate.
+                <dl className="space-y-5 border-b-2 border-line pb-7 text-[clamp(14.4px,0.79vw,14.4px)]">
+                  {[
+                    ["Early admission closes", "Dec 24, 2025"],
+                    ["Regular admission opens", "Mar 12, 2026"],
+                    ["Final deadline", "Jul 15, 2026"],
+                    ["Classes start", "Sep 2026"],
+                  ].map(([label, date]) => (
+                    <div key={label} className="flex justify-between gap-4">
+                      <dt className="text-ink-muted">{label}</dt>
+                      <dd className={`text-right font-bold ${label === "Final deadline" ? "text-deadline" : "text-ink"}`}>{date}</dd>
+                    </div>
+                  ))}
+                </dl>
+              ) : (
+                <ul className="space-y-4 border-b-2 border-line pb-7">
+                  {[
+                    { label: "Personal information", done: !!name },
+                    { label: "GPA & education", done: !!gpa },
+                    { label: "Languages", done: !!languages.trim() },
+                    { label: "Essay (200+ words)", done: wordCount >= 200 },
+                    { label: "Achievements", done: achievements.some((a) => a.trim()), optional: true },
+                    { label: "Video presentation", done: !!videoLink.trim(), optional: true },
+                  ].map((item) => (
+                    <li key={item.label} className="flex items-start gap-3 text-[clamp(14.4px,0.79vw,14.4px)]">
+                      <span
+                        aria-hidden
+                        className={`mt-px flex size-5 shrink-0 items-center justify-center rounded-[4px] ${
+                          item.done ? "bg-accent text-ink" : "border-2 border-ink-muted"
+                        }`}
+                      >
+                        {item.done && (
+                          <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M5 12l5 5 9-10" />
+                          </svg>
+                        )}
+                      </span>
+                      <span className={item.done ? "text-ink" : "text-ink-2"}>
+                        {item.label}
+                        {item.optional && <span className="text-ink-3"> · optional</span>}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </aside>
           </div>
-
         </div>
       </section>
 
-      {/* ══════ FOOTER ══════ */}
-      <footer
-        style={{
-          position: "relative",
-          overflow: "hidden",
-          padding: "0",
-        }}
-      >
-        {/* Footer background image */}
-        <img
-          src="/assets/Footer BG.png"
-          alt=""
-          style={{
-            width: "100%",
-            display: "block",
-          }}
-        />
-        {/* Content overlay */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "flex-end",
-            padding: "0 40px 40px",
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "center", gap: "32px", marginBottom: "24px" }}>
-            {[
-              { href: "/", label: "Home" },
-              { href: "/#apply", label: "Apply" },
-              { href: "/teach", label: "Teaching Challenge" },
-              { href: "/dashboard", label: "Dashboard" },
-            ].map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                style={{ fontSize: "14px", color: "rgba(255,255,255,0.7)", textDecoration: "none", transition: "color 0.2s" }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "#c1f11d")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.7)")}
-              >
-                {link.label}
-              </a>
-            ))}
-          </div>
-          <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)", textAlign: "center" }}>
-            Powered by inDrive &middot; Built for Decentrathon 5.0
-          </p>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

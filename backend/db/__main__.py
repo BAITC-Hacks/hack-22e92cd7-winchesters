@@ -33,8 +33,8 @@ def init() -> None:
     ledgers_saved = seed_demo_ledger() if settings.DEMO_MODE else 0
     if settings.DEMO_MODE and not cache.cached_refs():
         # Building the cache needs a live key, so init only says how (LED-12).
-        print("no cached ledgers in backend/ledger/fixtures/cache; c-001 shows the illustrative worked example. "
-              "Build them once with a key: python -m backend.ledger.cache")
+        print("no cached ledgers in backend/ledger/fixtures/cache; the seed applicants show demo-mode ledgers. "
+              "Build real ones once with a key: python -m backend.ledger.cache")
     print(
         f"schema at head; applicants: {result.applicants_added} added, "
         f"{result.applicants_total - result.applicants_added} already present"

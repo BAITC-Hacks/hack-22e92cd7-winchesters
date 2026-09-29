@@ -9,6 +9,7 @@ same data after a second run.
 from __future__ import annotations
 
 import hashlib
+import json
 
 import pytest
 from fastapi import HTTPException
@@ -19,7 +20,8 @@ from backend import llm, settings
 from backend.db import engine as db_engine
 from backend.db.seed import DEMO_COMMITTEE_EMAIL, DEMO_COMMITTEE_PASSWORD, seed, seed_demo_ledger
 from backend.db.tables import ModelRun, User
-from backend.ledger.provenance import HAND_AUTHORED, ILLUSTRATIVE_LABEL
+from backend.ledger import demo
+from backend.ledger.provenance import DEMO_LABEL, HAND_AUTHORED, ILLUSTRATIVE_LABEL
 
 
 @pytest.fixture(params=["", "your-anthropic-api-key-here"], ids=["no-key", "example-placeholder"])
@@ -63,10 +65,9 @@ DEMO_GETS = [
     "/api/fairness/heldout/status",
     "/api/overrides/c-001",
     "/api/overrides/reason-codes",
-    "/api/feynman/topics",
-    "/api/feynman/mode",
-    "/api/feynman/demo",
-    "/api/feynman/score/c-001",
+    "/api/scenarios",
+    "/api/scenarios/mode",
+    "/api/scenarios/result/c-001",
 ]
 DEMO_POSTS = [
     "/api/scoring/rank",
@@ -135,19 +136,40 @@ def test_ai_scoring_without_a_key_is_503_and_records_nothing(client, committee, 
 
 
 @pytest.mark.asyncio
-async def test_teaching_turn_without_a_key_is_503_not_502(no_model):
-    from backend.routers.feynman import _ask_model
+async def test_scenario_turn_without_a_key_is_503_not_502(no_model):
+    from backend.routers.scenarios import _ask_model
 
     with pytest.raises(HTTPException) as raised:
         await _ask_model(llm.complete_chat(messages=[{"role": "user", "content": "hi"}], system="s"), "chat")
     assert raised.value.status_code == 503
-    assert "cached demo transcript" in raised.value.detail
 
 
 # ── Provenance: the worked example is never shown as c-001's ────────
 
 
-def test_the_worked_example_is_labelled_illustrative_everywhere(client, committee, no_model):
+@pytest.fixture
+def committee_without_demo_rows(auth_headers, db, monkeypatch, tmp_path):
+    """The seed as it was before demo mode: c-001 carries the worked example."""
+    empty = tmp_path / "no_demo_rows.json"
+    empty.write_text(json.dumps({"columns": [], "applicants": {}}), encoding="utf-8")
+    monkeypatch.setattr(demo, "AUTHORED_FILE", empty)
+    seed_demo_ledger()
+    return auth_headers("committee")
+
+
+def test_seed_applicants_are_labelled_demo_mode(client, committee, no_model):
+    ledger = client.get("/api/ledger/c-001", headers=committee).json()
+    assert ledger["model_judge"] == demo.DEMO_AUTHORED
+    memo = client.get("/api/committee/decision-memo/c-001", headers=committee).json()
+    brief = client.get("/api/committee/pre-brief/c-001", headers=committee).json()
+    for body in (memo, brief):
+        assert body["ledger_provenance"]["kind"] == "demo_mode"
+        assert body["ledger_provenance"]["illustrative"] is False
+        assert body["ledger_provenance"]["label"] == DEMO_LABEL
+
+
+def test_the_worked_example_is_labelled_illustrative_everywhere(client, committee_without_demo_rows, no_model):
+    committee = committee_without_demo_rows
     ledger = client.get("/api/ledger/c-001", headers=committee).json()
     assert ledger["model_judge"] == HAND_AUTHORED
 

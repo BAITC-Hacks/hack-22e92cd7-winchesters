@@ -165,15 +165,12 @@ def test_all_nine_competencies_are_present_and_ordered():
     assert set(rb.COMPETENCY_ORDER) == set(Competency)
 
 
-def test_the_two_hardest_competencies_are_never_rated_by_ai():
-    """The deck calls these the most valuable and the hardest to automate."""
-    assert not rb.ai_may_rate(Competency.WOUNDED_LEADERSHIP)
-    assert not rb.ai_may_rate(Competency.PURPOSE_DRIVEN_LEADERSHIP)
-    for competency in set(Competency) - {
-        Competency.WOUNDED_LEADERSHIP,
-        Competency.PURPOSE_DRIVEN_LEADERSHIP,
-    }:
-        assert rb.ai_may_rate(competency)
+def test_competencies_reserved_for_people_are_never_rated_by_ai():
+    """The deck calls purpose-driven and wounded leadership the hardest to automate;
+    intellect joined them because a level of it from written text alone is not defensible."""
+    reserved = {Competency.WOUNDED_LEADERSHIP, Competency.PURPOSE_DRIVEN_LEADERSHIP, Competency.INTELLECT}
+    for competency in Competency:
+        assert rb.ai_may_rate(competency) is (competency not in reserved)
 
 
 def test_public_scales_are_not_marked_provisional():

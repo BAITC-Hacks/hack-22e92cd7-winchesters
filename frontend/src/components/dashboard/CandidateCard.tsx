@@ -5,10 +5,13 @@ import { RecommendationBadge } from "../ui/RecommendationBadge";
 export function CandidateCard({
   ranked,
   scorer,
+  selected = false,
   onSelect,
 }: {
   ranked: RankedCandidate;
   scorer: Scorer;
+  /** Its details are open in the side panel. */
+  selected?: boolean;
   onSelect: () => void;
 }) {
   const score = scoreOf(ranked);
@@ -28,16 +31,22 @@ export function CandidateCard({
 
   return (
     <div
-      className="bg-white rounded-[16px] border-2 border-line px-4 py-5 cursor-pointer transition-all duration-200 hover:border-accent hover:shadow-[0_0_20px_rgba(193,241,29,0.25)] hover:-translate-y-1"
+      role="button"
+      tabIndex={0}
+      aria-pressed={selected}
+      className={`bg-white rounded-[20px] border-2 px-5 py-6 cursor-pointer transition-all duration-200 outline-none hover:border-accent hover:shadow-[0_0_20px_rgba(193,241,29,0.25)] hover:-translate-y-1 focus-visible:border-accent ${
+        selected ? "border-accent shadow-[0_0_20px_rgba(193,241,29,0.25)]" : "border-line"
+      }`}
       onClick={onSelect}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onSelect())}
     >
       {/* Header row */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2.5">
-          <span className="w-[28px] h-[28px] rounded-[8px] bg-accent text-ink flex items-center justify-center text-xs font-bold shrink-0">
+          <span className="size-[26px] rounded-[8px] bg-accent text-ink flex items-center justify-center text-[15px] font-semibold shrink-0">
             {ranked.rank}
           </span>
-          <h3 className="font-bold text-ink text-base">{c.name}</h3>
+          <h3 className="font-semibold text-ink text-[clamp(16.56px,0.86vw,16.56px)]">{c.name}</h3>
         </div>
         {score && <RecommendationBadge score={score} scorer={scorer} tag />}
       </div>
@@ -48,14 +57,14 @@ export function CandidateCard({
           <div className="flex items-baseline gap-2 mb-3">
             {completeness ? (
               <>
-                <span className="font-bold text-ink text-xl">{score.overall_score.toFixed(0)}%</span>
-                <span className="text-ink-2 text-sm">of the file complete</span>
+                <span className="font-bold text-ink text-[21px]">{score.overall_score.toFixed(0)}%</span>
+                <span className="text-ink-3 text-[15px]">of the file complete</span>
               </>
             ) : (
               <>
-                <span className="font-bold text-ink text-xl">{score.overall_score.toFixed(1)}</span>
-                <span className="text-ink-3 text-sm">/ 100</span>
-                <span className="ml-1 inline-block px-2 py-0.5 rounded-[6.4px] bg-muted text-ink text-xs font-medium uppercase">AI</span>
+                <span className="font-bold text-ink text-[21px]">{score.overall_score.toFixed(1)}</span>
+                <span className="text-ink-3 text-[15px]">/ 100</span>
+                <span className="ml-1 inline-block px-1.5 py-0.5 rounded-[6px] bg-muted text-ink text-[13px] uppercase">AI</span>
               </>
             )}
           </div>
@@ -65,18 +74,18 @@ export function CandidateCard({
             {score.dimensions.map((d, i) => (
               <div
                 key={d.dimension}
-                className={`flex items-center gap-3 py-2.5 ${i < score.dimensions.length - 1 ? "border-b border-line" : ""}`}
+                className="flex items-center gap-2 border-b border-line py-2"
               >
-                <span className="w-[72px] shrink-0 text-xs text-ink-3 truncate" title={completeness ? "Section filled in, not a rating" : undefined}>
+                <span className="w-[64px] shrink-0 text-[12px] text-ink-3 truncate" title={completeness ? "Section filled in, not a rating" : undefined}>
                   {DIMENSION_LABELS[d.dimension] || d.dimension}
                 </span>
-                <div className="flex-1 h-2.5 bg-muted rounded-[8px] overflow-hidden">
+                <div className="flex-1 h-[9px] bg-muted rounded-[10px] overflow-hidden">
                   <div
-                    className="h-full rounded-[8px] bg-ink-2"
+                    className="h-full rounded-[10px] bg-ink-2"
                     style={{ width: `${Math.min((d.score / 100) * 100, 100)}%` }}
                   />
                 </div>
-                <span className="w-[42px] shrink-0 text-center text-xs font-medium bg-muted text-ink rounded-[8px] py-0.5">
+                <span className="w-[44px] shrink-0 text-center text-[14px] bg-accent text-ink rounded-[8px] py-1">
                   {d.score.toFixed(0)}{completeness ? "%" : ""}
                 </span>
               </div>

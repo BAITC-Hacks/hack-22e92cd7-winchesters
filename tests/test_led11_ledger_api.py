@@ -9,7 +9,7 @@ import pytest
 
 from backend.db import ledger as ledger_store
 from backend.db.seed import seed_demo_ledger
-from backend.ledger import atola, cache, pipeline
+from backend.ledger import atola, cache, demo, pipeline
 from backend.ledger.rubric import COMPETENCY_ORDER, RUBRIC
 from backend.ledger.schema import CandidateLedger
 
@@ -77,7 +77,15 @@ def test_missing_ledger_is_404_and_never_a_live_rebuild(client, auth_headers, mo
     assert client.get("/api/ledger", headers=headers).json() == []
 
 
-def test_seed_loads_cache_idempotently_and_labels_the_worked_example(db, tmp_path):
+@pytest.fixture
+def no_demo_rows(monkeypatch, tmp_path):
+    """A seed without demo-mode rows, so c-001 falls back to the worked example."""
+    empty = tmp_path / "no_demo_rows.json"
+    empty.write_text(json.dumps({"columns": [], "applicants": {}}), encoding="utf-8")
+    monkeypatch.setattr(demo, "AUTHORED_FILE", empty)
+
+
+def test_seed_loads_cache_idempotently_and_labels_the_worked_example(db, tmp_path, no_demo_rows):
     cache.write_cached(_variant("c-005"), tmp_path)
     assert seed_demo_ledger(tmp_path) == 2
     assert seed_demo_ledger(tmp_path) == 0
@@ -128,3 +136,18 @@ def test_cli_refuses_to_run_without_an_api_key(monkeypatch, capsys):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     assert cache.main([]) == 2
     assert "ANTHROPIC_API_KEY" in capsys.readouterr().err
+
+
+def test_seed_gives_every_seed_applicant_a_demo_ledger_once(db, tmp_path):
+    assert seed_demo_ledger(tmp_path) == 16
+    assert seed_demo_ledger(tmp_path) == 0
+    ledgers = ledger_store.list_ledgers()
+    assert len(ledgers) == 16
+    assert {ledger.model_judge for ledger in ledgers} == {demo.DEMO_AUTHORED}
+
+
+def test_a_cached_run_wins_over_the_demo_ledger(db, tmp_path):
+    seed_demo_ledger(tmp_path)
+    cache.write_cached(_variant("c-005"), tmp_path)
+    assert seed_demo_ledger(tmp_path) == 1
+    assert ledger_store.load_ledger("c-005").model_judge != demo.DEMO_AUTHORED

@@ -30,10 +30,9 @@ additional language.
 | **Decision memo** (COM-04) | Russian / Kazakh memo and PDF with the evidence, overrides, bias probe, frozen version hashes and committee signatures. |
 | **Fairness audit** (FAIR-07) | Share of each group rated High, per competency, with 95% bootstrap intervals and a 0.8 review line. Groups with n < 10 are marked "Not enough data". |
 | **Swap and rescore** (FAIR-06) | Changes name, region, school type, language and speech style and checks whether any level flips. |
-| **Written presentation** (INP-01) | 150–300 words in any language; the scored input instead of video. Video transcripts are auxiliary and never scored without the applicant's own transcript. |
-| **Teaching Challenge / Scenario Lab** (INP-03) | The applicant teaches a concept to an AI "student". Results are shown as "observed in simulation" with weight 0: they never move a score or a rank. |
+| **Video by people** | The applicant links a video presentation; the committee watches and grades it. The AI reads only the written materials (essay, interview notes, recommendation). |
+| **Scenarios** (INP-04) | The applicant talks a real situation (team conflict, taking initiative, an honest choice) through with a neutral conversation partner, in English, Russian or Kazakh. Their replies are rated on the same rubric as the essays and shown to the committee as "observed in simulation", weight 0: never a change to the AI level or a rank. Without a key the partner follows a script (demo mode). |
 | **Completeness view** (LED-01) | How much material exists per dimension, so the committee sees a candidate assessed on four sources apart from one assessed on an essay alone. It is not a merit score. |
-| **Blind / Informed** (FAIR-01) | Candidate context is hidden from the committee view while evidence is reviewed. |
 
 **What scoring never uses:** school type, region, GPA, family income, gender,
 application language, essay length or manner of speech.
@@ -54,12 +53,14 @@ produces no 5xx responses and no console errors
 
 Not done yet:
 
-- **Ledger cache: 0 of 16 applicants.** Only c-001 has a ledger, and it is the
-  hand-authored LED-03 worked example for a fictional applicant. It is shown
-  as *"Illustrative worked example — not from this applicant"*, every quote is
-  tagged, and it is not counted in cohort figures. The other 15 show
-  "Unavailable — nothing was scored". With a funded `ANTHROPIC_API_KEY`:
-  `python -m backend.ledger.cache && python -m backend.db init`.
+- **Ledgers run in demo mode until model keys arrive.** A stand-in replaces
+  the two model calls (`backend/ledger/demo.py`): the 16 seed applicants use
+  quotes written once by hand from their own documents, and a newly submitted
+  application gets a rule-based ledger on submission. Every quote still passes
+  the real verbatim check, and levels, ATOLA gaps and probes come from the real
+  rules. Each view shows the chip *"Demo mode · no live model"*. With a funded
+  `ANTHROPIC_API_KEY`, `python -m backend.ledger.cache && python -m backend.db init`
+  replaces them with real runs.
 - **The attribute-grouped fairness audit on the dashboard uses 200 synthetic
   profiles.** It is labelled "demonstrates the method, not evidence". On the
   real database it has no levels yet, so it shows no figures.
@@ -101,16 +102,16 @@ Prompt and rubric content is hashed and locked in
 ## Architecture
 
 ```
-Applicant Portal            Teaching Challenge           Admissions Dashboard
- (application +              (AI student, weight 0,       (committee / admin only)
-  written presentation)       cached demo transcript)
+Applicant Portal            Scenarios                    Admissions Dashboard
+ (application: essay,        (conversation partner,       (committee / admin only)
+  video link)                 en/ru/kk, weight 0)
         |                           |                              |
         +---------------------------+------------------------------+
                                     |
                             [FastAPI backend]
      ledger/ (extract -> rate -> ATOLA, versions)   routers/ (auth, candidates, ledger,
      scoring/ (completeness, fairness audit)                  overrides, committee, fairness,
-     committee_memo / prebrief / probe bank                   feynman, analysis, scoring)
+     committee_memo / prebrief / probe bank                   scenarios, analysis, scoring)
      privacy.py (PII stripped before any model call)
                                     |
                  [SQLite: applicants, artifacts, ledger runs,
@@ -193,16 +194,15 @@ is `committee@invisionu.edu` / `demo2026`, seeded while `DEMO_MODE=1`.
 
 ## Known Limitations
 
-- The ledger cache is empty (see *Current state*). Until it is built, the
-  committee card is shown only on the illustrative c-001 example.
+- Ledgers are demo mode until the cache is built with a key (see *Current state*).
 - 7 of 9 rubric scales are drafts. The COM-06 probe bank is provisional.
 - No historical data yet (expected from Oct 5), so there is no agreement or
   fairness evidence on real outcomes. The model card stays empty.
 - The Kazakh evaluation relies on the same pipeline as Russian and English.
   Cross-lingual agreement has so far only been measured on the deterministic
   baseline.
-- No transcription call is implemented. Video analysis runs only on the
-  applicant's own transcript.
+- The video presentation is for the committee to watch and grade themselves;
+  the dashboard does not analyse it.
 
 ---
 
@@ -224,7 +224,7 @@ is `committee@invisionu.edu` / `demo2026`, seeded while `DEMO_MODE=1`.
 ├── frontend/src/app/
 │   ├── page.tsx               # Landing + application form
 │   ├── auth/                  # Sign in / sign up
-│   ├── teach/                 # Teaching Challenge (applicant)
+│   ├── scenarios/             # Scenarios (applicant)
 │   ├── dashboard/             # Admissions dashboard (committee)
 │   ├── decision-memo/         # Committee decision memo + PDF
 │   ├── evaluation/            # Scorer evaluation harness

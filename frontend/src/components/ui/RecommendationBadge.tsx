@@ -40,7 +40,7 @@ export function RecommendationBadge({
 
   if (tag) {
     return (
-      <span className={`inline-block px-2.5 py-1 rounded-[10px] text-sm font-medium whitespace-nowrap ${TAG_STYLES[group]}`}>
+      <span className={`inline-block min-w-[100px] px-2.5 py-1.5 rounded-[10px] text-center text-[15px] whitespace-nowrap ${TAG_STYLES[group]}`}>
         {label}
       </span>
     );

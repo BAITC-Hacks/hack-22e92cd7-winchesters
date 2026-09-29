@@ -19,7 +19,7 @@ from dataclasses import dataclass
 
 from backend.ledger.schema import Competency, Level
 
-RUBRIC_VERSION = "provisional-0.1"
+RUBRIC_VERSION = "provisional-0.2"
 
 
 @dataclass(frozen=True)
@@ -321,6 +321,10 @@ _PROVISIONAL = (
                        "Adjusts when told directly.",
                        "Describes changing their mind and what caused it."),
         ),
+        # From written text alone this reads as a judgement of the person, and a
+        # "Weak" here is neither defensible nor useful; the interviewer rates it
+        # live, like purpose-driven and wounded leadership.
+        ai_may_rate=False,
     ),
     _provisional(
         Competency.PURPOSE_DRIVEN_LEADERSHIP,

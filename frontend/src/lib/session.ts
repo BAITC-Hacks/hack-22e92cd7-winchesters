@@ -15,7 +15,7 @@ export const STAFF_ROLES: Role[] = ["interviewer", "committee", "admin"];
 
 const TOKEN_KEY = "invisionu_token";
 const USER_KEY = "invisionu_user";
-// Read by the application form and the teaching challenge.
+// Read by the application form and the scenarios page.
 const CANDIDATE_ID_KEY = "invisionu_candidate_id";
 const CANDIDATE_NAME_KEY = "invisionu_candidate_name";
 

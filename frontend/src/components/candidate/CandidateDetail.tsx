@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import Link from "next/link";
+import { useEffect, useState, type ReactNode } from "react";
 import type { Scorer } from "@/lib/dashboard";
 import { useOverrides } from "@/lib/useOverrides";
 import type {
@@ -10,8 +11,7 @@ import type {
   InterviewerPreBrief,
   CandidateScore,
   CounterfactualProbeResult,
-  FeynmanScore,
-  VideoAnalysis,
+  ScenarioResult,
 } from "@/lib/types";
 import { CommitteeCard } from "../views/CommitteeCard";
 import { CounterfactualProbe } from "./CounterfactualProbe";
@@ -19,19 +19,18 @@ import { GrowthMap } from "../views/GrowthMap";
 import { LedgerProvenanceProvider, LedgerSourceBanner } from "../ledger/Provenance";
 import { InterviewerBrief } from "../views/InterviewerBrief";
 import { ApplicationProfile } from "./ApplicationProfile";
-import { FeynmanPanel } from "./FeynmanPanel";
+import { ScenarioPanel } from "./ScenarioPanel";
 import { ScoreBreakdown } from "./ScoreBreakdown";
 import { SourceConsistencyPanel } from "./SourceConsistencyPanel";
-import { VideoPanel } from "./VideoPanel";
-import { WrittenPresentationMissing } from "./WrittenPresentation";
 
 type Tab = "application" | "committee" | "interviewer" | "growth";
 
+// The evidence first: the drawer opens on the committee card.
 const TABS: { key: Tab; label: string }[] = [
-  { key: "application", label: "Application" },
   { key: "committee", label: "Committee Card" },
   { key: "interviewer", label: "Interviewer Brief" },
   { key: "growth", label: "Growth Map" },
+  { key: "application", label: "Application" },
 ];
 
 export interface CandidateDetailProps {
@@ -45,54 +44,74 @@ export interface CandidateDetailProps {
   /** No stored snapshot for this candidate (404); the API never builds one live. */
   ledgerMissing: boolean;
   aiDetection: AIDetectionResult | null;
-  feynmanScore: FeynmanScore | null;
-  videoAnalysis: VideoAnalysis | null;
+  scenarioResult: ScenarioResult | null;
   counterfactualProbe: CounterfactualProbeResult | null;
   probeLoading: boolean;
   probeError: string | null;
   detectLoading: boolean;
   onClose: () => void;
   onDetectAI: () => void;
-  onAnalyzeVideo: () => void;
   onRunProbe: () => void;
 }
 
 export function CandidateDetail(props: CandidateDetailProps) {
   const { candidate: c, onClose } = props;
-  const [tab, setTab] = useState<Tab>("application");
+  const [tab, setTab] = useState<Tab>("committee");
   const overrides = useOverrides(c.id);
 
+  useEffect(() => {
+    const closeOnEscape = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 flex items-center justify-center p-6" style={{ zIndex: 200 }}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div
-        className="relative w-full max-w-4xl max-h-[90vh] bg-white shadow-2xl overflow-y-auto"
-        style={{ borderRadius: "20px", border: "2.7px solid #d7d7d7" }}
-      >
-        <div className="sticky top-0 bg-white z-10 px-8 pt-5 border-b border-line">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-ink">{c.name}</h2>
-              <p className="text-base text-ink-2">
-                {c.id} &middot; Age {c.age}
-              </p>
+    <div className="fixed inset-0 z-[200] flex justify-end" role="dialog" aria-modal="true" aria-label={c.name}>
+      <div className="absolute inset-0 bg-ink/40 backdrop-blur-[2px]" onClick={onClose} />
+      <aside className="drawer-in relative flex h-full w-full max-w-[920px] flex-col bg-white shadow-2xl">
+        <div className="shrink-0 border-b border-line bg-white px-5 pt-5 md:px-8">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h2 className="truncate text-2xl font-bold text-ink">{c.name}</h2>
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-sm text-ink-2">
+                <span>
+                  {c.id} &middot; Age {c.age}
+                </span>
+                {c.application.languages.map((lang) => (
+                  <span key={lang} className="rounded border border-line px-1.5 py-px text-xs text-ink-2">
+                    {lang}
+                  </span>
+                ))}
+              </div>
             </div>
+            <div className="flex shrink-0 items-center gap-2">
+              {props.ledger && (
+                <Link
+                  href={`/decision-memo?candidate=${c.id}`}
+                  className="hidden rounded-full bg-ink px-4 py-2 text-sm font-semibold text-accent transition-opacity hover:opacity-90 sm:inline-block"
+                >
+                  Decision memo →
+                </Link>
+              )}
             <button
-              className="w-10 h-10 rounded-full bg-muted hover:bg-ink hover:text-white text-ink flex items-center justify-center text-xl transition-colors"
+              type="button"
+              aria-label="Close"
+              className="flex size-10 shrink-0 items-center justify-center rounded-full border border-line text-xl text-ink transition-colors hover:border-ink"
               onClick={onClose}
             >
               &times;
             </button>
+            </div>
           </div>
-          <div role="tablist" className="flex gap-1 mt-4 -mb-px overflow-x-auto">
+          <div role="tablist" className="-mb-px mt-4 flex gap-1 overflow-x-auto">
             {TABS.map((t) => (
               <button
                 key={t.key}
                 role="tab"
                 aria-selected={tab === t.key}
                 onClick={() => setTab(t.key)}
-                className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-[3px] transition-colors ${
-                  tab === t.key ? "border-accent text-ink" : "border-transparent text-ink-3 hover:text-ink"
+                className={`whitespace-nowrap border-b-[3px] px-4 py-2.5 text-sm font-semibold transition-colors ${
+                  tab === t.key ? "border-ink text-ink" : "border-transparent text-ink-3 hover:text-ink"
                 }`}
               >
                 {t.label}
@@ -101,23 +120,20 @@ export function CandidateDetail(props: CandidateDetailProps) {
           </div>
         </div>
 
-        <div className="p-8 space-y-8">
+        <div className="flex-1 space-y-8 overflow-y-auto p-5 md:p-8">
           {tab === "application" && <ApplicationTab {...props} />}
           {tab === "committee" && (
             <LedgerGate
               {...props}
               render={(l) => (
-                <>
-                  {!c.written_presentation && <WrittenPresentationMissing />}
-                  <CommitteeCard ledger={l} overrides={overrides} />
-                </>
+                <CommitteeCard ledger={l} overrides={overrides} scenario={props.scenarioResult} />
               )}
             />
           )}
           {tab === "interviewer" && <LedgerGate {...props} render={(l) => <InterviewerBrief ledger={l} preBrief={props.preBrief} />} />}
           {tab === "growth" && <LedgerGate {...props} render={(l) => <GrowthMap ledger={l} />} />}
         </div>
-      </div>
+      </aside>
     </div>
   );
 }
@@ -127,7 +143,9 @@ function ApplicationTab(props: CandidateDetailProps) {
   return (
     <>
       <ApplicationProfile candidate={candidate} />
-      {score && <ScoreBreakdown score={score} scorer={scorer} />}
+      {/* The completeness figures are on the dashboard card; only an AI score adds something here. */}
+      {score && scorer === "ai" && <ScoreBreakdown score={score} scorer={scorer} />}
+      <h3 className="border-t border-line pt-6 text-xs font-semibold uppercase tracking-wider text-ink-2">Checks</h3>
       <CounterfactualProbe
         result={props.counterfactualProbe}
         loading={props.probeLoading}
@@ -135,8 +153,7 @@ function ApplicationTab(props: CandidateDetailProps) {
         onRun={props.onRunProbe}
       />
       <SourceConsistencyPanel result={props.aiDetection} loading={props.detectLoading} onRun={props.onDetectAI} />
-      <VideoPanel analysis={props.videoAnalysis} onRun={props.onAnalyzeVideo} />
-      <FeynmanPanel key={candidate.id} score={props.feynmanScore} />
+      <ScenarioPanel result={props.scenarioResult} />
     </>
   );
 }

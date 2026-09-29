@@ -1,5 +1,4 @@
 import type { AIDetectionResult } from "@/lib/types";
-import { DarkPanel, Section } from "../ui/Section";
 
 /**
  * What `/api/analysis/ai-detection` returns since LED-02: descriptive facts about
@@ -17,27 +16,42 @@ export function SourceConsistencyPanel({
   onRun: () => void;
 }) {
   return (
-    <Section title="Source Consistency">
-      {result ? (
-        <DarkPanel className="text-base space-y-3">
-          <p className="text-ink-3">{result.explanation}</p>
+    <section className="rounded-2xl border border-line bg-white p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h3 className="font-semibold text-ink">Consistency check</h3>
+          <p className="mt-1 max-w-xl text-sm text-ink-2">
+            Things to verify in person. It never says whether the applicant wrote the text themselves.
+          </p>
+        </div>
+        {!result && (
+          <button
+            type="button"
+            className="shrink-0 rounded-full bg-ink px-4 py-2 text-sm font-semibold text-accent disabled:opacity-50"
+            onClick={onRun}
+            disabled={loading}
+          >
+            {loading ? "Analyzing..." : "Run consistency check"}
+          </button>
+        )}
+      </div>
+      {result && (
+        <div className="mt-4 space-y-3 text-sm">
+          <p className="text-ink-2">{result.explanation}</p>
           {result.flags.length > 0 && (
-            <div>
-              <p className="text-sm font-semibold text-ink-3 mb-1">Verify live</p>
-              <ul className="space-y-1 text-sm text-gray-200">
-                {result.flags.map((f, i) => (
-                  <li key={i} className="flex gap-2">
-                    <span className="shrink-0 mt-1 w-3 h-3 border border-gray-400 rounded-sm" aria-hidden />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <ul className="space-y-1.5">
+              {result.flags.map((f, i) => (
+                <li key={i} className="flex gap-2 text-ink">
+                  <span className="mt-1 size-3 shrink-0 rounded-sm border border-ink-3" aria-hidden />
+                  {f}
+                </li>
+              ))}
+            </ul>
           )}
           {result.stylometry && (
-            <div className="mt-3 border-t border-[#333] pt-3">
-              <p className="text-sm font-semibold text-ink-3 mb-2">Text statistics (descriptive, not a verdict)</p>
-              <div className="grid grid-cols-2 gap-x-5 gap-y-2 text-sm">
+            <details className="text-xs text-ink-2">
+              <summary className="cursor-pointer select-none font-semibold hover:text-ink">Text statistics (descriptive, not a verdict)</summary>
+              <div className="mt-2 grid grid-cols-1 gap-x-5 gap-y-1 sm:grid-cols-2">
                 {(
                   [
                     ["Vocabulary richness (TTR)", result.stylometry.ttr.toFixed(3)],
@@ -48,24 +62,16 @@ export function SourceConsistencyPanel({
                     ["Essay-interview overlap", result.stylometry.essay_interview_vocab_overlap.toFixed(3)],
                   ] as const
                 ).map(([label, value]) => (
-                  <div key={label} className="flex justify-between">
-                    <span className="text-ink-3">{label}:</span>
-                    <span className="font-mono text-gray-200">{value}</span>
+                  <div key={label} className="flex justify-between border-b border-line-soft py-1">
+                    <span>{label}</span>
+                    <span className="font-mono text-ink">{value}</span>
                   </div>
                 ))}
               </div>
-            </div>
+            </details>
           )}
-        </DarkPanel>
-      ) : (
-        <button
-          className="px-5 py-2.5 bg-ink text-accent rounded-xl text-base font-medium hover:scale-105 transition-transform disabled:opacity-50"
-          onClick={onRun}
-          disabled={loading}
-        >
-          {loading ? "Analyzing..." : "Run consistency check"}
-        </button>
+        </div>
       )}
-    </Section>
+    </section>
   );
 }

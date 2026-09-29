@@ -145,64 +145,44 @@ export interface RankedCandidate {
   baseline_score: CandidateScore | null;
 }
 
-export type FeynmanTopic = {
+// ── Scenarios (backend/routers/scenarios.py, INP-04) ───────────────
+
+export type ScenarioLanguage = "en" | "ru" | "kk";
+
+export type ScenarioText = { title: string; summary: string; opening: string };
+
+export type Scenario = {
   id: string;
-  title: string;
-  description: string;
-  kind: "teaching" | "scenario";
-  // Scenario only: our wording until the Talent Craft methodology arrives.
-  competency?: string;
-  status?: "provisional";
-  status_note?: string;
-  content_hash?: string;
+  competency: Competency;
+  // Our wording until the Talent Craft methodology arrives.
+  status: "provisional";
+  status_note: string;
+  text: Record<ScenarioLanguage, ScenarioText>;
 };
 
-export type FeynmanQuizAnswer = { question: string; answer: string; confident: boolean };
+export type ScenarioCatalogue = {
+  languages: Record<ScenarioLanguage, string>;
+  partner_label: Record<ScenarioLanguage, string>;
+  content_hash: string;
+  scenarios: Scenario[];
+};
 
-// A simulation result. `weight` is always 0: it feeds no score or ranking.
-export type FeynmanScore = {
+export type ScenarioMode = { live: boolean; reason: string | null };
+
+export type ScenarioMessage = { role: "user" | "assistant"; content: string };
+
+// Committee only. `weight` is always 0: a scenario never changes the AI level.
+export type ScenarioResult = {
   session_id: string;
   candidate_id: string;
-  topic_id: string;
-  clarity: number;
-  patience: number;
-  empathy: number;
-  adaptability: number;
-  quiz_transfer_score: number;
-  overall_score: number;
-  summary: string;
-  message_count: number;
-  quiz_answers: FeynmanQuizAnswer[];
-  kind: "teaching" | "scenario";
+  scenario: Scenario;
+  language: ScenarioLanguage;
+  competency: Competency;
+  rating: CompetencyRating;
+  messages: ScenarioMessage[];
+  source: "live" | "demo";
   weight: 0;
   label: string;
-  source: "live" | "cached_demo";
-};
-
-export type SimulationMode = { live: boolean; reason: string | null; cached_label: string };
-
-export type DemoTranscript = {
-  source: "cached_demo";
-  label: string;
-  provenance: string;
-  topic: FeynmanTopic;
-  messages: { role: "user" | "assistant"; content: string }[];
-  score: FeynmanScore;
-};
-
-/** Only "analyzed" carries numbers; the other two carry none (INP-01). */
-export type VideoAnalysisStatus = "analyzed" | "no_transcript" | "unavailable";
-
-export type VideoAnalysis = {
-  status: VideoAnalysisStatus;
-  transcript: string;
-  language_detected: string;
-  authenticity_match: number | null;
-  motivation_score: number | null;
-  key_themes: string[];
-  growth_signals: string[];
-  concerns: string[];
-  summary: string;
 };
 
 // ── Evidence ledger (mirrors backend/ledger/schema.py, LED-03) ──────
@@ -215,7 +195,13 @@ export type RubricStatus = {
   version: string;
   content_hash: string;
   locked: boolean;
-  competencies: { competency: string; label: string; provisional: boolean; ai_may_rate: boolean }[];
+  competencies: {
+    competency: string;
+    label: string;
+    provisional: boolean;
+    ai_may_rate: boolean;
+    indicators: { id: string; label: string }[];
+  }[];
 };
 
 export const COMPETENCIES = [
@@ -342,7 +328,7 @@ export interface PreBriefRow {
 
 /** Where a stored ledger came from (backend/ledger/provenance.py, LED-12). */
 export interface LedgerProvenance {
-  kind: "illustrative_example" | "cached_run";
+  kind: "illustrative_example" | "demo_mode" | "cached_run";
   illustrative: boolean;
   label: string;
   detail: string;

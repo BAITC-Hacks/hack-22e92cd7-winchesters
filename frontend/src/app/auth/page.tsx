@@ -1,9 +1,44 @@
 "use client";
 
+import { SiteNav } from "@/components/site/SiteNav";
+import { SiteFooter } from "@/components/site/SiteFooter";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { homeFor, saveSession } from "@/lib/session";
+
+// Sizes follow the Figma sign-up and log-in frames at 80%.
+const authText = "text-[clamp(15px,0.92vw,17.6px)]";
+const authInput = `h-[clamp(35.2px,1.66vw,35.2px)] w-full rounded-[11px] border border-transparent bg-field px-3.5 ${authText} text-ink outline-none transition placeholder:text-ink-muted hover:border-line focus:border-ink focus:bg-white focus:ring-4 focus:ring-accent/40`;
+
+function Field({ id, label, hint, children }: { id: string; label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label htmlFor={id} className={`mb-[clamp(8px,0.61vw,11.68px)] block font-semibold text-ink ${authText}`}>
+        {label}
+      </label>
+      {children}
+      {hint && <p className="mt-1.5 text-xs text-ink-muted">{hint}</p>}
+    </div>
+  );
+}
+
+function PasswordInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  const [shown, setShown] = useState(false);
+  return (
+    <div className="relative">
+      <input {...props} type={shown ? "text" : "password"} className={`${authInput} pr-12`} />
+      <button
+        type="button"
+        onClick={() => setShown(!shown)}
+        aria-label={shown ? "Hide password" : "Show password"}
+        className="absolute right-2 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-lg opacity-80 hover:opacity-100"
+      >
+        <img src="/assets/icons/eye.svg" alt="" className="h-[13px] w-[19px]" />
+      </button>
+    </div>
+  );
+}
 
 export default function AuthPage() {
   const router = useRouter();
@@ -67,246 +102,97 @@ export default function AuthPage() {
     }
   }
 
+  const switchMode = (next: "login" | "register") => {
+    setMode(next);
+    setError(null);
+  };
+
+  const register = mode === "register";
+
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#ffffff", display: "flex", flexDirection: "column" }}>
-      {/* Nav */}
-      <nav
-        style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 100,
-          backgroundColor: "#c1f11d",
-          padding: "18px 60px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <img src="/assets/InVision U Dark.png" alt="inVision U" style={{ width: "169.33px", height: "27.86px" }} />
-        <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
-          {[
-            { href: "/", label: "Home" },
-            { href: "/#apply", label: "Applicant Portal" },
-            { href: "/teach", label: "Teaching Challenge" },
-            { href: "/dashboard", label: "Admissions Dashboard" },
-          ].map((link, i) => (
-            <div key={link.label} style={{ display: "flex", alignItems: "center" }}>
-              {i > 0 && <div style={{ width: "1px", height: "40px", backgroundColor: "#141414" }} />}
-              <a
-                href={link.href}
-                style={{ padding: "14px 22px", borderRadius: "10px", textDecoration: "none", fontWeight: 500, color: "#141414", fontSize: "18px", whiteSpace: "nowrap", transition: "background-color 0.2s" }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#deff70")}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-              >
-                {link.label}
-              </a>
-            </div>
-          ))}
-        </div>
-      </nav>
+    <div className="flex min-h-screen flex-col bg-white">
+      <SiteNav />
 
-      {/* Main content */}
-      <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 20px 0" }}>
-        {/* Heading */}
-        <h1 style={{ fontSize: "clamp(32px, 4vw, 48px)", fontWeight: 700, color: "#141414", marginBottom: "16px" }}>
-          {mode === "login" ? "Sign In" : "Sign Up"}
-        </h1>
+      <main className="flex flex-1 items-center gap-[1.21vw]">
+        {/* The girl on the lime shape over a fading sky, flush with the left edge. */}
+        <img src="/assets/auth/bg-girl.png" alt="" className="hidden w-[46.48vw] max-w-[893.6px] self-end lg:block" />
 
-        {/* Form card */}
-        <form
-          onSubmit={handleSubmit}
-          style={{
-            position: "relative",
-            zIndex: 1,
-            width: "100%",
-            maxWidth: "460px",
-            backgroundColor: "#ffffff",
-            border: "2px solid #d7d7d7",
-            borderRadius: "15px",
-            padding: "24px",
-          }}
-        >
-          {error && (
-            <div style={{ backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: "10px", padding: "12px 16px", fontSize: "14px", color: "#b91c1c", marginBottom: "14px" }}>
-              {error}
-            </div>
-          )}
+        <section className={`mx-auto w-full px-4 py-10 lg:mx-0 lg:px-0 ${register ? "max-w-[clamp(340px,21.25vw,408px)]" : "max-w-[clamp(340px,23.2vw,445.6px)]"}`}>
+          <h1 className="text-center text-[clamp(36px,2.34vw,44.8px)] font-bold text-ink">{register ? "Sign Up" : "Log In"}</h1>
 
-          {mode === "register" && (
-            <div style={{ marginBottom: "14px" }}>
-              <label style={{ display: "block", fontSize: "14px", fontWeight: 600, color: "#141414", marginBottom: "6px", lineHeight: "28px" }}>
-                Full Name
-              </label>
-              <div style={{ backgroundColor: "#eae9e9", borderRadius: "10px", padding: "8px 14px" }}>
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Full Name"
-                  required
-                  style={{ width: "100%", border: "none", backgroundColor: "transparent", fontSize: "14px", outline: "none", color: "#141414", lineHeight: "28px", boxSizing: "border-box" }}
-                />
+          <form onSubmit={handleSubmit} className="mt-[clamp(10px,0.6vw,11.52px)] space-y-[clamp(16px,0.92vw,17.6px)] rounded-[11px] border-2 border-line bg-white p-[clamp(18px,0.98vw,18.8px)]">
+            {error && (
+              <div role="alert" className="rounded-xl border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-danger">
+                {error}
               </div>
-            </div>
-          )}
+            )}
 
-          <div style={{ marginBottom: "14px" }}>
-            <label style={{ display: "block", fontSize: "14px", fontWeight: 600, color: "#141414", marginBottom: "6px", lineHeight: "28px" }}>
-              Email
-            </label>
-            <div style={{ backgroundColor: "#eae9e9", borderRadius: "10px", padding: "8px 14px" }}>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email"
-                required
-                style={{ width: "100%", border: "none", backgroundColor: "transparent", fontSize: "14px", outline: "none", color: "#141414", lineHeight: "28px", boxSizing: "border-box" }}
-              />
-            </div>
-          </div>
+            {register && (
+              <Field id="fullName" label="Name">
+                <input id="fullName" type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Name" autoComplete="name" required className={authInput} />
+              </Field>
+            )}
 
-          {/* Phone — register only */}
-          {mode === "register" && (
-            <div style={{ marginBottom: "14px" }}>
-              <label style={{ display: "block", fontSize: "14px", fontWeight: 600, color: "#141414", marginBottom: "6px", lineHeight: "28px" }}>
-                Mobile phone number
-              </label>
-              <div style={{ backgroundColor: "#eae9e9", borderRadius: "10px", padding: "8px 14px", display: "flex", alignItems: "center", gap: "10px" }}>
-                <img src="/assets/Kazakhstan.png" alt="KZ" style={{ width: "40px", height: "20px", borderRadius: "3px", objectFit: "cover" }} />
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(formatPhone(e.target.value))}
-                  placeholder="+7 777 777-77-77"
-                  style={{ flex: 1, border: "none", backgroundColor: "transparent", fontSize: "14px", outline: "none", color: "#141414", lineHeight: "28px", boxSizing: "border-box" }}
-                />
-              </div>
-            </div>
-          )}
+            <Field id="email" label="Email">
+              <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" autoComplete="email" required className={authInput} />
+            </Field>
 
-          <div style={{ marginBottom: "14px" }}>
-            <label style={{ display: "block", fontSize: "14px", fontWeight: 600, color: "#141414", marginBottom: "6px", lineHeight: "28px" }}>
-              Password
-            </label>
-            <div style={{ backgroundColor: "#eae9e9", borderRadius: "10px", padding: "8px 14px" }}>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-                required
-                style={{ width: "100%", border: "none", backgroundColor: "transparent", fontSize: "14px", outline: "none", color: "#141414", lineHeight: "28px", boxSizing: "border-box" }}
-              />
-            </div>
-          </div>
+            {register && (
+              <Field id="phone" label="Mobile phone number">
+                <div className="flex h-[clamp(35.2px,1.66vw,35.2px)] items-center gap-1 rounded-[11px] border border-transparent bg-field px-3.5 transition focus-within:border-ink focus-within:bg-white focus-within:ring-4 focus-within:ring-accent/40">
+                  <img src="/assets/Kazakhstan.png" alt="Kazakhstan" className="h-[21px] w-[42px] shrink-0 rounded-[4px] object-cover" />
+                  <img src="/assets/icons/arrow-down.svg" alt="" className="mr-2 h-[6px] w-[14px] shrink-0" />
+                  <input
+                    id="phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(formatPhone(e.target.value))}
+                    placeholder="+7 777 777-77-77"
+                    autoComplete="tel"
+                    className={`w-full bg-transparent text-ink outline-none placeholder:text-ink-muted ${authText}`}
+                  />
+                </div>
+              </Field>
+            )}
 
-          {/* Confirm password — register only */}
-          {mode === "register" && (
-            <div style={{ marginBottom: "14px" }}>
-              <label style={{ display: "block", fontSize: "14px", fontWeight: 600, color: "#141414", marginBottom: "6px", lineHeight: "28px" }}>
-                Confirm Password
-              </label>
-              <div style={{ backgroundColor: "#eae9e9", borderRadius: "10px", padding: "8px 14px" }}>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm Password"
-                  required
-                  style={{ width: "100%", border: "none", backgroundColor: "transparent", fontSize: "14px", outline: "none", color: "#141414", lineHeight: "28px", boxSizing: "border-box" }}
-                />
-              </div>
-            </div>
-          )}
+            <Field id="password" label="Password" hint={register ? "At least 8 characters." : undefined}>
+              <PasswordInput id="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" autoComplete={register ? "new-password" : "current-password"} required />
+            </Field>
 
-          {/* Consent checkbox — register only */}
-          {mode === "register" && (
-            <div style={{ marginBottom: "14px", display: "flex", alignItems: "center", gap: "12px" }}>
-              <div
-                onClick={() => setConsent(!consent)}
-                style={{
-                  width: "24px", height: "24px", borderRadius: "4px",
-                  border: consent ? "none" : "2px solid #676767",
-                  backgroundColor: consent ? "#c1f11d" : "transparent",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  cursor: "pointer", flexShrink: 0,
-                }}
-              >
-                {consent && <span style={{ color: "#141414", fontSize: "14px", fontWeight: 700 }}>{"\u2713"}</span>}
-              </div>
-              <span style={{ fontSize: "14px", color: "#676767", lineHeight: 1.4 }}>
+            {register && (
+              <Field id="confirmPassword" label="Confirm Password">
+                <PasswordInput id="confirmPassword" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm Password" autoComplete="new-password" required />
+              </Field>
+            )}
+
+            {register && (
+              <label className="flex min-h-[clamp(35.2px,1.66vw,35.2px)] cursor-pointer items-center gap-3 rounded-[11px] bg-field px-3.5 py-2 text-[clamp(11.68px,0.61vw,11.68px)] leading-tight text-ink-muted">
+                <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="size-5 shrink-0 accent-ink" />
                 I consent to the processing of my data and agree to the Privacy Policy
-              </span>
+              </label>
+            )}
+
+            <div className="border-t-2 border-line pt-[clamp(16px,0.92vw,17.6px)]">
+              <button
+                type="submit"
+                disabled={loading}
+                className={`w-full rounded-[8px] bg-accent py-[clamp(10px,0.61vw,11.68px)] font-semibold text-ink transition-colors hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60 ${authText}`}
+              >
+                {loading ? "Please wait…" : register ? "Sign Up" : "Sign In"}
+              </button>
             </div>
-          )}
+          </form>
 
-          {/* Separator */}
-          <div style={{ width: "100%", height: "2px", backgroundColor: "#f4f3f3", marginBottom: "14px" }} />
+          <p className={`mt-[clamp(10px,0.56vw,10.88px)] text-center text-ink-muted ${authText}`}>
+            {register ? "Already have an account? " : "Don't have an account? "}
+            <button type="button" onClick={() => switchMode(register ? "login" : "register")} className="underline underline-offset-2 hover:text-ink">
+              {register ? "Log In" : "Sign Up"}
+            </button>
+          </p>
+        </section>
+      </main>
 
-          {/* Submit button */}
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: "100%",
-              padding: "12px",
-              borderRadius: "11px",
-              backgroundColor: "#c1f11d",
-              color: "#141414",
-              fontSize: "16px",
-              fontWeight: 600,
-              border: "none",
-              cursor: loading ? "not-allowed" : "pointer",
-              opacity: loading ? 0.6 : 1,
-              lineHeight: "34px",
-            }}
-          >
-            {loading ? "Please wait..." : mode === "login" ? "Sign In" : "Sign Up"}
-          </button>
-        </form>
-
-        {/* Links */}
-        <div style={{ position: "relative", zIndex: 1, marginTop: "24px", fontSize: "16px", color: "#676767", lineHeight: "34px", textAlign: "center" }}>
-          {mode === "login" ? (
-            <>
-              Don&apos;t have an account?{" "}
-              <span
-                style={{ textDecoration: "underline", cursor: "pointer", color: "#141414" }}
-                onClick={() => { setMode("register"); setError(null); }}
-              >
-                Sign Up
-              </span>
-            </>
-          ) : (
-            <>
-              Already have an account?{" "}
-              <span
-                style={{ textDecoration: "underline", cursor: "pointer", color: "#141414" }}
-                onClick={() => { setMode("login"); setError(null); }}
-              >
-                Sign In
-              </span>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Footer */}
-      <footer style={{ position: "relative", overflow: "hidden", padding: 0, marginTop: "60px" }}>
-        <img src="/assets/Footer BG.png" alt="" style={{ width: "100%", display: "block" }} />
-        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", padding: "0 40px 40px" }}>
-          <div style={{ display: "flex", justifyContent: "center", gap: "32px", marginBottom: "24px" }}>
-            {[{ href: "/", label: "Home" }, { href: "/#apply", label: "Apply" }, { href: "/teach", label: "Teaching Challenge" }, { href: "/dashboard", label: "Dashboard" }].map((link) => (
-              <a key={link.label} href={link.href} style={{ fontSize: "14px", color: "rgba(255,255,255,0.7)", textDecoration: "none", transition: "color 0.2s" }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "#c1f11d")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.7)")}
-              >{link.label}</a>
-            ))}
-          </div>
-          <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)", textAlign: "center" }}>Powered by inDrive &middot; Built for Decentrathon 5.0</p>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
