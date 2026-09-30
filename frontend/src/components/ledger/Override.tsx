@@ -11,7 +11,7 @@ import { STATE_LABELS } from "./labels";
 // override cannot be sent without a reason code.
 
 const FIELD =
-  "border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:border-accent focus:ring-1 focus:ring-accent outline-none";
+  "rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-ink focus:ring-4 focus:ring-accent/40";
 
 /** Inline form on a competency row. Records a new override; never edits one. */
 export function OverrideForm({
@@ -54,7 +54,7 @@ export function OverrideForm({
     <fieldset
       disabled={busy}
       data-slot="override-form"
-      className="mt-3 bg-muted rounded-2xl p-4 space-y-3 disabled:opacity-70"
+      className="mt-3 space-y-3 rounded-2xl border border-line bg-subtle p-4 disabled:opacity-70"
     >
       <legend className="sr-only">Override level</legend>
       {error && (
@@ -105,12 +105,13 @@ export function OverrideForm({
       </label>
       <div className="flex gap-2">
         <button
-          className="px-4 py-2 bg-accent text-ink rounded-xl text-sm font-semibold hover:scale-105 transition-transform"
+          type="button"
+          className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-accent transition-opacity hover:opacity-90"
           onClick={submit}
         >
           {busy ? "Recording..." : "Record override"}
         </button>
-        <button className="px-4 py-2 rounded-xl text-sm text-ink-2 hover:text-ink" onClick={onDone}>
+        <button type="button" className="rounded-full px-4 py-2 text-sm text-ink-2 hover:text-ink" onClick={onDone}>
           Cancel
         </button>
       </div>

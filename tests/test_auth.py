@@ -74,7 +74,7 @@ def test_every_route_is_guarded(client):
         ("GET", "/api/candidates/"),
         ("POST", "/api/scoring/rank"),
         ("GET", "/api/analysis/video-analysis/status"),
-        ("GET", "/api/feynman/topics"),
+        ("GET", "/api/scenarios"),
     ],
 )
 def test_each_router_rejects_a_missing_token(client, method, path):
@@ -139,9 +139,10 @@ def test_role_is_read_from_the_database_not_the_token(client, db):
         ("interviewer", "GET", "/api/overrides/c-001"),
         ("applicant", "GET", "/api/analysis/video-analysis/status"),
         ("interviewer", "POST", "/api/analysis/ai-detection/c-001"),
-        # feynman: the teaching challenge is the applicant's
-        ("committee", "POST", "/api/feynman/start"),
-        ("committee", "POST", "/api/feynman/chat"),
+        # scenarios: the conversation is the applicant's, the result the committee's
+        ("committee", "POST", "/api/scenarios/start"),
+        ("committee", "POST", "/api/scenarios/chat"),
+        ("applicant", "GET", "/api/scenarios/result/c-001"),
         # auth: link-candidate is the applicant's
         ("committee", "POST", "/api/auth/link-candidate?candidate_id=c-001"),
     ],
@@ -173,8 +174,6 @@ def test_applicant_reads_only_their_own_record(client, auth_headers):
     assert client.get("/api/candidates/c-004", headers=headers).status_code == 403
     # A missing id looks the same as someone else's: no probing which exist.
     assert client.get("/api/candidates/c-999", headers=headers).status_code == 403
-    assert client.get("/api/feynman/score/c-003", headers=headers).status_code == 200
-    assert client.get("/api/feynman/score/c-004", headers=headers).status_code == 403
 
 
 def test_applicant_without_an_application_reads_nothing(client, auth_headers):
@@ -182,28 +181,25 @@ def test_applicant_without_an_application_reads_nothing(client, auth_headers):
     assert client.get("/api/candidates/c-001", headers=headers).status_code == 403
 
 
-def test_applicant_cannot_teach_as_someone_else(client, auth_headers):
-    """Rejected before any model call, so this stays offline."""
+def test_applicant_cannot_start_a_scenario_as_someone_else(client, auth_headers):
     headers = auth_headers("applicant", owns="c-003")
     response = client.post(
-        "/api/feynman/start", json={"candidate_id": "c-004", "topic_id": "seasons"}, headers=headers
+        "/api/scenarios/start", json={"candidate_id": "c-004", "scenario_id": "easy-way"}, headers=headers
     )
     assert response.status_code == 403
 
 
-def test_teaching_session_belongs_to_whoever_started_it(client, db, auth_headers):
+def test_scenario_session_belongs_to_whoever_started_it(client, db, auth_headers):
     owner = client.get("/api/auth/me", headers=(owner_headers := auth_headers("applicant", owns="c-003"))).json()
-    session_id = feynman_store.create_session(applicant_id_for("c-003"), owner["id"], "seasons", [], max_attempts=1)["id"]
-    with Session(db) as session:
-        session.get(FeynmanSession, session_id).exchange_count = 8
-        session.commit()
+    full = [{"role": "user", "content": "reply"}] * 5
+    session_id = feynman_store.create_session(applicant_id_for("c-003"), owner["id"], "easy-way", full, max_attempts=1)["id"]
     other = auth_headers("applicant", owns="c-004")
 
     chat = {"session_id": session_id, "message": "hi"}
-    assert client.post("/api/feynman/chat", json=chat, headers=other).status_code == 404
-    assert client.post(f"/api/feynman/finish?session_id={session_id}", headers=other).status_code == 404
-    # The owner reaches the session (and hits its exchange limit, not a 404).
-    assert client.post("/api/feynman/chat", json=chat, headers=owner_headers).status_code == 400
+    assert client.post("/api/scenarios/chat", json=chat, headers=other).status_code == 404
+    assert client.post(f"/api/scenarios/finish?session_id={session_id}", headers=other).status_code == 404
+    # The owner reaches the session (and hits its reply limit, not a 404).
+    assert client.post("/api/scenarios/chat", json=chat, headers=owner_headers).status_code == 400
 
 
 def test_one_application_per_account(client):

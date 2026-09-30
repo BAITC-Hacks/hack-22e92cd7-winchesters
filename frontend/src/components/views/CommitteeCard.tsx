@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { useState } from "react";
 import { competencyState, nineRows } from "@/lib/ledger";
-import type { CandidateLedger, Competency, CompetencyRating, IndicatorRating, RubricStatus } from "@/lib/types";
+import type { CandidateLedger, Competency, CompetencyRating, ScenarioResult } from "@/lib/types";
 import { committeeLevel, type OverridesState } from "@/lib/useOverrides";
-import { ContrastiveHint } from "../ledger/ContrastiveHint";
-import { EvidenceQuote, IndicatorId } from "../ledger/EvidenceQuote";
+import { indicatorLabels, useRubric } from "@/lib/useRubric";
+import { EvidenceQuote } from "../ledger/EvidenceQuote";
 import { LevelChip } from "../ledger/LevelChip";
 import { OverrideForm, OverrideHistory } from "../ledger/Override";
 import { COMPETENCY_LABELS } from "../ledger/labels";
@@ -15,43 +14,89 @@ export interface CommitteeCardProps {
   ledger: CandidateLedger;
   /** The committee's override ledger (COM-01). Without it the card is read-only. */
   overrides?: OverridesState;
+  /** The applicant's finished scenario, shown on its competency's row; weight zero. */
+  scenario?: ScenarioResult | null;
 }
 
+// What the derivation rule ids mean, for the "About this assessment" section.
+const RULES: [string, string][] = [
+  ["R0", "No behaviour found for any indicator: No evidence."],
+  ["R1", "Two or more indicators at High and none Weak: High."],
+  ["R2", "At least one indicator Weak and none High: Weak."],
+  ["R3", "Mixed or moderate evidence: Normal."],
+];
+
 /**
- * The committee's view of one applicant: nine competencies, each a BARS level
- * that decomposes into indicators and verbatim quotes. Levels come from the
- * ledger as stored; this view never derives or averages one.
+ * The committee's view of one applicant: one line per competency with its
+ * BARS level, opening onto the verbatim quotes it rests on. Levels come from
+ * the ledger as stored; this view never derives or averages one. Technical
+ * provenance is kept, one click away, under "About this assessment".
  */
-export function CommitteeCard({ ledger, overrides }: CommitteeCardProps) {
-  const [rubric, setRubric] = useState<RubricStatus | null>(null);
-  useEffect(() => {
-    api.ledger.rubric().then(setRubric).catch(() => setRubric(null));
-  }, []);
+export function CommitteeCard({ ledger, overrides, scenario }: CommitteeCardProps) {
+  const rubric = useRubric();
   // Only meaningful when the ledger was built under the rubric the server has now.
   const current = rubric?.version === ledger.rubric_version ? rubric : null;
   const drafts = new Set(current?.competencies.filter((c) => c.provisional).map((c) => c.competency) ?? []);
+  const labels = indicatorLabels(rubric);
+  const rows = nineRows(ledger);
+  const aiRows = rows.filter(({ rating }) => !rating?.reserved_for_humans);
+  const humanRows = rows.filter(({ rating }) => rating?.reserved_for_humans);
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-2xl bg-subtle px-4 py-3 space-y-2">
-        <Provenance ledger={ledger} rubricHash={current?.content_hash} />
-        {drafts.size > 0 && (
-          <p data-slot="draft-rubric" className="text-xs text-ink-2">
-            <span className="font-medium text-ink">{drafts.size} of 9 scales are drafts</span> written from the published
-            one-line descriptions; the Talent Craft BARS replace them when the extended methodology arrives.
-          </p>
-        )}
-      </div>
+    <div className="space-y-5">
+      <p className="text-sm text-ink-2">
+        Each level rests on the applicant&apos;s own words: open a competency to read them.{" "}
+        <span className="text-ink-3">&ldquo;No evidence&rdquo; means nothing was found, not a low rating.</span>
+      </p>
+
       {overrides?.error && (
-        <p className="p-3 bg-red-500/10 text-red-600 rounded-2xl text-sm border border-red-500/20">
-          Overrides unavailable: {overrides.error}
-        </p>
+        <p className="rounded-2xl border border-danger/20 bg-danger-soft p-3 text-sm text-danger">Overrides unavailable: {overrides.error}</p>
       )}
-      <div className="rounded-2xl border-2 border-line divide-y divide-line-soft bg-white">
-        {nineRows(ledger).map(({ competency, rating }) => (
-          <CompetencyRow key={competency} competency={competency} rating={rating} overrides={overrides} draft={drafts.has(competency)} />
+
+      <div className="divide-y divide-line-soft rounded-2xl border border-line bg-white">
+        {aiRows.map(({ competency, rating }) => (
+          <CompetencyRow
+            key={competency}
+            competency={competency}
+            rating={rating}
+            overrides={overrides}
+            labels={labels}
+            scenario={scenario?.competency === competency ? scenario : null}
+          />
         ))}
       </div>
+
+      {humanRows.length > 0 && (
+        <section>
+          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-2">Rated by people in the interview</h4>
+          <div className="divide-y divide-line-soft rounded-2xl border border-line bg-white">
+            {humanRows.map(({ competency, rating }) => (
+              <CompetencyRow key={competency} competency={competency} rating={rating} overrides={overrides} labels={labels} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <details className="group rounded-2xl bg-subtle px-4 py-3 text-xs text-ink-2">
+        <summary className="cursor-pointer select-none font-semibold text-ink-2 hover:text-ink">About this assessment</summary>
+        <div className="mt-3 space-y-3">
+          {drafts.size > 0 && (
+            <p data-slot="draft-rubric">
+              <span className="font-medium text-ink">{drafts.size} of 9 scales are drafts</span> written from the published
+              one-line descriptions; the Talent Craft BARS replace them when the extended methodology arrives.
+            </p>
+          )}
+          <dl className="space-y-1">
+            {RULES.map(([id, text]) => (
+              <div key={id} className="flex gap-2">
+                <dt className="font-mono text-ink">{id}</dt>
+                <dd>{text}</dd>
+              </div>
+            ))}
+          </dl>
+          <Provenance ledger={ledger} rubricHash={current?.content_hash} />
+        </div>
+      </details>
     </div>
   );
 }
@@ -77,134 +122,155 @@ function Provenance({ ledger, rubricHash }: { ledger: CandidateLedger; rubricHas
   );
 }
 
+/** The quote to preview on the closed row: behaviour shown first, then a claim. */
+function previewQuote(rating?: CompetencyRating): string | null {
+  const verified = rating?.indicators.flatMap((i) => i.evidence).filter((e) => e.verified) ?? [];
+  return (verified.find((e) => e.status === "present") ?? verified[0])?.quote ?? null;
+}
+
 function CompetencyRow({
   competency,
   rating,
   overrides,
-  draft,
+  labels,
+  scenario = null,
 }: {
   competency: Competency;
   rating?: CompetencyRating;
   overrides?: OverridesState;
-  draft: boolean;
+  labels: Map<string, string>;
+  scenario?: ScenarioResult | null;
 }) {
   const [open, setOpen] = useState(false);
   const [overriding, setOverriding] = useState(false);
   const state = competencyState(rating);
-  const expandable = !!rating && rating.indicators.length > 0;
   const aiLevel = rating?.level ?? null;
   const committee = committeeLevel(overrides?.history ?? null, competency);
   const history = overrides?.history?.filter((o) => o.competency === competency) ?? [];
   const canOverride = !!overrides?.history && !overrides.error;
+  const preview = previewQuote(rating);
+  const summary =
+    state === "no_evidence"
+      ? "Nothing found in the application yet."
+      : state === "reserved"
+        ? "No AI level: rated from the interview."
+        : state === "not_in_ledger"
+          ? "Not assessed yet."
+          : null;
 
   return (
-    <div className="px-5 py-4" data-competency={competency}>
-      <div className="flex items-start gap-3">
-        <button
-          className="flex-1 text-left flex items-center gap-3 disabled:cursor-default"
-          onClick={() => setOpen(!open)}
-          disabled={!expandable}
-          aria-expanded={open}
-        >
-          <span className={`text-base font-medium ${rating ? "text-ink" : "text-ink-3"}`}>
-            {COMPETENCY_LABELS[competency]}
+    <div data-competency={competency}>
+      <button
+        type="button"
+        className="flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-subtle"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+      >
+        <div className="min-w-0 flex-1">
+          <p className={`font-medium ${rating ? "text-ink" : "text-ink-3"}`}>{COMPETENCY_LABELS[competency]}</p>
+          <p className="mt-0.5 truncate text-sm text-ink-3">{preview ? <q className="italic">{preview}</q> : summary}</p>
+        </div>
+        {scenario && (
+          <span className="hidden items-center gap-1.5 text-xs text-ink-3 md:inline-flex" title="Observed in the scenario; weight 0, never changes the level">
+            Scenario
+            <LevelChip state={competencyState(scenario.rating)} small />
           </span>
-          {rating?.rule_applied && (
-            <span className="text-xs font-mono text-ink-3" title="Derivation rule that fired">
-              {rating.rule_applied}
-            </span>
-          )}
-          {draft && (
-            <span
-              className="rounded-full border border-dashed border-ink-3 px-2 py-0.5 text-[10px] uppercase tracking-wide text-ink-2"
-              title="Scale drafted by the team; replaced by the Talent Craft BARS (LED-13)"
-            >
-              Draft scale
-            </span>
-          )}
-          {expandable && <span className="text-ink-3 text-sm">{open ? "−" : "+"}</span>}
-        </button>
+        )}
         {/* The AI level is always shown; a committee override sits next to it, never in its place. */}
-        <div className="flex items-center gap-2" data-slot="level-pair">
-          {aiLevel && <span className="text-xs text-ink-3">AI</span>}
-          <LevelChip state={state} />
-          {committee && (
+        <div className="flex shrink-0 items-center gap-2" data-slot="level-pair">
+          {committee ? (
             <>
+              <span className="hidden text-xs text-ink-3 sm:inline">AI</span>
+              <LevelChip state={state} small />
               <span className="text-ink-3">→</span>
-              <span className="text-xs text-ink-3">Committee</span>
-              <span className="rounded-full ring-2 ring-offset-1 ring-ink">
+              <span className="rounded-full ring-2 ring-ink ring-offset-1" title="Committee level">
                 <LevelChip state={committee} />
               </span>
             </>
-          )}
-          {canOverride && !overriding && (
-            <button
-              className="ml-1 rounded-full px-2.5 py-1 text-xs font-medium text-ink-2 hover:bg-muted hover:text-ink transition-colors"
-              onClick={() => setOverriding(true)}
-              title="Record a committee level with a reason; the AI level stays visible"
-            >
-              Override
-            </button>
+          ) : (
+            <LevelChip state={state} />
           )}
         </div>
-      </div>
+        <svg
+          className={`shrink-0 text-ink-3 transition-transform ${open ? "rotate-180" : ""}`}
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          aria-hidden
+        >
+          <path d="M4 6l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
 
-      {state === "no_evidence" && (
-        <p className="mt-1 text-sm text-ink-2">
-          No behaviour for this competency was found in the material. This is not a low rating.
-        </p>
-      )}
-      {state === "reserved" && (
-        <p className="mt-1 text-sm text-ink-2">No AI level: the methodology owner rates this from the interview.</p>
-      )}
-      {rating && <ContrastiveHint text={rating.contrastive} />}
+      {open && (
+        <div className="space-y-4 px-5 pb-5">
+          {rating && <Evidence rating={rating} labels={labels} />}
 
-      {history.length > 0 && <OverrideHistory entries={history} reasonCodes={overrides?.reasonCodes ?? []} />}
-      {canOverride && overriding && overrides && (
-        <OverrideForm
-          competency={competency}
-          current={committee ?? aiLevel}
-          aiLevel={aiLevel}
-          reasonCodes={overrides.reasonCodes}
-          onSubmit={overrides.create}
-          onDone={() => setOverriding(false)}
-        />
-      )}
-
-      {open && rating && (
-        <div className="mt-3 space-y-3">
-          {rating.indicators.map((ind) => (
-            <IndicatorRow key={ind.indicator_id} indicator={ind} />
-          ))}
-          {rating.flags.length > 0 && (
-            <p className="text-xs text-ink-3">
-              {rating.flags.length} attention flag{rating.flags.length === 1 ? "" : "s"} routed to the interviewer brief.
+          {rating?.contrastive && state !== "reserved" && (
+            <p data-slot="contrastive" className="rounded-xl bg-subtle px-3 py-2 text-sm text-ink-2">
+              <span className="font-semibold text-ink">Next level: </span>
+              {rating.contrastive}
             </p>
           )}
+
+          {history.length > 0 && <OverrideHistory entries={history} reasonCodes={overrides?.reasonCodes ?? []} />}
+
+          {canOverride && overrides && (overriding ? (
+            <OverrideForm
+              competency={competency}
+              current={committee ?? aiLevel}
+              aiLevel={aiLevel}
+              reasonCodes={overrides.reasonCodes}
+              onSubmit={overrides.create}
+              onDone={() => setOverriding(false)}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setOverriding(true)}
+              title="Record a committee level with a reason; the AI level stays visible"
+              className="rounded-full border border-line px-4 py-1.5 text-sm font-semibold text-ink transition-colors hover:border-ink"
+            >
+              Change level
+            </button>
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-function IndicatorRow({ indicator }: { indicator: IndicatorRating }) {
+/** The quotes, by behaviour, and which behaviours were not seen. */
+function Evidence({ rating, labels }: { rating: CompetencyRating; labels: Map<string, string> }) {
+  const shown = rating.indicators.filter((i) => i.evidence.length > 0);
+  const missing = rating.indicators.filter((i) => i.evidence.length === 0);
+  const capped = rating.indicators.filter((i) => i.capped_reason);
+  const name = (id: string) => labels.get(id) ?? id;
   return (
-    <div className="rounded-xl bg-subtle p-3 text-sm">
-      <div className="flex items-center gap-2 mb-2 flex-wrap">
-        <IndicatorId id={indicator.indicator_id} />
-        <LevelChip state={indicator.observed_level} small />
-        {indicator.capped_reason && (
-          <span className="text-xs text-ink bg-muted rounded px-1.5 py-0.5" title={indicator.capped_reason}>
-            Capped: {indicator.capped_reason}
-          </span>
-        )}
-      </div>
-      {indicator.evidence.length > 0 ? (
-        indicator.evidence.map((item, i) => <EvidenceQuote key={i} item={item} />)
-      ) : (
-        <p className="text-ink-3 italic">No evidence for this indicator.</p>
+    <div className="space-y-3">
+      {shown.length > 0 && (
+        <div>
+          {shown.flatMap((indicator) =>
+            indicator.evidence.map((item, i) => (
+              <EvidenceQuote key={`${indicator.indicator_id}-${i}`} item={item} indicator={name(indicator.indicator_id)} />
+            )),
+          )}
+        </div>
       )}
-      {indicator.note && <p className="mt-2 text-ink-2">{indicator.note}</p>}
+      {capped.map((indicator) => (
+        <p key={indicator.indicator_id} className="text-xs text-ink-2">
+          <span className="font-semibold text-ink">{name(indicator.indicator_id)}</span> kept at Normal: {indicator.capped_reason}
+        </p>
+      ))}
+      {missing.length > 0 && !rating.reserved_for_humans && (
+        <p className="text-xs text-ink-3">
+          <span className="font-semibold text-ink-2">Not seen yet: </span>
+          {missing.map((i) => name(i.indicator_id)).join(" · ")}
+        </p>
+      )}
     </div>
   );
 }

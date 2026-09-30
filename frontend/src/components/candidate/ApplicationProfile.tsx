@@ -3,11 +3,35 @@ import { Badge } from "../ui/Badge";
 import { Section } from "../ui/Section";
 import { WrittenPresentationSection } from "./WrittenPresentation";
 
-/** What the applicant submitted, as submitted. */
+/** What the applicant submitted, as submitted: their own words first, then the form. */
 export function ApplicationProfile({ candidate: c }: { candidate: Candidate }) {
   const app = c.application;
   return (
     <>
+      <Section title="Essay">
+        <p className="text-sm text-ink-3 mb-2">
+          Prompt: &ldquo;{c.essay.prompt}&rdquo; &middot; {c.essay.word_count} words
+        </p>
+        <div className="bg-muted rounded-2xl p-5 text-base whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto">
+          {c.essay.text}
+        </div>
+      </Section>
+
+      <WrittenPresentationSection candidate={c} />
+
+      {c.interview_transcript && (
+        <Section title="Interview Transcript">
+          <div className="bg-muted rounded-2xl p-5 text-base whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
+            {c.interview_transcript}
+          </div>
+        </Section>
+      )}
+
+      {c.recommendation_summary && (
+        <Section title="Recommendation">
+          <div className="bg-muted rounded-2xl p-5 text-base">{c.recommendation_summary}</div>
+        </Section>
+      )}
       <Section title="Education">
         <div className="grid grid-cols-2 gap-3 text-base">
           <div>
@@ -65,30 +89,6 @@ export function ApplicationProfile({ candidate: c }: { candidate: Candidate }) {
         </div>
       </Section>
 
-      <Section title="Essay">
-        <p className="text-sm text-ink-3 mb-2">
-          Prompt: &ldquo;{c.essay.prompt}&rdquo; &middot; {c.essay.word_count} words
-        </p>
-        <div className="bg-muted rounded-2xl p-5 text-base whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto">
-          {c.essay.text}
-        </div>
-      </Section>
-
-      <WrittenPresentationSection candidate={c} />
-
-      {c.interview_transcript && (
-        <Section title="Interview Transcript">
-          <div className="bg-muted rounded-2xl p-5 text-base whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
-            {c.interview_transcript}
-          </div>
-        </Section>
-      )}
-
-      {c.recommendation_summary && (
-        <Section title="Recommendation">
-          <div className="bg-muted rounded-2xl p-5 text-base">{c.recommendation_summary}</div>
-        </Section>
-      )}
     </>
   );
 }

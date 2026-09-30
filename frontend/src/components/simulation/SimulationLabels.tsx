@@ -1,22 +1,20 @@
-import type { DemoTranscript, FeynmanTopic } from "@/lib/types";
+import type { Scenario, ScenarioMessage } from "@/lib/types";
 
 /**
- * The label every simulation result carries (INP-03): it was observed in a
- * simulation, and it has weight zero in every score and ranking. `cached`
- * adds that the transcript is the checked-in demo, not a live session.
+ * The label every scenario result carries: it was observed in a simulation,
+ * and it has weight zero, so it never changes the AI level, a rank or a
+ * recommendation. `demo` adds that the partner followed a script.
  */
-export function SimulationLabel({ cached = false, className = "" }: { cached?: boolean; className?: string }) {
+export function SimulationLabel({ demo = false, className = "" }: { demo?: boolean; className?: string }) {
   return (
     <div className={`flex flex-wrap items-center gap-1.5 ${className}`}>
-      <span className="inline-block px-2 py-0.5 rounded-[6px] bg-muted text-ink text-xs font-medium">
-        Observed in simulation
-      </span>
-      <span className="inline-block px-2 py-0.5 rounded-[6px] bg-subtle border border-line text-ink-2 text-xs">
+      <span className="inline-block rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-ink">Observed in simulation</span>
+      <span className="inline-block rounded-full border border-line px-2.5 py-0.5 text-xs text-ink-2">
         Weight 0: not part of any score or ranking
       </span>
-      {cached && (
-        <span className="inline-block px-2 py-0.5 rounded-[6px] bg-accent-soft text-accent-ink text-xs font-semibold uppercase tracking-wide">
-          Cached demo transcript
+      {demo && (
+        <span className="inline-block rounded-full border border-line px-2.5 py-0.5 text-xs text-ink-3">
+          Demo mode · scripted partner
         </span>
       )}
     </div>
@@ -24,42 +22,26 @@ export function SimulationLabel({ cached = false, className = "" }: { cached?: b
 }
 
 /** Scenario wording is ours until Talent Craft sends the methodology. */
-export function ProvisionalChip({ topic }: { topic: Pick<FeynmanTopic, "status" | "status_note"> }) {
-  if (topic.status !== "provisional") return null;
+export function ProvisionalChip({ scenario }: { scenario: Pick<Scenario, "status" | "status_note"> }) {
+  if (scenario.status !== "provisional") return null;
   return (
-    <span
-      className="inline-block px-2 py-0.5 rounded-[6px] border border-line text-warn-ink text-xs font-medium"
-      title={topic.status_note}
-    >
+    <span className="inline-block rounded-full border border-line px-2.5 py-0.5 text-xs font-medium text-warn-ink" title={scenario.status_note}>
       Provisional wording
     </span>
   );
 }
 
-/** Banner above a replayed transcript: what it is and where it came from. */
-export function CachedDemoNotice({ demo, reason }: { demo: DemoTranscript; reason?: string | null }) {
-  return (
-    <div className="rounded-2xl border border-line bg-subtle px-4 py-3 text-sm text-ink-2 space-y-1">
-      <p className="font-semibold text-ink">
-        Cached demo transcript: replayed from a fixture, not a live session.
-      </p>
-      {reason && <p>{reason}</p>}
-      <p className="text-ink-3">{demo.provenance}</p>
-    </div>
-  );
-}
-
-export function Transcript({ messages }: { messages: DemoTranscript["messages"] }) {
+export function Transcript({ messages, partnerLabel }: { messages: ScenarioMessage[]; partnerLabel: string }) {
   return (
     <div className="flex flex-col gap-3">
       {messages.map((m, i) => (
         <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
           <div
-            className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-              m.role === "user" ? "bg-accent text-ink" : "bg-subtle border border-line text-ink"
+            className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+              m.role === "user" ? "bg-accent text-ink" : "border border-line bg-subtle text-ink"
             }`}
           >
-            <p className="text-xs font-semibold text-ink-2 mb-1">{m.role === "user" ? "Candidate" : "Arman (AI, 10 y.o.)"}</p>
+            <p className="mb-1 text-xs font-semibold text-ink-2">{m.role === "user" ? "Applicant" : partnerLabel}</p>
             {m.content}
           </div>
         </div>

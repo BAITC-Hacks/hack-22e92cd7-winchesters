@@ -40,7 +40,14 @@ def rubric_status() -> dict[str, Any]:
         "content_hash": digest,
         "locked": versions.known_hash("rubric", version) == digest,
         "competencies": [
-            {"competency": c.value, "label": RUBRIC[c].label, "provisional": RUBRIC[c].provisional, "ai_may_rate": RUBRIC[c].ai_may_rate}
+            {
+                "competency": c.value,
+                "label": RUBRIC[c].label,
+                "provisional": RUBRIC[c].provisional,
+                "ai_may_rate": RUBRIC[c].ai_may_rate,
+                # Readable names for the indicator ids a ledger carries.
+                "indicators": [{"id": i.id, "label": i.label} for i in RUBRIC[c].indicators],
+            }
             for c in COMPETENCY_ORDER
         ],
     }

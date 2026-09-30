@@ -111,10 +111,12 @@ def test_the_error_says_what_is_wrong(client, auth_headers):
     assert "it has 149" in message
 
 
-def test_missing_written_presentation_is_rejected(client, auth_headers):
+def test_an_application_without_a_written_presentation_is_accepted(client, auth_headers):
     body = _new_application()
     del body["written_presentation"]
-    assert client.post("/api/candidates/", json=body, headers=auth_headers("applicant")).status_code == 422
+    response = client.post("/api/candidates/", json=body, headers=auth_headers("applicant"))
+    assert response.status_code == 201, response.text
+    assert response.json()["written_presentation"] == ""
 
 
 def test_kazakh_text_of_150_words_is_accepted_and_stored(client, auth_headers):

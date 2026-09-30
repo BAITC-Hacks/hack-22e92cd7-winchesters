@@ -1,4 +1,4 @@
-"""Teaching challenge sessions and scores (INP-03, storage half).
+"""Scenario sessions and results (INP-03 storage, INP-04 results).
 
 Every function is one unit of work with its own session; from `async def`
 routes call them through `run_in_threadpool`. The writes that race (a second
@@ -17,7 +17,7 @@ from sqlalchemy import JSON, DateTime, Integer, String, func, insert, literal, u
 from sqlmodel import Session, col, select
 
 from backend.db.engine import get_engine
-from backend.db.tables import FeynmanScoreRecord, FeynmanSession, FeynmanStatus
+from backend.db.tables import FeynmanSession, FeynmanStatus, ScenarioResult
 
 
 def _session_dict(row: FeynmanSession) -> dict[str, Any]:
@@ -26,24 +26,20 @@ def _session_dict(row: FeynmanSession) -> dict[str, Any]:
         "applicant_id": row.applicant_id,
         "user_id": row.user_id,
         "topic_id": row.topic_id,
+        "language": row.language,
         "messages": list(row.messages),
         "exchange_count": row.exchange_count,
         "status": row.status,
     }
 
 
-def _score_dict(row: FeynmanScoreRecord) -> dict[str, Any]:
+def _result_dict(row: ScenarioResult) -> dict[str, Any]:
     return {
         "session_id": row.session_id,
         "applicant_id": row.applicant_id,
-        "clarity": row.clarity,
-        "patience": row.patience,
-        "empathy": row.empathy,
-        "adaptability": row.adaptability,
-        "quiz_transfer_score": row.quiz_transfer_score,
-        "overall_score": row.overall_score,
-        "summary": row.summary,
-        "quiz_answers": list(row.quiz_answers),
+        "competency": row.competency,
+        "rating": dict(row.rating),
+        "source": row.source,
         "model": row.model,
     }
 
@@ -71,15 +67,15 @@ def get_session(session_id: str) -> dict[str, Any] | None:
         return _session_dict(row) if row else None
 
 
-def latest_score(applicant_id: str) -> dict[str, Any] | None:
-    """The most recent finished attempt's score, if any."""
+def latest_result(applicant_id: str) -> dict[str, Any] | None:
+    """The most recent finished scenario's result, if any."""
     with Session(get_engine()) as session:
         row = session.exec(
-            select(FeynmanScoreRecord)
-            .where(col(FeynmanScoreRecord.applicant_id) == applicant_id)
-            .order_by(col(FeynmanScoreRecord.created_at).desc())
+            select(ScenarioResult)
+            .where(col(ScenarioResult.applicant_id) == applicant_id)
+            .order_by(col(ScenarioResult.created_at).desc())
         ).first()
-        return _score_dict(row) if row else None
+        return _result_dict(row) if row else None
 
 
 # ── Writes ─────────────────────────────────────────────────────────
@@ -91,6 +87,7 @@ def create_session(
     topic_id: str,
     messages: list[dict[str, str]],
     max_attempts: int,
+    language: str = "en",
 ) -> dict[str, Any] | None:
     """Store a new attempt, or return None if the applicant has used them all.
 
@@ -106,6 +103,7 @@ def create_session(
         "applicant_id": literal(applicant_id, String),
         "user_id": literal(user_id, String),
         "topic_id": literal(topic_id, String),
+        "language": literal(language, String),
         "messages": literal(messages, JSON),
         "exchange_count": literal(1, Integer),
         "status": literal(FeynmanStatus.ACTIVE.value, String),
@@ -175,11 +173,15 @@ def release_scoring(session_id: str) -> None:
     _move(session_id, FeynmanStatus.SCORING, FeynmanStatus.ACTIVE)
 
 
-def save_score(session_id: str, score: dict[str, Any]) -> None:
-    """Store the verdict and close the session, in one transaction."""
+def save_result(session_id: str, competency: str, rating: dict[str, Any], source: str, model: str) -> None:
+    """Store the rating and close the session, in one transaction."""
     with Session(get_engine()) as session:
         row = session.get(FeynmanSession, session_id)
-        session.add(FeynmanScoreRecord(session_id=session_id, applicant_id=row.applicant_id, **score))
+        session.add(
+            ScenarioResult(
+                session_id=session_id, applicant_id=row.applicant_id, competency=competency, rating=rating, source=source, model=model
+            )
+        )
         row.status = FeynmanStatus.FINISHED.value
         row.finished_at = datetime.now(UTC)
         session.add(row)

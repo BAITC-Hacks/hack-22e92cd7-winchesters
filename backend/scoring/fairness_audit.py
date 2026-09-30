@@ -44,19 +44,12 @@ from typing import Any
 
 import numpy as np
 
+from backend.ledger.rubric import COMPETENCY_ORDER, RUBRIC
 from backend.ledger.schema import Competency, Level
 
-# The competencies the pipeline assigns a level to. 8 and 9 are flags only,
-# levelled by humans (LED-10), so there is nothing of the AI's to audit there.
-AUDITED_COMPETENCIES: tuple[Competency, ...] = (
-    Competency.MOTIVATION_UNIVERSITY,
-    Competency.MOTIVATION_MAJOR,
-    Competency.LEADERSHIP_ABILITIES,
-    Competency.TEAMWORK,
-    Competency.VALUES,
-    Competency.PRIOR_EXPERIENCE,
-    Competency.INTELLECT,
-)
+# The competencies the pipeline assigns a level to. The ones people rate live
+# (rubric `ai_may_rate=False`) have no AI level, so nothing of the AI's to audit.
+AUDITED_COMPETENCIES: tuple[Competency, ...] = tuple(c for c in COMPETENCY_ORDER if RUBRIC[c].ai_may_rate)
 LEVELS: tuple[Level, ...] = (Level.HIGH, Level.NORMAL, Level.WEAK, Level.NO_EVIDENCE)
 
 REVIEW_THRESHOLD = 0.8

@@ -64,52 +64,60 @@ function VariantRow({ variant }: { variant: CounterfactualProbeVariant }) {
 }
 
 export function CounterfactualProbe({ result, loading, error, onRun }: CounterfactualProbeProps) {
+  const flips = result?.flips_for_human_review ?? [];
+  const swapped = [...new Set(result?.changed_markers.map((marker) => markerLabels[marker] ?? marker) ?? [])];
   return (
-    <section className="border border-line bg-subtle p-5" aria-labelledby="counterfactual-probe-title">
+    <section className="rounded-2xl border border-line bg-white p-5" aria-labelledby="counterfactual-probe-title">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h3 id="counterfactual-probe-title" className="text-sm font-semibold uppercase tracking-wider text-ink">
+          <h3 id="counterfactual-probe-title" className="font-semibold text-ink">
             Swap and rescore
           </h3>
-          <p className="mt-1 max-w-2xl text-xs leading-relaxed text-ink-2">
-            Committee-only bias probe. One protected marker changes per variant; the candidate score and ranking remain untouched.
+          <p className="mt-1 max-w-xl text-sm text-ink-2">
+            Scores the same application again with the name, region, school, language or speech style changed. If a level
+            moves, background is affecting the score.
           </p>
         </div>
         <button
           type="button"
           onClick={onRun}
           disabled={loading}
-          className="shrink-0 border border-ink bg-ink px-3 py-2 text-xs font-semibold text-accent disabled:cursor-wait disabled:opacity-60"
+          className="shrink-0 rounded-full bg-ink px-4 py-2 text-sm font-semibold text-accent disabled:cursor-wait disabled:opacity-60"
         >
           {loading ? "Running..." : "Run probe"}
         </button>
       </div>
 
-      {error && <p className="mt-3 border border-[#e0aaaa] bg-[#fff4f4] p-3 text-xs text-danger">{error}</p>}
+      {error && <p className="mt-3 rounded-xl border border-danger/20 bg-danger-soft p-3 text-sm text-danger">{error}</p>}
 
       {result && (
-        <div className="mt-4">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-y border-line-soft py-3 text-xs">
-            <span className={`font-semibold uppercase ${result.flips_for_human_review.length ? "text-[#a32626]" : "text-accent-ink"}`}>
-              {result.flips_for_human_review.length ? "Review required" : "No flips"}
-            </span>
-            <span className="font-mono text-ink">signed delta {result.signed_delta > 0 ? "+" : ""}{result.signed_delta.toFixed(1)}</span>
-            <span className="font-mono text-ink-2">tolerance +/-{result.tolerance.toFixed(1)} (2 x SD {result.noise_sd.toFixed(1)})</span>
-            {result.status === "live" ? (
-              <span className="text-ink-2">live</span>
-            ) : (
-              <span data-slot="probe-source" className="rounded-[6px] bg-accent-soft px-2 py-0.5 font-semibold uppercase tracking-wide text-accent-ink">
-                {result.status === "cached_demo" ? "Cached demo" : "Fallback"} · deterministic baseline, no model call
-              </span>
-            )}
-          </div>
-          <p className="mt-3 text-xs text-ink-2">
-            Changed: {result.changed_markers.map((marker) => markerLabels[marker] ?? marker).join(", ")}. Prompt {result.prompt_id}; model {result.model_id}.
+        <div className="mt-4 space-y-3">
+          <p
+            className={`rounded-xl px-4 py-3 text-sm font-medium ${flips.length ? "bg-danger-soft text-danger" : "bg-accent-soft text-accent-ink"}`}
+          >
+            {flips.length
+              ? `Review required: a level changed when we swapped ${flips.join(", ")}.`
+              : `No level changed when we swapped ${swapped.join(", ")}.`}
           </p>
-          <div className="mt-2" aria-label="Counterfactual competency results">
-            {result.variants.map((variant) => <VariantRow key={variant.id} variant={variant} />)}
-          </div>
-          <p className="mt-2 text-[11px] leading-relaxed text-ink-3">{result.notice}</p>
+          {result.status !== "live" && (
+            <span data-slot="probe-source" className="inline-block rounded-full bg-subtle px-2.5 py-0.5 text-xs text-ink-2">
+              {result.status === "cached_demo" ? "Cached demo" : "Fallback"} · deterministic baseline, no model call
+            </span>
+          )}
+          <details className="text-xs text-ink-2">
+            <summary className="cursor-pointer select-none font-semibold hover:text-ink">See each swap</summary>
+            <p className="mt-2 font-mono">
+              signed delta {result.signed_delta > 0 ? "+" : ""}
+              {result.signed_delta.toFixed(1)} · tolerance ±{result.tolerance.toFixed(1)} (2 × SD {result.noise_sd.toFixed(1)}) · prompt{" "}
+              {result.prompt_id} · model {result.model_id}
+            </p>
+            <div className="mt-2" aria-label="Counterfactual competency results">
+              {result.variants.map((variant) => (
+                <VariantRow key={variant.id} variant={variant} />
+              ))}
+            </div>
+            <p className="mt-2 text-[11px] leading-relaxed text-ink-3">{result.notice}</p>
+          </details>
         </div>
       )}
     </section>

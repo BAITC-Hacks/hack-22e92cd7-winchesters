@@ -18,12 +18,12 @@ import type {
   RankedCandidate,
   ReasonCodeOption,
   AIDetectionResult,
-  VideoAnalysis,
   CommitteeDecisionMemo,
-  DemoTranscript,
-  FeynmanScore,
-  FeynmanTopic,
-  SimulationMode,
+  Scenario,
+  ScenarioCatalogue,
+  ScenarioLanguage,
+  ScenarioMode,
+  ScenarioResult,
 } from "./types";
 import { parseLedger } from "./ledger";
 import { clearSession, getToken, redirectToLogin, type User } from "./session";
@@ -109,7 +109,7 @@ export const api = {
   candidates: {
     list: () => fetchJSON<Candidate[]>("/api/candidates/"),
     get: (id: string) => fetchJSON<Candidate>(`/api/candidates/${id}`),
-    create: (data: Omit<Candidate, "id">) =>
+    create: (data: Omit<Candidate, "id" | "written_presentation">) =>
       fetchJSON<Candidate>("/api/candidates/", {
         method: "POST",
         body: JSON.stringify(data),
@@ -177,10 +177,6 @@ export const api = {
       fetchJSON<AIDetectionResult>(`/api/analysis/ai-detection/${id}`, {
         method: "POST",
       }),
-    analyzeVideo: (id: string) =>
-      fetchJSON<VideoAnalysis>(`/api/analysis/video-analysis/${id}`, {
-        method: "POST",
-      }),
   },
   // Stored snapshots only (LED-11/12): a candidate without one is a 404, never a live model call.
   ledger: {
@@ -190,25 +186,24 @@ export const api = {
       (await fetchJSON<unknown[]>("/api/ledger")).map(parseLedger),
     rubric: () => fetchJSON<RubricStatus>("/api/ledger/rubric"),
   },
-  feynman: {
-    score: (candidateId: string) =>
-      fetchJSON<FeynmanScore | null>(`/api/feynman/score/${encodeURIComponent(candidateId)}`),
-    topics: () => fetchJSON<FeynmanTopic[]>("/api/feynman/topics"),
-    mode: () => fetchJSON<SimulationMode>("/api/feynman/mode"),
-    // A checked-in fixture, labelled "cached demo transcript"; never a live session.
-    demo: () => fetchJSON<DemoTranscript>("/api/feynman/demo"),
-    start: (candidateId: string, topicId: string) =>
-      fetchJSON<{ session_id: string; topic: FeynmanTopic; first_message: string }>(
-        "/api/feynman/start",
-        { method: "POST", body: JSON.stringify({ candidate_id: candidateId, topic_id: topicId }) },
+  scenarios: {
+    list: () => fetchJSON<ScenarioCatalogue>("/api/scenarios"),
+    mode: () => fetchJSON<ScenarioMode>("/api/scenarios/mode"),
+    start: (candidateId: string, scenarioId: string, language: ScenarioLanguage) =>
+      fetchJSON<{ session_id: string; scenario: Scenario; language: ScenarioLanguage; first_message: string; live: boolean }>(
+        "/api/scenarios/start",
+        { method: "POST", body: JSON.stringify({ candidate_id: candidateId, scenario_id: scenarioId, language }) },
       ),
     chat: (sessionId: string, message: string) =>
-      fetchJSON<{ reply: string; message_count: number; can_finish: boolean; must_finish: boolean; remaining: number }>(
-        "/api/feynman/chat",
-        { method: "POST", body: JSON.stringify({ session_id: sessionId, message }) },
-      ),
+      fetchJSON<{ reply: string; replies: number; can_finish: boolean; must_finish: boolean }>("/api/scenarios/chat", {
+        method: "POST",
+        body: JSON.stringify({ session_id: sessionId, message }),
+      }),
     finish: (sessionId: string) =>
-      fetchJSON<FeynmanScore>(`/api/feynman/finish?session_id=${sessionId}`, { method: "POST" }),
+      fetchJSON<{ session_id: string; saved: boolean }>(`/api/scenarios/finish?session_id=${sessionId}`, { method: "POST" }),
+    // Committee and admin only: applicants never see a level.
+    result: (candidateId: string) =>
+      fetchJSON<ScenarioResult | null>(`/api/scenarios/result/${encodeURIComponent(candidateId)}`),
   },
 };
 

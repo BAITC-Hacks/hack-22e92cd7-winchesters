@@ -71,7 +71,7 @@ decisions): Opus 4.8 $5/$25 per MTok · Sonnet 5 $3/$15 (intro $2/$10 through
 | Quiz answering (Arman answering as student) | small | follows chat model | same persona |
 
 **2. Prompt caching:** multi-turn Feynman chat — breakpoint on the last message
-block each turn (spec in feature-arman-live.md). Verify with
+block each turn. Verify with
 `usage.cache_read_input_tokens`; below the model's minimum cacheable prefix it
 silently no-ops — measure, don't assume.
 

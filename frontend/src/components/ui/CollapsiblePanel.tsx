@@ -2,13 +2,14 @@
 
 import { useState, type ReactNode } from "react";
 
-/** The white card with a grey header button used on the dashboard (settings, audit). */
+/** A titled, collapsible bar on the dashboard (settings, audit), styled after the Figma dashboard. */
 export function CollapsiblePanel({
   icon,
   title,
   badge,
   children,
 }: {
+  /** A round icon with its own dark background, from the Figma file. */
   icon: string;
   title: string;
   badge?: ReactNode;
@@ -16,23 +17,23 @@ export function CollapsiblePanel({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <div style={{ backgroundColor: "#fff", borderRadius: "24px", border: "2px solid #d7d7d7", padding: "14px", marginBottom: "14px" }}>
-      <button
-        className="w-full flex items-center text-left"
-        style={{ backgroundColor: "#eae9e9", borderRadius: "14px", padding: "18px 20px", border: "none", cursor: "pointer", gap: "14px" }}
-        onClick={() => setOpen(!open)}
-        aria-expanded={open}
-      >
-        <div style={{ width: "46px", height: "46px", backgroundColor: "#141414", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <img src={icon} alt="" style={{ width: "24px", height: "24px" }} />
-        </div>
-        <div className="flex items-center gap-3">
-          <span style={{ fontSize: "18px", fontWeight: 600, color: "#141414" }}>{title}</span>
+    <section className="rounded-[clamp(20px,1.12vw,21.6px)] border-2 border-line bg-white p-[clamp(8px,0.56vw,10.8px)]">
+      <div className="rounded-[15px] bg-field p-[clamp(6px,0.42vw,7.92px)]">
+        <button
+          type="button"
+          className="flex w-full items-center gap-[clamp(10px,0.56vw,10.8px)] rounded-[5px] bg-muted p-[clamp(12px,0.75vw,14.4px)] text-left transition-colors hover:bg-line"
+          onClick={() => setOpen(!open)}
+          aria-expanded={open}
+        >
+          <img src={icon} alt="" className="size-[clamp(36px,1.98vw,38.16px)] shrink-0" />
+          <span className="text-[clamp(17px,1.06vw,20.16px)] font-semibold text-ink">{title}</span>
           {badge}
-        </div>
-        <span className="text-ink-3 text-sm">{open ? "−" : "+"}</span>
-      </button>
-      {open && <div style={{ padding: "20px 24px 24px", borderTop: "1px solid #ddd" }}>{children}</div>}
-    </div>
+          <span className="ml-auto text-2xl text-ink-2" aria-hidden>
+            {open ? "−" : "+"}
+          </span>
+        </button>
+      </div>
+      {open && <div className="px-4 pb-5 pt-6 md:px-6">{children}</div>}
+    </section>
   );
 }

@@ -1,0 +1,176 @@
+{
+  "about": "Demo-mode stand-in for the two model calls (extract, rate) on the 16 seed applicants. Each row is one quote copied verbatim from the applicant's own anonymized documents, the indicator it speaks to, and the level observed on that indicator. backend/ledger/demo.py runs these rows through the real quote check, level rules and ATOLA checklist. Used only while no model key is set and no cached run exists.",
+  "columns": ["competency", "indicator_id", "observed_level", "source", "atola", "status", "quote"],
+  "applicants": {
+    "c-001": [
+      ["leadership_abilities", "lead.organizing_others", "high", "essay", "action", "present", "Instead of lecturing, I asked them to teach each other."],
+      ["leadership_abilities", "lead.result_and_contribution", "high", "essay", "outcome", "present", "The program now runs in five villages with twelve volunteer tutors I trained."],
+      ["leadership_abilities", "lead.responsibility_under_difficulty", "high", "essay", "learnings", "present", "Three kids dropped out because I couldn't make it interesting enough. But each failure taught me to listen more and assume less."],
+      ["intellect", "int.revises", "high", "interview_notes", "thinking", "present", "That was the wake-up call I needed to completely redesign my approach."],
+      ["intellect", "int.explains_complexity", "normal", "interview_notes", "action", "present", "I prepared university-level explanations for 12-year-olds."],
+      ["motivation_university", "motu.fit", "normal", "interview_notes", "thinking", "claimed_only", "I want to learn how to think at a scale where I can change how education works across Kazakhstan."],
+      ["motivation_university", "motu.specificity", "normal", "interview_notes", "none", "claimed_only", "inVision U isn't just a university — it's a community of people who believe that Central Asia can lead, not just follow."],
+      ["teamwork", "team.we_orientation", "normal", "interview_notes", "learnings", "present", "I've learned to delegate but it's still hard for me to let go of control."],
+      ["prior_experience", "prio.reality", "high", "interview_notes", "action", "present", "Last year I almost burned out running the tutoring program, school newspaper, and debate club simultaneously."],
+      ["prior_experience", "prio.ownership", "high", "essay", "outcome", "present", "I don't run the sessions anymore — the tutors do."],
+      ["wounded_leadership", "wound.empathy", "high", "essay", "action", "present", "I remember one girl, Madina, who kept erasing her correct answers because she assumed they must be wrong."]
+    ],
+    "c-002": [
+      ["prior_experience", "prio.reality", "high", "essay", "action", "present", "Я заказал запчасть из Алматы, ждал две недели и три часа менял экран по видеоинструкции."],
+      ["prior_experience", "prio.ownership", "high", "essay", "action", "present", "Я собрал капельную систему полива из старых шлангов и пластиковых бутылок."],
+      ["prior_experience", "prio.consequences", "normal", "essay", "outcome", "present", "Работает не идеально, но бабушка говорит, что урожай стал лучше."],
+      ["intellect", "int.transfer", "high", "essay", "application", "present", "Потом я сделал похожую систему для соседа. Потом ещё для одного."],
+      ["intellect", "int.revises", "high", "interview_notes", "learnings", "present", "С тех пор я не берусь за то, в чём не уверен, пока не изучу тему."],
+      ["leadership_abilities", "lead.initiative", "high", "essay", "action", "present", "Я начал снимать видео о том, как делать простые вещи из подручных материалов — починить кран, собрать полив, заменить розетку."],
+      ["leadership_abilities", "lead.result_and_contribution", "normal", "essay", "outcome", "present", "Канал маленький, но люди пишут, что им помогает."],
+      ["motivation_major", "motm.evidence_of_interest", "high", "essay", "action", "present", "Потом начал разбираться сам — смотрел видео на YouTube, читал форумы."],
+      ["motivation_major", "motm.forward_link", "normal", "interview_notes", "thinking", "claimed_only", "Я понимаю, как устроены механизмы, но мне не хватает инженерного образования."],
+      ["motivation_university", "motu.specificity", "weak", "interview_notes", "none", "claimed_only", "В нашем городе нет возможности этому учиться, а в inVision U я смогу развиваться."],
+      ["values", "val.beyond_self", "normal", "essay", "action", "present", "Когда у соседей ломается телефон или чайник, они приходят к нам."],
+      ["teamwork", "team.we_orientation", "weak", "interview_notes", "learnings", "present", "Привык всё делать сам, и иногда трачу на задачу три дня, хотя мог бы спросить кого-то за пять минут."]
+    ],
+    "c-003": [
+      ["leadership_abilities", "lead.concrete_examples", "normal", "essay", "none", "claimed_only", "I demonstrated leadership by organizing study groups for my fellow competitors, creating comprehensive review materials, and fostering a collaborative learning environment."],
+      ["leadership_abilities", "lead.initiative", "normal", "essay", "none", "claimed_only", "As vice-president of the student council, I implemented several initiatives aimed at improving student engagement and academic support systems."],
+      ["leadership_abilities", "lead.result_and_contribution", "weak", "essay", "none", "claimed_only", "These experiences reinforced my belief that effective leadership requires both strategic thinking and emotional intelligence."],
+      ["intellect", "int.revises", "normal", "interview_notes", "learnings", "present", "I analyzed my mistakes systematically and developed a more structured preparation approach, which ultimately led to my national-level success."],
+      ["motivation_university", "motu.specificity", "weak", "interview_notes", "none", "claimed_only", "The university's mission aligns with my personal values of innovation and leadership development."],
+      ["prior_experience", "prio.reality", "normal", "essay", "none", "claimed_only", "my research internship at the university laboratory provided me with insights into scientific leadership and the importance of mentorship."],
+      ["teamwork", "team.we_orientation", "normal", "essay", "none", "claimed_only", "fostering a collaborative learning environment"]
+    ],
+    "c-004": [
+      ["leadership_abilities", "lead.initiative", "high", "essay", "action", "present", "Досым Арманмен екеуміз 'Пластиксіз мектеп' акциясын бастадық."],
+      ["leadership_abilities", "lead.responsibility_under_difficulty", "high", "essay", "thinking", "present", "Сонда тактиканы өзгерттік. Рұқсат сұраудың орнына мүмкін екенін дәлелдедік."],
+      ["leadership_abilities", "lead.organizing_others", "high", "essay", "action", "present", "Сыныптар арасында 'Нөлдік қоқыс аптасы' челлендж ұйымдастырдық — кім аз қоқыс шығарады деген сайыс."],
+      ["leadership_abilities", "lead.result_and_contribution", "high", "essay", "outcome", "present", "Асхана меңгерушісі бюджет тапты. Үш басқа мектеп біздің бағдарламаны қалай қайталауға болатынын сұрады."],
+      ["intellect", "int.explains_complexity", "high", "essay", "action", "present", "Бір жыл ішінде бір рет қолданылатын және көп рет қолданылатын ыдыстардың құнын есептедік — көп рет қолданылатыны арзанырақ екен."],
+      ["intellect", "int.revises", "high", "interview_notes", "application", "present", "Семинарларды интерактивті симуляцияларға өзгерттім — жалған сайлаулар, бюджет бөлу ойындары, пікірталас шеңберлері."],
+      ["teamwork", "team.we_orientation", "normal", "interview_notes", "learnings", "present", "Арман, менің серіктесім, маған баяулап, стратегиялық ойлауды үйретті."],
+      ["motivation_university", "motu.fit", "normal", "interview_notes", "thinking", "claimed_only", "inVision U — бірдеңе сынық көрсе отыра алмайтын адамдармен кездесетін және жүйелік деңгейде мәселелерді шешуді үйренетін орын."],
+      ["prior_experience", "prio.consequences", "high", "interview_notes", "outcome", "present", "Қатысушылар саны үш есеге артты."],
+      ["purpose_driven_leadership", "purp.why_beyond_self", "high", "essay", "learnings", "present", "Мен үйренген нәрсе — көшбасшылық билік емес, табандылық пен көзге көрінбейтінді көрінетін ету."]
+    ],
+    "c-005": [
+      ["leadership_abilities", "lead.initiative", "high", "essay", "action", "present", "Алты ай бұрын қалалық 4-ші ауруханаға, балалар бөліміне бара бастадым."],
+      ["leadership_abilities", "lead.result_and_contribution", "high", "essay", "outcome", "present", "Қазір аптасына бір рет сабақ өткіземін, үш студент-волонтёрды үйреттім."],
+      ["leadership_abilities", "lead.responsibility_under_difficulty", "high", "essay", "action", "present", "Кейбір апталарда барғым келмеді."],
+      ["prior_experience", "prio.consequences", "high", "essay", "outcome", "present", "Медбикелер менің келген күндерімде балалардың тынышырақ болатынын байқады."],
+      ["intellect", "int.revises", "normal", "interview_notes", "learnings", "present", "Жақсы мақсат жеткіліксіз екенін түсіндім — оны дұрыс аудиторияға жеткізе білу керек екен."],
+      ["motivation_university", "motu.fit", "normal", "interview_notes", "thinking", "claimed_only", "Кішкентай, жеке нәрсені көп адамға көмектесетін нәрсеге айналдыруды үйренгім келеді."],
+      ["values", "val.beyond_self", "high", "essay", "action", "present", "Түрлі-түсті қарындаштар мен қағаз алып бардым."],
+      ["wounded_leadership", "wound.empathy", "high", "essay", "action", "present", "Мен жанына отырып, сурет сала бастадым. Сөйлемедім, тек салдым."],
+      ["wounded_leadership", "wound.experience_as_resource", "normal", "essay", "learnings", "present", "Маған қиын болған нәрсе аурухана емес — өзім болдым."]
+    ],
+    "c-006": [
+      ["leadership_abilities", "lead.organizing_others", "high", "essay", "action", "present", "I delegated tasks efficiently: communications team handled school notifications, logistics team managed the new floor plan, and I personally called every judge to confirm the venue change."],
+      ["leadership_abilities", "lead.responsibility_under_difficulty", "high", "essay", "action", "present", "We brainstormed alternatives and within 48 hours secured a new venue at the city cultural center."],
+      ["leadership_abilities", "lead.result_and_contribution", "normal", "essay", "outcome", "present", "We received positive feedback from 95% of participants in our post-event survey."],
+      ["intellect", "int.transfer", "normal", "essay", "application", "claimed_only", "Now I always prepare backup options for critical elements of any project I manage."],
+      ["intellect", "int.revises", "normal", "interview_notes", "learnings", "present", "I learned that ideas without execution capability are worthless, which is why I've started learning basic programming."],
+      ["teamwork", "team.we_orientation", "weak", "interview_notes", "learnings", "present", "Sometimes I focus too much on winning — debates, competitions, grades — and forget that collaboration might produce better outcomes than competition."],
+      ["motivation_university", "motu.specificity", "normal", "interview_notes", "none", "claimed_only", "inVision U combines academic rigor with entrepreneurial thinking."],
+      ["motivation_major", "motm.forward_link", "normal", "interview_notes", "none", "claimed_only", "I want to build businesses that solve real problems in Central Asia"],
+      ["prior_experience", "prio.reality", "high", "essay", "action", "present", "I faced the challenge of organizing a conference for 200 delegates from 15 schools."]
+    ],
+    "c-007": [
+      ["leadership_abilities", "lead.initiative", "high", "essay", "action", "present", "Я решила составить карту удобства городского транспорта."],
+      ["leadership_abilities", "lead.concrete_examples", "high", "essay", "action", "present", "Три месяца я ездила по маршрутам, фотографировала остановки, замеряла высоту ступенек, отмечала наличие скамеек и навесов."],
+      ["leadership_abilities", "lead.result_and_contribution", "high", "essay", "outcome", "present", "Городской акимат запросил мои данные для планирования ремонта остановок."],
+      ["intellect", "int.revises", "high", "interview_notes", "learnings", "present", "Я поняла, что нужно менять подход — не просто показывать проблему, а предлагать конкретные решения с бюджетом."],
+      ["values", "val.beyond_self", "high", "essay", "action", "present", "Всё это я нанесла на интерактивную карту и опубликовала в городских группах."],
+      ["values", "val.consistency", "normal", "essay", "none", "claimed_only", "Лидерство — это не громкие речи. Это внимание к тем, кого обычно не замечают."],
+      ["motivation_major", "motm.forward_link", "normal", "interview_notes", "thinking", "claimed_only", "Я хочу заниматься городской средой и сделать города удобными для всех — не только для молодых и здоровых."],
+      ["prior_experience", "prio.consequences", "high", "essay", "outcome", "present", "Пожилые люди писали, что теперь выбирают маршруты по моей карте."],
+      ["wounded_leadership", "wound.experience_as_resource", "high", "essay", "thinking", "present", "В тот вечер я посмотрела на карту города другими глазами."]
+    ],
+    "c-008": [
+      ["leadership_abilities", "lead.responsibility_under_difficulty", "high", "essay", "action", "present", "But instead of shutting the app down, I fixed the bug that night, wrote an honest post-mortem explaining what went wrong and how I fixed it, and shared it with all users."],
+      ["leadership_abilities", "lead.result_and_contribution", "high", "essay", "outcome", "present", "Within a week, half the school was using it and people were finding bugs faster than I could fix them."],
+      ["leadership_abilities", "lead.organizing_others", "normal", "essay", "none", "claimed_only", "I needed to coordinate, prioritize, communicate updates."],
+      ["values", "val.ethical_choice", "high", "interview_notes", "thinking", "present", "I decided to delay the launch rather than release something broken."],
+      ["values", "val.consistency", "normal", "essay", "outcome", "present", "People respected the transparency."],
+      ["teamwork", "team.disagreement", "normal", "interview_notes", "thinking", "present", "Some team members were frustrated but I believe shipping a bad product is worse than shipping late."],
+      ["motivation_university", "motu.fit", "normal", "interview_notes", "thinking", "claimed_only", "I want to stay and build here."],
+      ["motivation_major", "motm.evidence_of_interest", "high", "essay", "action", "present", "The app started as a personal project because I was frustrated with our terrible paper-based schedule system."],
+      ["prior_experience", "prio.ownership", "high", "essay", "action", "present", "But when I built the school schedule app, I accidentally became a leader."]
+    ],
+    "c-009": [
+      ["leadership_abilities", "lead.initiative", "high", "essay", "action", "present", "I combined my two passions — theater and environmentalism — and created 'Eco-Theater.'"],
+      ["leadership_abilities", "lead.organizing_others", "normal", "essay", "action", "present", "My acting friends thought environmental topics were 'boring' and I had to convince them one by one."],
+      ["leadership_abilities", "lead.result_and_contribution", "high", "essay", "outcome", "present", "We've now performed in 8 schools."],
+      ["intellect", "int.revises", "high", "essay", "thinking", "present", "So I asked myself: what do people actually pay attention to? Stories. Drama. Emotion."],
+      ["intellect", "int.transfer", "high", "interview_notes", "application", "present", "The eco-theater works because I plan meticulously now."],
+      ["motivation_university", "motu.fit", "normal", "interview_notes", "none", "claimed_only", "inVision U can give me the skills to work on these problems from multiple angles."],
+      ["prior_experience", "prio.consequences", "high", "essay", "outcome", "present", "One principal told me our play did more for environmental awareness than a year of their curriculum."],
+      ["purpose_driven_leadership", "purp.why_beyond_self", "normal", "essay", "thinking", "claimed_only", "The environmental crisis is the defining challenge of our generation, and I felt a responsibility to make people care."]
+    ],
+    "c-010": [
+      ["values", "val.ethical_choice", "high", "essay", "action", "present", "I negotiated a compromise: we published the article but gave the administration space to respond in the same issue."],
+      ["values", "val.beyond_self", "high", "essay", "thinking", "present", "But the reporter had spent weeks on it, and the bullying victims she interviewed trusted us to tell their story."],
+      ["leadership_abilities", "lead.result_and_contribution", "high", "essay", "outcome", "present", "More importantly, the article led to a new anti-bullying policy at school."],
+      ["leadership_abilities", "lead.responsibility_under_difficulty", "high", "interview_notes", "action", "present", "We published a correction and I implemented a mandatory fact-checking process."],
+      ["teamwork", "team.disagreement", "normal", "essay", "thinking", "present", "The easy path was to kill the article. Most of my team wanted to."],
+      ["teamwork", "team.we_orientation", "normal", "essay", "learnings", "present", "You can't command them. You have to inspire them and make the work meaningful enough that they choose to stay."],
+      ["motivation_major", "motm.forward_link", "normal", "interview_notes", "none", "claimed_only", "I also want to learn about the business side — how to make independent media sustainable."],
+      ["intellect", "int.revises", "normal", "interview_notes", "outcome", "present", "It slowed our output but improved our credibility enormously."]
+    ],
+    "c-011": [
+      ["motivation_university", "motu.specificity", "weak", "essay", "none", "claimed_only", "Мен inVision U-ға түскім келеді, өйткені бұл мүмкіндіктері керемет университет."],
+      ["motivation_university", "motu.fit", "weak", "interview_notes", "none", "claimed_only", "Бұл өте жақсы университет, стипендия отбасыма көп көмектесер еді."],
+      ["leadership_abilities", "lead.concrete_examples", "weak", "essay", "none", "claimed_only", "Мен әрқашан мектебімде және қоғамда көшбасшы болдым."],
+      ["leadership_abilities", "lead.result_and_contribution", "weak", "essay", "outcome", "claimed_only", "бәрі бұзылды, бірақ мен жігерімді жоғалтпадым және ақырында бәрі жақсы аяқталды."],
+      ["teamwork", "team.we_orientation", "normal", "essay", "none", "claimed_only", "Мен тез үйренемін және командада жақсы жұмыс істеймін."],
+      ["intellect", "int.revises", "weak", "interview_notes", "none", "claimed_only", "Нақты бір жағдай есіме түспейді. Көбінесе шешімін табамын."]
+    ],
+    "c-012": [
+      ["leadership_abilities", "lead.initiative", "high", "essay", "action", "present", "И я собрал свою из пластиковых бутылок, старых шлангов и вентилей со свалки."],
+      ["leadership_abilities", "lead.responsibility_under_difficulty", "high", "essay", "action", "present", "Первая версия текла отовсюду. Вторая забилась. Третья — заработала."],
+      ["leadership_abilities", "lead.result_and_contribution", "high", "essay", "outcome", "present", "Мы спасли семьдесят процентов помидоров, когда у соседей пропало почти всё."],
+      ["leadership_abilities", "lead.organizing_others", "high", "essay", "action", "present", "Остаток лета я ходил по чужим участкам и учил."],
+      ["intellect", "int.transfer", "high", "interview_notes", "application", "present", "Сейчас понимаю, что надо было искать другие источники финансирования или сначала построить маленький прототип, как с поливом."],
+      ["intellect", "int.explains_complexity", "normal", "essay", "learnings", "present", "Я нашёл решение в интернете, оно было доступно каждому, но никто не искал."],
+      ["motivation_major", "motm.forward_link", "normal", "interview_notes", "thinking", "claimed_only", "Я хочу выучиться на технологии и бизнес, вернуться и сделать фермерство в нашем регионе современным."],
+      ["prior_experience", "prio.consequences", "high", "essay", "outcome", "present", "Четыре семьи попросили помочь собрать такую же систему."],
+      ["prior_experience", "prio.ownership", "high", "essay", "action", "present", "Я создал группу в Ватсапе, где фермеры нашего района делятся опытом."]
+    ],
+    "c-013": [
+      ["leadership_abilities", "lead.organizing_others", "normal", "essay", "none", "claimed_only", "As the lead researcher, I was responsible for coordinating sample collection across 15 sites"],
+      ["leadership_abilities", "lead.result_and_contribution", "normal", "essay", "outcome", "claimed_only", "The positive reception from municipal authorities validated our approach"],
+      ["leadership_abilities", "lead.concrete_examples", "normal", "essay", "none", "claimed_only", "I facilitated weekly team meetings where we employed evidence-based decision-making frameworks to address methodological challenges and optimize our research protocols."],
+      ["intellect", "int.revises", "high", "interview_notes", "action", "present", "I revised our protocols based on published best practices and implemented quality control checks at each stage."],
+      ["prior_experience", "prio.reality", "normal", "interview_notes", "outcome", "present", "Our initial water sampling methodology had contamination issues that invalidated two weeks of data."],
+      ["motivation_major", "motm.understanding", "normal", "interview_notes", "thinking", "claimed_only", "environmental problems require solutions that combine science, policy, and technology."],
+      ["motivation_university", "motu.specificity", "normal", "interview_notes", "none", "claimed_only", "inVision U's interdisciplinary approach appeals to me"]
+    ],
+    "c-014": [
+      ["leadership_abilities", "lead.initiative", "high", "essay", "action", "present", "Сол демалыс күндері офлайн оқу қосымшасын жасадым"],
+      ["leadership_abilities", "lead.result_and_contribution", "high", "essay", "outcome", "present", "Сәрсенбіге дейін үш басқа мектепке тарап кетті."],
+      ["leadership_abilities", "lead.concrete_examples", "high", "essay", "action", "present", "Екі күн бойы таба алған барлық математика мен физика материалдарын тақырып бойынша сұрыптап, жауаптарын тексердім."],
+      ["intellect", "int.revises", "high", "interview_notes", "action", "present", "Үшінші сабақта жоспарымды лақтырып, оларға өзгертуге қарапайым ойын бердім."],
+      ["intellect", "int.transfer", "normal", "interview_notes", "learnings", "present", "Қолданушылармен алдымен сөйлесуді үйрендім, бірақ кодтауды бастау әлі де бірінші инстинктім."],
+      ["values", "val.beyond_self", "high", "essay", "action", "present", "Мен сонымен қатар әр сенбі сайын қоғамдық орталықта шахмат үйретемін."],
+      ["prior_experience", "prio.consequences", "high", "essay", "outcome", "present", "оның ауылдағы оқушылары интернет тұрақсыз жерде қосымшаны күнделікті қолданып жатыр екен."],
+      ["motivation_university", "motu.fit", "normal", "interview_notes", "none", "claimed_only", "Мен мектеп чатынан ары масштабталатын нәрселер жасауды үйренгім келеді."]
+    ],
+    "c-015": [
+      ["leadership_abilities", "lead.initiative", "high", "essay", "action", "present", "Демалыс күндері мектептерде алғашқы көмек семинарларын ұйымдастырдым, алдымен өз мектебімнен бастадым."],
+      ["leadership_abilities", "lead.responsibility_under_difficulty", "high", "essay", "action", "present", "Сертификатымды, егжей-тегжейлі сабақ жоспарымды алып бардым және демо-сабақ өткіздім."],
+      ["leadership_abilities", "lead.organizing_others", "high", "essay", "action", "present", "Жергілікті мұғалімдерді үйреттім, білім мен кеткеннен кейін де қалуы үшін."],
+      ["leadership_abilities", "lead.result_and_contribution", "high", "essay", "outcome", "present", "Екі ай бұрын мен үйреткен бір мұғалім мұғалімдер жиналысында құлап қалған әріптесіне жүрек-өкпе реанимациясын жасады."],
+      ["teamwork", "team.we_orientation", "high", "essay", "learnings", "present", "Мен жергілікті медицина қызметкерлерімен серіктес болуды үйрендім, олар бағдарламаға кепілдік берді."],
+      ["teamwork", "team.accountability", "normal", "interview_notes", "learnings", "present", "Бір демалыс күні үш мектепте семинар өткіземін деп уәде беріп, үш жерде бірден бола алмайтынымды кейін ғана түсінемін."],
+      ["intellect", "int.revises", "high", "interview_notes", "action", "present", "Денсаулық контенті әлеуметтік желіде неліктен қызықты болатынын зерттеп, тәсілімді толық өзгерттім — қысқарақ, көрнекірек, әзілмен."],
+      ["prior_experience", "prio.consequences", "high", "interview_notes", "outcome", "present", "Келесі видео 12 000 қаралым жинады."],
+      ["purpose_driven_leadership", "purp.why_beyond_self", "high", "essay", "thinking", "present", "Бірақ бөлме толы ересектердің дәрменсіздіктен қатып қалған бейнесі менің есімнен кетпеді."]
+    ],
+    "c-016": [
+      ["leadership_abilities", "lead.initiative", "high", "essay", "action", "present", "I contacted their school leaders and proposed a shared minibus funded by all four villages."],
+      ["leadership_abilities", "lead.responsibility_under_difficulty", "high", "essay", "action", "present", "I created a transparent budget, held a village meeting, and invited the akimat representative."],
+      ["leadership_abilities", "lead.result_and_contribution", "high", "essay", "outcome", "present", "The minibus now runs three times a week."],
+      ["intellect", "int.revises", "high", "essay", "thinking", "present", "I started a petition, but quickly realized that a piece of paper means nothing without a plan."],
+      ["intellect", "int.transfer", "normal", "essay", "action", "present", "I found that three neighboring villages had the same issue."],
+      ["values", "val.beyond_self", "high", "essay", "outcome", "present", "But 200 families can get to town without walking three hours."],
+      ["teamwork", "team.accountability", "normal", "essay", "thinking", "present", "The hardest part was not the logistics — it was convincing adults to trust a 16-year-old with their money."]
+    ]
+  }
+}

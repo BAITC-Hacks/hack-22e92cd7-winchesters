@@ -19,6 +19,9 @@
   --danger: #8b1e1e;
   --danger-soft: #fef2f2;
   --warn-ink: #6b4b00;
+  --field: #fafafa;        /* form fields and quiet tab strips */
+  --ink-muted: #676767;    /* placeholder and secondary text in fields */
+  --deadline: #f1791d;     /* the date an applicant must not miss */
 }
 
 @theme inline {
@@ -40,7 +43,10 @@
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-warn-ink: var(--warn-ink);
-  --font-sans: var(--font-geist-sans);
+  --color-field: var(--field);
+  --color-ink-muted: var(--ink-muted);
+  --color-deadline: var(--deadline);
+  --font-sans: var(--font-gilroy);
   --font-mono: var(--font-geist-mono);
 }
 
@@ -132,4 +138,14 @@ body {
 @keyframes highlightSlide {
   from { transform: scaleX(0); transform-origin: left; }
   to { transform: scaleX(1); transform-origin: left; }
+}
+
+/* ── Side drawer (candidate detail) ───────────────────────────── */
+@keyframes drawerIn {
+  from { opacity: 0; transform: translateX(32px); }
+  to { opacity: 1; transform: none; }
+}
+.drawer-in { animation: drawerIn 0.22s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .drawer-in { animation: none; }
 }

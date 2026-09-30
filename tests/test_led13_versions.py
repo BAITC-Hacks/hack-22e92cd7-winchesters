@@ -20,7 +20,10 @@ FIXTURE = Path(__file__).resolve().parents[1] / "backend" / "ledger" / "fixtures
 
 
 def _ledger() -> CandidateLedger:
-    return CandidateLedger.model_validate(json.loads(FIXTURE.read_text(encoding="utf-8")))
+    """The worked example, stamped as built under the current rubric."""
+    ledger = CandidateLedger.model_validate(json.loads(FIXTURE.read_text(encoding="utf-8")))
+    ledger.rubric_version = rubric.RUBRIC_VERSION
+    return ledger
 
 
 def test_current_rubric_and_prompts_match_the_lock():
@@ -104,6 +107,8 @@ def test_rubric_endpoint_reports_draft_scales(client, auth_headers):
     assert len(body["competencies"]) == 9
     drafts = {item["competency"] for item in body["competencies"] if item["provisional"]}
     assert Competency.LEADERSHIP_ABILITIES.value not in drafts and len(drafts) == 7
+    leadership = next(item for item in body["competencies"] if item["competency"] == "leadership_abilities")
+    assert {"id": "lead.initiative", "label": "Initiative"} in leadership["indicators"]
 
 
 def test_probe_bank_is_not_claimed_as_approved_before_the_methodology_arrives():

@@ -183,6 +183,10 @@ export const ILLUSTRATIVE_LABEL = "Illustrative worked example — not from this
 export const ILLUSTRATIVE_QUOTE_LABEL = "Illustrative, not from this applicant";
 export const CACHED_LEDGER_LABEL = "Cached ledger — built offline, not scored live";
 
+/** backend/ledger/provenance.py DEMO_PREFIX: demo mode's stand-in for the model calls. */
+export const DEMO_PREFIX = "demo-";
+export const DEMO_LEDGER_LABEL = "Demo mode · no live model";
+
 /**
  * A ledger is either a cached pipeline run or the hand-authored LED-03 example
  * standing in for c-001. The example describes a fictional applicant, so none
@@ -191,6 +195,11 @@ export const CACHED_LEDGER_LABEL = "Cached ledger — built offline, not scored 
  */
 export function isIllustrative(ledger: CandidateLedger): boolean {
   return ledger.model_judge === HAND_AUTHORED;
+}
+
+/** Built without a model key (backend/ledger/demo.py); the quotes are the applicant's own. */
+export function isDemo(ledger: CandidateLedger): boolean {
+  return ledger.model_judge.startsWith(DEMO_PREFIX);
 }
 
 export interface LedgerStats {

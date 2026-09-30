@@ -1,15 +1,9 @@
 "use client";
 
-// Page furniture for the dashboard: nav, dark header with the stats bar, footer.
+// Page furniture for the dashboard: scroll progress, and the header with the file filters.
 
 import { useEffect, useState } from "react";
 
-const NAV_LINKS = [
-  { href: "/", label: "Home" },
-  { href: "/#apply", label: "Applicant Portal" },
-  { href: "/teach", label: "Teaching Challenge" },
-  { href: "/dashboard", label: "Admissions Dashboard", current: true },
-];
 
 export function ScrollProgress() {
   const [progress, setProgress] = useState(0);
@@ -30,36 +24,13 @@ export function ScrollProgress() {
   );
 }
 
-export function DashboardNav() {
-  return (
-    <nav className="sticky top-0 z-[100] flex items-center justify-between gap-4 bg-accent px-4 py-3 md:px-[60px] md:py-[18px]">
-      <img src="/assets/InVision U Dark.png" alt="inVision U" className="h-[22px] w-auto md:h-[27.86px] shrink-0" />
-      <div className="flex items-center overflow-x-auto">
-        {NAV_LINKS.map((link, i) => (
-          // Below md only the current page is shown, so the bar never scrolls sideways.
-          <div key={link.label} className={`${link.current ? "flex" : "hidden md:flex"} items-center`}>
-            {i > 0 && <div className="hidden md:block h-10 w-px bg-ink" />}
-            <a
-              href={link.href}
-              className={`whitespace-nowrap rounded-[10px] px-3 py-2 text-sm text-ink transition-colors hover:bg-[#deff70] md:px-[22px] md:py-[14px] md:text-lg ${
-                link.current ? "bg-[#deff70] font-bold" : "font-medium"
-              }`}
-            >
-              {link.label}
-            </a>
-          </div>
-        ))}
-      </div>
-    </nav>
-  );
-}
-
 export interface StatButton {
   key: string;
   label: string;
   count: number;
 }
 
+/** Dark banner with the boy on the lime shape, and the filters overlapping its lower edge (Figma "Desktop - 13"). */
 export function DashboardHeader({
   stats,
   active,
@@ -70,62 +41,51 @@ export function DashboardHeader({
   onSelect: (key: string) => void;
 }) {
   return (
-    <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "12px 40px 0", position: "relative" }}>
-      <div style={{ backgroundColor: "#141414", borderRadius: "24px", overflow: "hidden", position: "relative", padding: "36px 40px 56px" }}>
-        <img src="/assets/Dots.png" alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.3, pointerEvents: "none" }} />
-        <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-          <div>
-            <h1 style={{ fontSize: "34px", fontWeight: 700, color: "#c1f11d", marginBottom: "4px" }}>Admissions Dashboard</h1>
-            <p style={{ fontSize: "16px", color: "#fff" }}>AI-Assisted Screening &middot; Human-in-the-Loop</p>
+    <header className="mx-auto w-full max-w-[1728px] px-4 pt-8 md:px-[4.27vw] md:pt-[2.23vw]">
+      <div className="relative overflow-hidden rounded-[clamp(24px,1.39vw,26.64px)] bg-ink lg:h-[clamp(340px,20.88vw,401.76px)]">
+        <img src="/assets/Dots.png" alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-30" />
+        <div className="relative flex items-start justify-center gap-[clamp(24px,6.12vw,118.08px)] px-6 pb-[clamp(90px,9.36vw,180px)] pt-8 lg:pb-0 lg:pt-[0.94vw]">
+          <div className="pt-[clamp(0px,1.87vw,36px)]">
+            <h1 className="max-w-[5.8em] text-[clamp(36px,2.77vw,53.28px)] font-bold leading-none text-accent">Admissions Dashboard</h1>
+            <p className="mt-[clamp(7.2px,0.38vw,7.2px)] text-[clamp(15px,1.12vw,21.6px)] text-white">AI-Assisted Screening • Human-in-the-loop</p>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "15px", color: "#fff" }}>
-            <span style={{ width: "9px", height: "9px", borderRadius: "50%", backgroundColor: "#c1f11d", display: "inline-block" }} />
+          {/* The boy stands on the lime shape; the filters card hides his lower half. */}
+          <div className="relative hidden h-[16.92vw] max-h-[324.72px] w-[18.36vw] max-w-[352.08px] shrink-0 lg:block">
+            <img src="/assets/dashboard/boy-shape.svg" alt="" className="absolute inset-0 h-full w-full" />
+            <div className="absolute inset-y-0 left-[4.8%] right-[4.7%] overflow-hidden">
+              <img src="/assets/dashboard/boy.png" alt="" className="absolute left-[-4.7%] top-0 h-[128.48%] w-[104.7%] max-w-none" />
+            </div>
+          </div>
+          <p className="hidden items-center gap-[10px] whitespace-nowrap pt-[clamp(0px,1.87vw,36px)] text-[clamp(15px,1.12vw,21.6px)] text-white md:flex">
+            <img src="/assets/icons/status-dot.svg" alt="" className="size-[11px]" />
             System active
-          </div>
+          </p>
         </div>
       </div>
 
-      {/* Stats bar — overlapping header */}
-      <div style={{ position: "relative", zIndex: 2, marginTop: "-34px", display: "flex", gap: "8px", padding: "14px 16px", backgroundColor: "#fff", borderRadius: "20px", border: "2px solid #d7d7d7" }}>
-        {stats.map((stat) => (
-          <button
-            key={stat.key}
-            onClick={() => onSelect(stat.key)}
-            style={{
-              flex: 1,
-              padding: "16px 18px",
-              borderRadius: "12px",
-              border: "none",
-              backgroundColor: active === stat.key ? "#c1f11d" : "#eae9e9",
-              cursor: "pointer",
-              textAlign: "left",
-              transition: "all 0.2s ease",
-            }}
-          >
-            <p style={{ fontSize: "28px", fontWeight: 700, color: "#141414", lineHeight: 1, marginBottom: "4px" }}>{stat.count}</p>
-            <p style={{ fontSize: "14px", color: "#141414" }}>{stat.label}</p>
-          </button>
-        ))}
+      <div
+        role="group"
+        aria-label="Filter applicants by file"
+        className="relative z-[1] -mt-[clamp(70px,8.5vw,163.44px)] grid grid-cols-2 gap-[10px] rounded-[clamp(24px,1.39vw,26.64px)] border-2 border-line bg-white px-[clamp(12px,1.12vw,21.6px)] py-[clamp(12px,0.75vw,14.4px)] sm:flex sm:items-center lg:h-[clamp(120px,8.5vw,163.44px)]"
+      >
+        {stats.map((stat) => {
+          const on = active === stat.key;
+          return (
+            <button
+              key={stat.key}
+              type="button"
+              onClick={() => onSelect(stat.key)}
+              aria-pressed={on}
+              className={`flex min-h-[clamp(88px,5.69vw,109.44px)] flex-1 flex-col justify-center rounded-[17px] px-[clamp(14px,1.12vw,21.6px)] text-left text-ink transition-colors ${
+                on ? "bg-accent" : "bg-muted hover:bg-line"
+              }`}
+            >
+              <span className="block text-[clamp(36px,3.57vw,68.4px)] font-bold leading-none">{stat.count}</span>
+              <span className="mt-[clamp(6px,0.38vw,7.2px)] block text-[clamp(14px,1.17vw,22.32px)] leading-tight">{stat.label}</span>
+            </button>
+          );
+        })}
       </div>
-    </div>
-  );
-}
-
-export function DashboardFooter() {
-  return (
-    <footer style={{ position: "relative", overflow: "hidden", padding: 0, marginTop: "40px" }}>
-      <img src="/assets/Footer BG.png" alt="" style={{ width: "100%", display: "block" }} />
-      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", padding: "0 40px 40px" }}>
-        <div style={{ display: "flex", justifyContent: "center", gap: "32px", marginBottom: "24px" }}>
-          {[{ href: "/", label: "Home" }, { href: "/#apply", label: "Apply" }, { href: "/teach", label: "Teaching Challenge" }, { href: "/dashboard", label: "Dashboard" }].map((link) => (
-            <a key={link.label} href={link.href} style={{ fontSize: "14px", color: "rgba(255,255,255,0.7)", textDecoration: "none", transition: "color 0.2s" }}
-              onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "#c1f11d")}
-              onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "rgba(255,255,255,0.7)")}
-            >{link.label}</a>
-          ))}
-        </div>
-        <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)", textAlign: "center" }}>Powered by inDrive &middot; Built for Decentrathon 5.0</p>
-      </div>
-    </footer>
+    </header>
   );
 }

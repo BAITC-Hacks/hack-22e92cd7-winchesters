@@ -1,4 +1,4 @@
-import { ATOLA_SEQUENCE, atolaGaps, demonstratedEvidence, evidenceState, nineRows } from "@/lib/ledger";
+import { atolaGaps, demonstratedEvidence, evidenceState, nineRows } from "@/lib/ledger";
 import type { CandidateLedger, Competency, CompetencyRating, InterviewerPreBrief } from "@/lib/types";
 import { EvidenceQuote } from "../ledger/EvidenceQuote";
 import { IllustrativeTag } from "../ledger/Provenance";
@@ -24,8 +24,8 @@ export function InterviewerBrief({ ledger, preBrief }: InterviewerBriefProps) {
 
   return (
     <div className="space-y-6 print:space-y-3">
-      <div className="rounded-xl bg-ink text-white px-4 py-3 text-sm">
-        Do not name the competency aloud. Ask for a situation, then follow the missing parts of the story.
+      <div className="rounded-xl bg-ink px-4 py-3 text-sm text-white">
+        Do not name the competency aloud. Ask for a real situation, then ask about the parts of the story that are missing.
       </div>
 
       <section data-slot="strengths">
@@ -55,8 +55,8 @@ export function InterviewerBrief({ ledger, preBrief }: InterviewerBriefProps) {
       </section>
 
       <section>
-        <h4 className="text-sm font-semibold text-ink uppercase tracking-wider mb-2">By competency</h4>
-        <div className="rounded-2xl border-2 border-line divide-y divide-line">
+        <h4 className="text-sm font-semibold text-ink uppercase tracking-wider mb-2">What to ask</h4>
+        <div className="divide-y divide-line-soft rounded-2xl border border-line bg-white">
           {rows.map(({ competency, rating }) => (
             <BriefRow key={competency} competency={competency} rating={rating} preBrief={preBrief?.rows.find((row) => row.competency === competency)} />
           ))}
@@ -68,64 +68,56 @@ export function InterviewerBrief({ ledger, preBrief }: InterviewerBriefProps) {
 
 function BriefRow({ competency, rating, preBrief }: { competency: Competency; rating?: CompetencyRating; preBrief?: InterviewerPreBrief["rows"][number] }) {
   const state = evidenceState(rating);
-  const gaps = rating ? atolaGaps(rating) : [];
-  const flags = rating?.flags ?? [];
+  const gaps = rating && !rating.reserved_for_humans ? atolaGaps(rating) : [];
+  const flags = preBrief?.discrepancy_alerts ?? rating?.flags ?? [];
+  const ask = preBrief?.probe?.paraphrase ?? rating?.probe_question ?? "";
+  const hasMore = Boolean(preBrief?.probe) || flags.length > 0;
 
   return (
-    <div className="px-4 py-3 text-sm break-inside-avoid">
+    <div className="break-inside-avoid px-4 py-4 text-sm">
       <div className="flex items-center justify-between gap-3">
-        <span className={`font-medium ${rating ? "text-ink" : "text-ink-3"}`}>{COMPETENCY_LABELS[competency]}</span>
-        <span data-slot="evidence-state" data-state={state} className="text-xs text-ink-2 whitespace-nowrap">
+        <span className={`font-semibold ${rating ? "text-ink" : "text-ink-3"}`}>{COMPETENCY_LABELS[competency]}</span>
+        <span data-slot="evidence-state" data-state={state} className="whitespace-nowrap rounded-full bg-subtle px-2.5 py-0.5 text-xs text-ink-2">
           {EVIDENCE_STATE_LABELS[state]}
         </span>
       </div>
 
-      {rating && !rating.reserved_for_humans && (
-        <div data-slot="atola" className="mt-2 flex flex-wrap gap-1">
-          {ATOLA_SEQUENCE.map((c) => {
-            const present = rating.atola_present.includes(c);
-            return (
-              <span
-                key={c}
-                className={`px-1.5 py-0.5 rounded text-xs ${present ? "bg-accent text-ink" : "border border-dashed border-ink-3 text-ink-3"}`}
-                title={present ? "Covered by the material" : "Missing: probe for this"}
-              >
-                {present ? "✓" : "?"} {ATOLA_LABELS[c]}
-              </span>
-            );
-          })}
-        </div>
-      )}
-
-      {preBrief?.probe ? (
-        <div data-slot="probe" className="mt-2 space-y-1">
-          <p><span className="text-ink-3">Ask: </span>{preBrief.probe.paraphrase}</p>
-          <p className="text-xs text-ink-2"><span className="font-medium">Canonical probe: </span>{preBrief.probe.canonical}</p>
-          <p className="text-xs text-ink-2" data-slot="allowed-paraphrases">
-            <span className="font-medium">Allowed wording: </span>{preBrief.probe.allowed_paraphrases.join(" / ")}
-          </p>
-        </div>
-      ) : rating?.probe_question && (
-        <p data-slot="probe" className="mt-2">
-          <span className="text-ink-3">Ask: </span>
-          <span className="text-ink">{rating.probe_question}</span>
-          {gaps.length > 0 && !rating.reserved_for_humans && (
-            <span className="text-xs text-ink-3"> (first gap: {ATOLA_LABELS[gaps[0]]})</span>
-          )}
+      {/* All five missing says nothing the state does not; only a partial story has gaps worth naming. */}
+      {gaps.length > 0 && gaps.length < 5 && (
+        <p data-slot="atola" className="mt-1.5 text-xs text-ink-3">
+          Missing from their story: {gaps.map((c) => ATOLA_LABELS[c]).join(" · ")}
         </p>
       )}
 
-      {(preBrief?.discrepancy_alerts.length || flags.length > 0) && (
-        <ul data-slot="flags" className="mt-2 space-y-1">
-          {(preBrief?.discrepancy_alerts ?? flags).map((f, i) => (
-            <li key={i} className="flex gap-2">
-              <span className="shrink-0 mt-0.5 w-4 h-4 border border-ink rounded-sm" aria-hidden />
-              <span className="text-ink-2">
-                {f.quote && <q className="italic">{f.quote}</q>} {f.explanation}
-              </span>
-            </li>
-          ))}
-        </ul>
+      {ask && (
+        <p data-slot="probe" className="mt-2 rounded-xl bg-accent-soft px-3 py-2 text-ink">
+          <span className="font-semibold">Ask: </span>
+          {ask}
+        </p>
+      )}
+
+      {hasMore && (
+        <details className="mt-2 text-xs text-ink-2">
+          <summary className="cursor-pointer select-none hover:text-ink">More for the interviewer</summary>
+          <div className="mt-2 space-y-2">
+            {preBrief?.probe && (
+              <>
+                <p><span className="font-medium">Canonical probe: </span>{preBrief.probe.canonical}</p>
+                <p data-slot="allowed-paraphrases"><span className="font-medium">Allowed wording: </span>{preBrief.probe.allowed_paraphrases.join(" / ")}</p>
+              </>
+            )}
+            {flags.length > 0 && (
+              <ul data-slot="flags" className="space-y-1">
+                {flags.map((f, i) => (
+                  <li key={i} className="flex gap-2">
+                    <span className="mt-0.5 size-3.5 shrink-0 rounded-sm border border-ink-3" aria-hidden />
+                    <span>{f.quote && <q className="italic">{f.quote}</q>} {f.explanation}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </details>
       )}
     </div>
   );
