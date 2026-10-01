@@ -62,8 +62,6 @@ committee decides*:
 | **Week 1** · 20 – 26 Sep | Central model configuration and a single model call path; the evidence-ledger contract; the rubric for the 9 competencies on a 3-level BARS scale; ATOLA coverage | CI; SQLite schema and migrations; auth with roles; committee override ledger; dashboard views built from the ledger; fairness audit, evaluation harness and swap-and-rescore probe; decision memo with PDF | UX/UI design of the entire product in Figma: user flows, layouts and visual style for every page |
 | **Week 2** · 27 Sep – 1 Oct | Scenarios in EN / RU / KZ (replacing the teaching challenge); offline demo mode; simpler Committee Card and Fairness Audit; the Figma design implemented across all pages; demo video; deployment | Stored ledgers served to the Committee Card; rubric and prompt hash lock; interviewer pre-brief and probe bank; every demo click working offline; Docker Compose | Final designs for every page (home, application and review, sign up / log in, scenarios, admissions dashboard), brand visuals and imagery |
 
-The complete UX/UI design of the product, including all page layouts, the
-visual style and the imagery, was created by UX/UI Designer Arman Sagnaev.
 
 ---
 
