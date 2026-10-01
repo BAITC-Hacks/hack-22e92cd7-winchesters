@@ -300,7 +300,3 @@ Open [http://localhost:3000](http://localhost:3000). The demo accounts are
 ├── docs/                      # plan, task board, research, architecture
 └── notebooks/                 # validation analysis
 ```
-
-## License
-
-MIT
