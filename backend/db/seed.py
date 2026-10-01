@@ -1,11 +1,11 @@
-"""Load the 16 demo applicants and, under DEMO_MODE, the committee demo account.
+"""Load the 16 demo applicants and, under DEMO_MODE, the two demo accounts.
 
 Idempotent: records already present (matched by their `c-###` id, or by email
 for users) are skipped, so `python -m backend.db init` is safe to rerun. The
-one exception is the demo committee account: if its stored password no longer
-verifies (a database created before FND-05 kept an unsalted SHA-256 hash that
-argon2 rejects, so the documented login answered 401) or its role drifted, the
-row is repaired in place.
+one exception is the demo accounts (committee and applicant): if a stored
+password no longer verifies (a database created before FND-05 kept an unsalted
+SHA-256 hash that argon2 rejects, so the documented login answered 401) or the
+role drifted, the row is repaired in place.
 `backend/data/candidates.json` is now seed input only; nothing writes to it.
 """
 
@@ -28,6 +28,12 @@ SEED_FILE = Path(__file__).resolve().parents[1] / "data" / "candidates.json"
 
 DEMO_COMMITTEE_EMAIL = "committee@invisionu.edu"
 DEMO_COMMITTEE_PASSWORD = "demo2026"
+# A ready applicant login for reviewers. It has no application yet: the first
+# person to use it fills the form; after that, signing up gives a fresh one.
+DEMO_APPLICANT_EMAIL = "applicant@invisionu.edu"
+DEMO_APPLICANT_PASSWORD = "demo2026"
+# Logins that stop working when DEMO_MODE is off (backend/routers/auth.py).
+DEMO_EMAILS = frozenset({DEMO_COMMITTEE_EMAIL, DEMO_APPLICANT_EMAIL})
 
 
 @dataclass
@@ -36,6 +42,26 @@ class SeedResult:
     applicants_total: int
     demo_user_added: bool
     demo_user_repaired: bool = False
+    demo_applicant_added: bool = False
+
+
+def _ensure_demo_user(session: Session, email: str, password: str, full_name: str, role: Role) -> tuple[bool, bool]:
+    """Create the demo account or repair its password and role; returns (added, repaired)."""
+    exists = session.exec(select(User).where(User.email == email)).first()
+    if exists is None:
+        session.add(User(email=email, full_name=full_name, password_hash=hash_password(password), role=role.value))
+        return True, False
+    repaired = False
+    # Verify first, so a healthy row is left byte-for-byte alone.
+    if not verify_password(exists.password_hash, password):
+        exists.password_hash = hash_password(password)
+        repaired = True
+    if exists.role != role.value:
+        exists.role = role.value
+        repaired = True
+    if repaired:
+        session.add(exists)
+    return False, repaired
 
 
 def seed() -> SeedResult:
@@ -44,29 +70,14 @@ def seed() -> SeedResult:
     with Session(get_engine()) as session:
         added = sum(import_candidate(session, record) for record in records)
 
-        demo_user_added = demo_user_repaired = False
+        demo_user_added = demo_user_repaired = demo_applicant_added = False
         if settings.DEMO_MODE:
-            exists = session.exec(select(User).where(User.email == DEMO_COMMITTEE_EMAIL)).first()
-            if exists is None:
-                session.add(
-                    User(
-                        email=DEMO_COMMITTEE_EMAIL,
-                        full_name="Admissions Committee",
-                        password_hash=hash_password(DEMO_COMMITTEE_PASSWORD),
-                        role=Role.COMMITTEE.value,
-                    )
-                )
-                demo_user_added = True
-            else:
-                # Verify first, so a healthy row is left byte-for-byte alone.
-                if not verify_password(exists.password_hash, DEMO_COMMITTEE_PASSWORD):
-                    exists.password_hash = hash_password(DEMO_COMMITTEE_PASSWORD)
-                    demo_user_repaired = True
-                if exists.role != Role.COMMITTEE.value:
-                    exists.role = Role.COMMITTEE.value
-                    demo_user_repaired = True
-                if demo_user_repaired:
-                    session.add(exists)
+            demo_user_added, demo_user_repaired = _ensure_demo_user(
+                session, DEMO_COMMITTEE_EMAIL, DEMO_COMMITTEE_PASSWORD, "Admissions Committee", Role.COMMITTEE
+            )
+            demo_applicant_added, _ = _ensure_demo_user(
+                session, DEMO_APPLICANT_EMAIL, DEMO_APPLICANT_PASSWORD, "Demo Applicant", Role.APPLICANT
+            )
 
         session.commit()
 
@@ -75,6 +86,7 @@ def seed() -> SeedResult:
         applicants_total=len(records),
         demo_user_added=demo_user_added,
         demo_user_repaired=demo_user_repaired,
+        demo_applicant_added=demo_applicant_added,
     )
 
 

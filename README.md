@@ -8,7 +8,62 @@ Hackathon team repository for Winchesters
 > university's behavioural rubric, and says so plainly when there is no evidence
 > rather than scoring it low.
 
-[Demo Video](https://drive.google.com/drive/folders/1ntxiZNCST5MVuq4X8uppDuZCcNnJLgPc?usp=sharing) | [Architecture](docs/architecture.md) | [Task board](docs/STAGE2_TASK_BOARD.md) | [Demo click audit](docs/plan/led-12-demo-click-audit.md)
+[Live demo](https://winchesters.govtech-kz.com) | [Architecture](docs/architecture.md) | [Task board](docs/STAGE2_TASK_BOARD.md) | [Demo click audit](docs/plan/led-12-demo-click-audit.md)
+
+---
+
+## Try it
+
+**Live demo: <https://winchesters.govtech-kz.com>**
+
+| Sign in as | Email | Password | What you can do |
+|------------|-------|----------|-----------------|
+| **Admissions committee** | `committee@invisionu.edu` | `demo2026` | Dashboard with 16 demo applicants, Committee Card with evidence quotes, level override, Fairness Audit |
+| **Applicant** | `applicant@invisionu.edu` | `demo2026` | Fill and submit the application, then talk a scenario through (EN / RU / KZ) |
+
+- An applicant account can submit **one** application. If the demo applicant
+  has already been used, click **Sign Up** on the login page: any email works for demo,
+  no confirmation is needed, and you get a fresh applicant.
+- After submitting as an applicant, sign in as the committee and search for the
+  name: the new application appears on the dashboard with its evidence.
+- **The demo runs without a model API key, so some steps are mocked** while we
+  wait for resources (model keys, inVision U's historical data, the extended
+  methodology). Every mocked view is labelled on screen. The list is in
+  [What works now](#what-works-now-2026-10-01).
+
+---
+
+## Summary
+
+**The task.** inVision U (by inDrive) selects applicants by potential:
+leadership, teamwork, values, motivation. Today the committee reads every
+essay, video and interview by hand, polished writing wins, and a decision made
+by impression is hard to explain or check.
+
+**What we built.** An admissions platform where *AI finds the evidence and the
+committee decides*:
+
+1. **Applicant portal**: a five-step application and a short real-life
+   scenario with a neutral conversation partner, in English, Russian or Kazakh.
+2. **Evidence ledger**: for each of inVision U's competencies, a level on a
+   behavioural scale (BARS) backed by verbatim quotes from the applicant's own
+   text, each checked word for word against the source.
+3. **Committee dashboard**: the Committee Card with levels and quotes, an
+   override with a mandatory reason that is logged, an interviewer brief and a
+   decision memo.
+4. **Fairness audit**: checks whether groups of applicants (for example rural
+   schools) get lower levels than others. Background never enters scoring.
+
+### Who did what, week by week
+
+| Period | Rauan Salkenov ([@raursq](https://github.com/raursq)), AI & Software Engineer | Almas Magzumov ([@m4rk1sov](https://github.com/m4rk1sov)), Software Engineer | Arman Sagnaev ([@armashq](https://github.com/armashq)), UX/UI designer |
+|--------|--------|--------|--------|
+| **Stage 1** · 29 Mar – 5 Apr | First working prototype: application form, scoring, dashboard, teaching challenge, auth | — | UX/UI design of the entire first version: every screen and the visual style |
+| **Week 1** · 20 – 26 Sep | Central model configuration and a single model call path; the evidence-ledger contract; the rubric for the 9 competencies on a 3-level BARS scale; ATOLA coverage | CI; SQLite schema and migrations; auth with roles; committee override ledger; dashboard views built from the ledger; fairness audit, evaluation harness and swap-and-rescore probe; decision memo with PDF | UX/UI design of the entire product in Figma: user flows, layouts and visual style for every page |
+| **Week 2** · 27 Sep – 1 Oct | Scenarios in EN / RU / KZ (replacing the teaching challenge); offline demo mode; simpler Committee Card and Fairness Audit; the Figma design implemented across all pages; demo video; deployment | Stored ledgers served to the Committee Card; rubric and prompt hash lock; interviewer pre-brief and probe bank; every demo click working offline; Docker Compose | Final designs for every page (home, application and review, sign up / log in, scenarios, admissions dashboard), brand visuals and imagery |
+
+The complete UX/UI design of the product, including all page layouts, the
+visual style and the imagery, was created by UX/UI Designer Arman Sagnaev.
 
 ---
 
@@ -42,17 +97,29 @@ non-native writing, and nothing calibrated for Kazakh exists.
 
 ---
 
-## Current state (2026-09-27, before the mock demo day)
+## What works now (2026-10-01)
+
+Working end to end, on the live demo and locally:
+
+- **Applicant**: sign up, the five-step application, review and submit; one
+  scenario conversation in English, Russian or Kazakh.
+- **Committee**: dashboard with search and filters; the Committee Card with a
+  level and verbatim quotes per competency; the scenario result next to it at
+  weight 0; level override with a reason code, kept in an append-only history;
+  interviewer brief, growth map and decision memo (PDF).
+- **Fairness audit**: group comparison per competency, with review flags.
+- **Quality**: 445 backend tests pass; the whole demo path produces no 5xx
+  responses and no console errors ([audit](docs/plan/led-12-demo-click-audit.md)).
 
 The demo works **without any API key**. Every click reads from the database, a
 cache labelled as one, or a deterministic baseline. Live-only endpoints answer
-503 "nothing was scored" instead of an error. Checked on a copy of the dev
-database with every model key empty: 445 tests pass, the whole demo path
-produces no 5xx responses and no console errors
-([audit](docs/plan/led-12-demo-click-audit.md)).
+503 "nothing was scored" instead of an error.
 
-Not done yet:
+### Mocked for now, while we wait for resources
 
+- **Scenario partner follows a script until model keys arrive.** The applicant
+  types real answers; the partner's lines are pre-written, and the result is
+  labelled *"Demo mode · scripted partner"*.
 - **Ledgers run in demo mode until model keys arrive.** A stand-in replaces
   the two model calls (`backend/ledger/demo.py`): the 16 seed applicants use
   quotes written once by hand from their own documents, and a newly submitted
@@ -78,9 +145,9 @@ Not done yet:
 
 | Name | Role | Contact |
 |------|------|---------|
-| Rauan Salkenov | Developer | [Telegram](https://t.me/regularmusician) · [GitHub](https://github.com/raursq) |
-| Almas Magzumov | Developer | — |
-| Arman Sagnaev | Product Designer | [Telegram](https://t.me/armashq) |
+| Rauan Salkenov | AI engineer: pipeline, rubric, scenarios, frontend implementation | [Telegram](https://t.me/regularmusician) · [GitHub](https://github.com/raursq) |
+| Almas Magzumov | Platform: database, auth, API, infrastructure | [GitHub](https://github.com/m4rk1sov) |
+| Arman Sagnaev | UX/UI designer: the design of the entire product, everything users see on the site | [Telegram](https://t.me/armashq) · [GitHub](https://github.com/armashq) |
 
 ---
 
@@ -133,7 +200,8 @@ docker compose up --build
 ```
 
 Open [http://localhost:3000](http://localhost:3000) and sign in with
-`committee@invisionu.edu` / `demo2026`. The database is created and seeded
+`committee@invisionu.edu` / `demo2026` (committee) or
+`applicant@invisionu.edu` / `demo2026` (applicant). The database is created and seeded
 on first start (the `backend-data` volume); `docker compose down -v` wipes it.
 No API key is needed. To add one, copy `backend/.env.example` to
 `backend/.env`: compose reads it at run time. Ports can be changed with
@@ -145,8 +213,8 @@ phone on the LAN at `http://<laptop-ip>:3000`.
 
 ```bash
 # Clone
-git clone https://github.com/raursq/invision-u-winchesters.git
-cd invision-u-winchesters
+git clone https://github.com/BAITC-Hacks/hack-22e92cd7-winchesters.git
+cd hack-22e92cd7-winchesters
 
 # Everything at once (venv, backend + frontend deps, backend/.env)
 make install
@@ -164,8 +232,9 @@ python -m uvicorn backend.main:app --port 8000
 cd frontend && npm install && npx next dev --port 3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000). The demo committee account
-is `committee@invisionu.edu` / `demo2026`, seeded while `DEMO_MODE=1`.
+Open [http://localhost:3000](http://localhost:3000). The demo accounts are
+`committee@invisionu.edu` and `applicant@invisionu.edu`, both with the password
+`demo2026`, seeded while `DEMO_MODE=1`.
 
 - After pulling changes that touch `backend/migrations/`, run
   `python -m backend.db init` again. The API refuses to start on an outdated
@@ -194,7 +263,7 @@ is `committee@invisionu.edu` / `demo2026`, seeded while `DEMO_MODE=1`.
 
 ## Known Limitations
 
-- Ledgers are demo mode until the cache is built with a key (see *Current state*).
+- Ledgers are demo mode until the cache is built with a key (see *What works now*).
 - 7 of 9 rubric scales are drafts. The COM-06 probe bank is provisional.
 - No historical data yet (expected from Oct 5), so there is no agreement or
   fairness evidence on real outcomes. The model card stays empty.

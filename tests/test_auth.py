@@ -22,7 +22,13 @@ from backend import settings
 from backend.db import feynman as feynman_store
 from backend.db import users as user_store
 from backend.db.candidates import applicant_id_for
-from backend.db.seed import DEMO_COMMITTEE_EMAIL, DEMO_COMMITTEE_PASSWORD, seed
+from backend.db.seed import (
+    DEMO_APPLICANT_EMAIL,
+    DEMO_APPLICANT_PASSWORD,
+    DEMO_COMMITTEE_EMAIL,
+    DEMO_COMMITTEE_PASSWORD,
+    seed,
+)
 from backend.db.tables import FeynmanSession, User
 from backend.main import app
 from backend.security import AuthConfigError, check_auth_config, create_access_token
@@ -285,6 +291,19 @@ def test_leftover_demo_account_stops_working_when_demo_mode_is_off(client, db, m
     monkeypatch.setattr(settings, "DEMO_MODE", False)
     assert user_store.get_user_by_email(DEMO_COMMITTEE_EMAIL) is not None
     assert _demo_login(client).status_code == 401
+
+
+def test_demo_applicant_logs_in_only_under_demo_mode(client, db, monkeypatch):
+    """Reviewers get a ready applicant login; it is an applicant with no application yet."""
+    credentials = {"email": DEMO_APPLICANT_EMAIL, "password": DEMO_APPLICANT_PASSWORD}
+    monkeypatch.setattr(settings, "DEMO_MODE", True)
+    seed()
+    login = client.post("/api/auth/login", json=credentials)
+    assert login.status_code == 200
+    assert login.json()["user"]["role"] == "applicant"
+    assert login.json()["user"]["candidate_id"] is None
+    monkeypatch.setattr(settings, "DEMO_MODE", False)
+    assert client.post("/api/auth/login", json=credentials).status_code == 401
 
 
 # ── Configuration ──────────────────────────────────────────────────

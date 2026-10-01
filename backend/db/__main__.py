@@ -40,6 +40,7 @@ def init() -> None:
         f"{result.applicants_total - result.applicants_added} already present"
         + (f"; {ledgers_saved} demo ledgers loaded" if ledgers_saved else "")
         + ("; demo committee account created" if result.demo_user_added else "")
+        + ("; demo applicant account created" if result.demo_applicant_added else "")
         + ("; demo committee account repaired (stale password hash or role)" if result.demo_user_repaired else "")
     )
 

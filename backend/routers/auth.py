@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 
 from backend import settings
 from backend.db import users as store
-from backend.db.seed import DEMO_COMMITTEE_EMAIL
+from backend.db.seed import DEMO_EMAILS
 from backend.routers.guards import ensure_candidate_access, require_role
 from backend.security import (
     ALL_ROLES,
@@ -94,9 +94,9 @@ def register(req: RegisterRequest):
 def login(req: LoginRequest):
     """Log in with email and password. Public."""
     email = _normalize_email(req.email)
-    # A database built under DEMO_MODE keeps the demo row after the flag is
-    # turned off; the account must stop working anyway.
-    user = None if email == DEMO_COMMITTEE_EMAIL and not settings.DEMO_MODE else store.get_user_by_email(email)
+    # A database built under DEMO_MODE keeps the demo rows after the flag is
+    # turned off; the accounts must stop working anyway.
+    user = None if email in DEMO_EMAILS and not settings.DEMO_MODE else store.get_user_by_email(email)
     if user is None:
         burn_verify_time(req.password)
         raise HTTPException(status_code=401, detail="Invalid email or password")
