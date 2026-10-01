@@ -3,7 +3,6 @@ import { Badge } from "../ui/Badge";
 import { Section } from "../ui/Section";
 import { WrittenPresentationSection } from "./WrittenPresentation";
 
-/** What the applicant submitted, as submitted: their own words first, then the form. */
 export function ApplicationProfile({ candidate: c }: { candidate: Candidate }) {
   const app = c.application;
   return (
